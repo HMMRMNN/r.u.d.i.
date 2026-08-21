@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Gleitschirm &amp; Segelflug</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root { --black:#000000; --white:#ffffff; }
+    * { box-sizing: border-box; }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
+    body {
+      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
+    }
+    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+
+    .header {
+      position: absolute; top: 14px; left: 20px; right: 20px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--black);
+    }
+    .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
+    .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    .date-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    .date-badge .day { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
+    .date-badge .full { font-size: 10px; }
+
+    .main {
+      position: absolute; top: 58px; left: 20px; right: 20px; bottom: 34px;
+      display: grid; grid-template-columns: 200px 1fr; gap: 0;
+    }
+
+    .overview { padding-right: 16px; border-right: 1px solid var(--black); display: flex; flex-direction: column; }
+
+    .rating-box { padding: 10px 12px; border: 2px solid var(--black); text-align: left; }
+    .rating-box .label { font-size: 8px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.65; }
+    .rating-box .value { margin-top: 4px; font-size: 26px; font-weight: 800; }
+
+    .mini-stats { margin-top: 12px; display: grid; gap: 7px; }
+    .mini-stat {
+      display: flex; justify-content: space-between; gap: 8px;
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10.5px;
+      padding-bottom: 6px; border-bottom: 1px solid #000;
+    }
+    .mini-stat span:first-child { opacity: 0.7; }
+    .mini-stat span:last-child { font-weight: 700; }
+
+    .foehn-box { margin-top: 12px; padding: 8px 10px; border: 1.5px dashed var(--black); }
+    .foehn-box .label { font-size: 8px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+    .foehn-box .value { margin-top: 3px; font-size: 14px; font-weight: 800; }
+    .foehn-box .hint { margin-top: 2px; font-size: 8.5px; opacity: 0.75; }
+
+    .flying-meta { margin-top: auto; display: grid; gap: 8px; }
+    .flying-meta .item { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; }
+    .flying-meta .item .k { font-size: 8px; opacity: 0.65; text-transform: uppercase; letter-spacing: 0.06em; display: block; }
+
+    .flying { padding-left: 18px; display: flex; flex-direction: column; }
+    .section-h { margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .section-h.second { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--black); }
+
+    .wind-table { width: 100%; border-collapse: collapse; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; }
+    .wind-table th, .wind-table td { text-align: left; padding: 3px 8px 4px 0; border-bottom: 1px solid #000; }
+    .wind-table th { font-size: 8.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.65; border-bottom: 1.5px solid var(--black); }
+
+    .disclaimer { margin-top: auto; padding-top: 8px; border-top: 1px solid #000; font-size: 9.5px; line-height: 1.4; }
+
+    .footer {
+      position: absolute; left: 20px; right: 20px; bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding-top: 7px; border-top: 1px solid var(--black);
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
+      font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+    }
+    .empty {
+      position: absolute; inset: 58px 20px 34px; display: grid; place-items: center;
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 13px; text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="frame">
+    <header class="header">
+      <div>
+        <p class="brand">GLEITSCHIRM &amp; SEGELFLUG</p>
+        <p class="subtitle">Live-Wind &amp; Flugprognose</p>
+      </div>
+      <div class="date-badge">
+        <div class="day" id="dayName">&ndash;</div>
+        <div class="full" id="fullDate">&ndash;</div>
+      </div>
+    </header>
+
+    <section class="main" id="main">
+      <div class="empty">Loading&hellip;</div>
+    </section>
+
+    <footer class="footer">
+      <span>Grassau, Germany</span>
+      <span id="updatedAt">Updating</span>
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const LOCATION = { lat: 47.7756, lon: 12.4550 };
+    // Süd-Referenz für den Föhn-Indikator (grob nach dem Prinzip des
+    // offiziellen Südtiroler Föhndiagramms, Bozen vs. Innsbruck --
+    // hier vereinfacht: Bozen als Südseite, Grassau als Nordseite).
+    const FOEHN_SOUTH = { lat: 46.4983, lon: 11.3548, name: "Bozen" };
+    const WEATHER_API = "https://api.open-meteo.com/v1/forecast";
+    const PARAGLIDABLE_API = "https://rudi.marvinradar.workers.dev/paraglidable";
+    const HOLFUY_API = "https://rudi.marvinradar.workers.dev/holfuy";
+    const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
+
+    const mainEl = document.getElementById("main");
+    const updatedAt = document.getElementById("updatedAt");
+    const dayName = document.getElementById("dayName");
+    const fullDate = document.getElementById("fullDate");
+
+    function windDir(deg) {
+      const dirs = ["N", "NO", "O", "SO", "S", "SW", "W", "NW"];
+      return dirs[Math.round(deg / 45) % 8];
+    }
+
+    async function loadWeather() {
+      try {
+        const params = new URLSearchParams({
+          latitude: String(LOCATION.lat),
+          longitude: String(LOCATION.lon),
+          hourly: [
+            "windspeed_10m", "windspeed_80m", "winddirection_10m", "cloudcover", "pressure_msl",
+          ].join(","),
+          daily: ["precipitation_sum", "windspeed_10m_max", "sunrise", "sunset"].join(","),
+          timezone: "Europe/Berlin",
+        });
+
+        const foehnParams = new URLSearchParams({
+          latitude: String(FOEHN_SOUTH.lat),
+          longitude: String(FOEHN_SOUTH.lon),
+          hourly: "pressure_msl",
+          timezone: "Europe/Berlin",
+        });
+
+        const [response, foehnResponse, pgResponse, holfuyResponse] = await Promise.all([
+          fetch(`${WEATHER_API}?${params.toString()}`, { headers: { Accept: "application/json" }, cache: "no-store" }),
+          fetch(`${WEATHER_API}?${foehnParams.toString()}`, { headers: { Accept: "application/json" }, cache: "no-store" }),
+          fetch(PARAGLIDABLE_API, { headers: { Accept: "application/json" }, cache: "no-store" }).catch(() => null),
+          fetch(HOLFUY_API, { headers: { Accept: "application/json" }, cache: "no-store" }).catch(() => null),
+        ]);
+
+        if (!response.ok) throw new Error(`Weather HTTP ${response.status}`);
+
+        const data = await response.json();
+        const foehnData = foehnResponse.ok ? await foehnResponse.json() : null;
+        const pgData = pgResponse && pgResponse.ok ? await pgResponse.json() : null;
+        const holfuyData = holfuyResponse && holfuyResponse.ok ? await holfuyResponse.json() : null;
+
+        render(data, foehnData, pgData, holfuyData);
+
+        updatedAt.textContent = `Updated ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`;
+      } catch (error) {
+        console.error(error);
+        mainEl.innerHTML = '<div class="empty">Daten nicht verf&uuml;gbar.</div>';
+        updatedAt.textContent = "Update failed";
+      }
+    }
+
+    function render(data, foehnData, pgData, holfuyData) {
+      const now = new Date();
+      dayName.textContent = now.toLocaleDateString("de-DE", { weekday: "long" }).toUpperCase();
+      fullDate.textContent = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" });
+
+      const daily = data.daily;
+      const hourly = data.hourly;
+      const precipSum = daily.precipitation_sum[0];
+      const windMax = Math.round(daily.windspeed_10m_max[0]);
+      const sunrise = new Date(daily.sunrise[0]).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+      const sunset = new Date(daily.sunset[0]).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+
+      const todayHours = hourly.time.map((t, i) => ({ t, i })).filter(({ t }) => t.startsWith(daily.time[0]));
+      const flyingSlots = [9, 12, 15, 18].map((hour) => {
+        const found = todayHours.find(({ t }) => Number(t.slice(11, 13)) === hour);
+        if (!found) return null;
+        const i = found.i;
+        return {
+          hour,
+          wind10: Math.round(hourly.windspeed_10m[i]),
+          wind80: Math.round(hourly.windspeed_80m[i]),
+          dir: windDir(hourly.winddirection_10m[i]),
+          cloud: hourly.cloudcover[i],
+        };
+      }).filter(Boolean);
+
+      const pgToday = pgData ? pgData[daily.time[0]] : null;
+      const usingFallbackRating = !(pgToday && pgToday.length);
+      const rating = usingFallbackRating
+        ? deriveFlyingRating(flyingSlots, precipSum, windMax)
+        : deriveFlyingRatingFromParaglidable(pgToday);
+      const foehn = deriveFoehnIndicator(hourly, foehnData);
+
+      const windRows = flyingSlots.map((s) => `
+        <tr><td>${s.hour}:00</td><td>${s.wind10} km/h ${s.dir}</td><td>${s.wind80} km/h</td><td>${s.cloud}%</td></tr>
+      `).join("");
+
+      mainEl.innerHTML = `
+        <div class="overview">
+          <div class="rating-box">
+            <div class="label">Flugtauglichkeit${usingFallbackRating ? " (Notfall)" : ""}</div>
+            <div class="value">${rating.label}</div>
+          </div>
+
+          <div class="mini-stats">
+            <div class="mini-stat"><span>Niederschlag</span><span>${precipSum.toFixed(1)} mm</span></div>
+            <div class="mini-stat"><span>Wind max.</span><span>${windMax} km/h</span></div>
+            <div class="mini-stat"><span>Sonne auf/unter</span><span>${sunrise} / ${sunset}</span></div>
+          </div>
+
+          <div class="foehn-box">
+            <div class="label">F&ouml;hn-Heuristik (unvalidiert)</div>
+            <div class="value">${foehn.label}</div>
+            <div class="hint">${foehn.hint}</div>
+          </div>
+
+          <div class="flying-meta">
+            <div class="item"><span class="k">Beste Zeit</span>${rating.bestWindow}</div>
+            <div class="item"><span class="k">Windscherung</span>${rating.shear}</div>
+          </div>
+        </div>
+
+        <div class="flying">
+          ${renderHolfuyTable(holfuyData) || `
+            <p class="section-h">Wind-Vorhersage (Modell)</p>
+            <table class="wind-table">
+              <thead><tr><th>Zeit</th><th>Wind 10m</th><th>Wind 80m</th><th>Bew&ouml;lkung</th></tr></thead>
+              <tbody>${windRows}</tbody>
+            </table>
+          `}
+
+          ${pgToday && pgToday.length ? `
+            <p class="section-h second">Startpl&auml;tze &ndash; heute</p>
+            <table class="wind-table">
+              <thead><tr><th>Startplatz</th><th>Fly</th><th>XC</th><th>Start</th></tr></thead>
+              <tbody>
+                ${pgToday.map((spot) => `
+                  <tr>
+                    <td>${spot.name}</td>
+                    <td>${Math.round(spot.forecast.fly * 100)}%</td>
+                    <td>${Math.round(spot.forecast.XC * 100)}%</td>
+                    <td>${Math.round(spot.forecast.takeoff * 100)}%</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          ` : ""}
+
+          ${renderMultiDayOutlook(pgData)}
+
+          <p class="disclaimer">
+            Fly/XC/Start: KI-Prognose paraglidable.com. Wind/Bew&ouml;lkung: Open-Meteo.
+            Kein Ersatz f&uuml;r eine offizielle Flugwetterberatung &ndash; eigene
+            Einsch&auml;tzung vor jedem Flug zwingend erforderlich.
+          </p>
+        </div>
+      `;
+    }
+
+    function renderMultiDayOutlook(pgData) {
+      if (!pgData) return "";
+
+      // Nur die nächsten Wochenend-Tage (Sa/So) -- nicht die ganze Woche
+      const dates = Object.keys(pgData).sort().filter((dateStr) => {
+        const day = new Date(dateStr + "T12:00:00").getDay();
+        return day === 0 || day === 6;
+      }).slice(0, 2);
+
+      if (!dates.length) return "";
+
+      const rows = dates.map((dateStr) => {
+        const spots = pgData[dateStr];
+        const hochplatte = spots.find((s) => s.name.toLowerCase().includes("hochplatte"));
+        if (!hochplatte) return null;
+
+        const d = new Date(dateStr + "T12:00:00");
+        const dayLabel = d.toLocaleDateString("de-DE", { weekday: "long" }).toUpperCase();
+        const dateLabel = d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+        const fly = Math.round(hochplatte.forecast.fly * 100);
+        const xc = Math.round(hochplatte.forecast.XC * 100);
+
+        return `
+          <tr>
+            <td>${dayLabel} <span style="opacity:0.6; font-weight:400;">${dateLabel}</span></td>
+            <td>${fly}%</td>
+            <td>${xc}%</td>
+          </tr>
+        `;
+      }).filter(Boolean);
+
+      if (!rows.length) return "";
+
+      return `
+        <p class="section-h second">Hochplatte &ndash; Wochenende</p>
+        <table class="wind-table">
+          <thead><tr><th>Tag</th><th>Fly</th><th>XC</th></tr></thead>
+          <tbody>${rows.join("")}</tbody>
+        </table>
+      `;
+    }
+
+    function renderHolfuyTable(holfuyData) {
+      if (!holfuyData || !Array.isArray(holfuyData.stations)) return null;
+      const valid = holfuyData.stations.filter((s) => !s.error && s.wind !== null && s.wind !== undefined);
+      if (!valid.length) return null;
+
+      const rows = valid.map((s) => `
+        <tr>
+          <td>${s.label}</td>
+          <td>${s.wind ?? "-"} km/h</td>
+          <td>${s.gust ?? "-"} km/h</td>
+          <td>${s.direction !== null && s.direction !== undefined ? Math.round(s.direction) + "°" : "-"}</td>
+          <td>${s.temperature !== null && s.temperature !== undefined ? Math.round(s.temperature) + "°" : "-"}</td>
+        </tr>
+      `).join("");
+
+      return `
+        <p class="section-h">Startpl&auml;tze &ndash; Live</p>
+        <table class="wind-table">
+          <thead><tr><th>Startplatz</th><th>Wind</th><th>B&ouml;e</th><th>Richtung</th><th>Temp</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function deriveFoehnIndicator(hourly, foehnData) {
+      if (!foehnData || !foehnData.hourly) return { label: "K.A.", hint: "Süd-Referenzdaten nicht verfügbar" };
+      const nowIso = new Date().toISOString().slice(0, 13);
+      let idxNorth = hourly.time.findIndex((t) => t.startsWith(nowIso));
+      let idxSouth = foehnData.hourly.time.findIndex((t) => t.startsWith(nowIso));
+      if (idxNorth < 0) idxNorth = 12;
+      if (idxSouth < 0) idxSouth = 12;
+      const pNorth = hourly.pressure_msl[idxNorth];
+      const pSouth = foehnData.hourly.pressure_msl[idxSouth];
+      if (pNorth === undefined || pSouth === undefined) return { label: "K.A.", hint: "Druckdaten unvollständig" };
+      const diff = pSouth - pNorth;
+      let label, hint;
+      if (diff >= 6) { label = "DEUTET AUF FÖHN"; hint = `Δp ${diff.toFixed(1)} hPa`; }
+      else if (diff >= 3) { label = "NICHT AUSZUSCHLIESSEN"; hint = `Δp ${diff.toFixed(1)} hPa`; }
+      else if (diff <= -3) { label = "EHER NORDSTAU"; hint = `Δp ${diff.toFixed(1)} hPa`; }
+      else { label = "KEIN HINWEIS"; hint = `Δp ${diff.toFixed(1)} hPa`; }
+      return { label, hint };
+    }
+
+    function deriveFlyingRatingFromParaglidable(spots) {
+      const bestFly = Math.max(...spots.map((s) => s.forecast.fly));
+      const bestXc = Math.max(...spots.map((s) => s.forecast.XC));
+      const bestSpot = spots.find((s) => s.forecast.fly === bestFly);
+      const label = bestFly >= 0.75 ? "GUT" : bestFly >= 0.4 ? "MÄSSIG" : "SCHLECHT";
+      const bestWindow = bestXc >= 0.3 ? `${bestSpot.name} (XC)` : bestSpot.name;
+      return { label, bestWindow, shear: `${Math.round(bestFly * 100)}% Fly-Score` };
+    }
+
+    function deriveFlyingRating(slots, precipSum, windMax) {
+      if (!slots.length) return { label: "K.A.", bestWindow: "&ndash;", shear: "&ndash;" };
+      if (precipSum > 2) return { label: "SCHLECHT", bestWindow: "Niederschlag erwartet", shear: "&ndash;" };
+      if (windMax > 35) return { label: "SCHLECHT", bestWindow: "Zu windig", shear: "&ndash;" };
+      let best = null, bestScore = -Infinity;
+      for (const s of slots) {
+        const windScore = s.wind10 >= 8 && s.wind10 <= 25 ? 2 : s.wind10 < 8 ? 1 : -1;
+        const cloudScore = s.cloud >= 20 && s.cloud <= 70 ? 2 : 0;
+        const score = windScore + cloudScore;
+        if (score > bestScore) { bestScore = score; best = s; }
+      }
+      const avgShear = slots.reduce((sum, s) => sum + Math.abs(s.wind80 - s.wind10), 0) / slots.length;
+      const shearLabel = avgShear > 15 ? "Deutlich" : avgShear > 8 ? "Moderat" : "Gering";
+      const label = bestScore >= 3 ? "GUT" : bestScore >= 1 ? "MÄSSIG" : "SCHLECHT";
+      const bestWindow = best ? `${best.hour}:00 Uhr` : "&ndash;";
+      return { label, bestWindow, shear: shearLabel };
+    }
+
+    loadWeather();
+    setInterval(loadWeather, REFRESH_INTERVAL_MS);
+  </script>
+</body>
+</html>

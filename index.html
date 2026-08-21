@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>R.U.D.I. – Übersicht</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root { --black:#000000; --white:#ffffff; --gray:#777777; }
+    * { box-sizing: border-box; }
+
+    html, body { margin:0; min-height:100%; background:var(--white); color:var(--black); font-family: "Work Sans", Arial, Helvetica, sans-serif; }
+    body { padding: 32px 20px 60px; }
+    .page { max-width: 900px; margin: 0 auto; }
+
+    header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 3px solid var(--black); }
+    h1 { margin: 0 0 4px; font-size: 26px; font-weight: 900; letter-spacing: -0.02em; }
+    .subtitle { margin: 0; color: var(--gray); font-size: 13px; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+
+    .section-label {
+      margin: 32px 0 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--gray); display: flex; align-items: center; gap: 8px;
+    }
+    .section-label .repo-tag {
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; font-weight: 400;
+      padding: 1px 6px; border: 1px solid var(--gray); border-radius: 3px; text-transform: none; letter-spacing: 0;
+    }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, 268px); gap: 16px; }
+    .card { display: block; border: 1px solid var(--black); border-radius: 4px; overflow: hidden; color: var(--black); text-decoration: none; background: var(--white); width: 268px; }
+    .card:hover { background: #f7f7f7; }
+
+    .thumb-wrap { position: relative; width: 266px; height: 160px; overflow: hidden; border-bottom: 1px solid var(--black); background: #f2f2f2; pointer-events: none; }
+    .thumb-wrap iframe { position: absolute; top: 0; left: 0; width: 800px; height: 480px; border: 0; transform: scale(0.3325); transform-origin: top left; }
+    /* Für die interaktive M.A.R.V.I.N.-App (kein 800x480-Format, volle Seite) */
+    .thumb-wrap.app iframe { width: 1400px; height: 840px; transform: scale(0.19); }
+
+    .thumb.placeholder {
+      display: flex; align-items: center; justify-content: center; height: 160px;
+      color: var(--gray); font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px;
+      text-align: center; padding: 12px; border-bottom: 1px solid var(--black);
+    }
+
+    .card-body { padding: 10px 14px 12px; }
+    .card-body .name { font-size: 15px; font-weight: 700; }
+    .card-body .desc { margin-top: 3px; font-size: 11px; color: var(--gray); font-family: "Roboto Mono", ui-monospace, Menlo, monospace; word-break: break-all; }
+
+    .status { display: inline-block; margin-top: 6px; padding: 2px 6px; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 3px; }
+    .status.live { background: #000; color: #fff; }
+    .status.planned { background: #eee; color: var(--gray); }
+
+    .bmp-card {
+      display: block; border: 2px solid var(--black); border-radius: 4px; overflow: hidden;
+      max-width: 800px; background: #fafafa; text-decoration: none;
+    }
+    .bmp-img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+
+    footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid #ccc; font-size: 11px; color: var(--gray); font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <header>
+      <h1>R.U.D.I.</h1>
+      <p class="subtitle">Radar, Updates, Display &ndash; Infotafel</p>
+    </header>
+
+    <!-- Wird per JS aus der Channel-Registry im rudi-Worker befüllt --
+         neue Seiten über control.html registrieren, tauchen automatisch
+         hier auf, kein Bearbeiten dieser Datei mehr nötig. -->
+    <div id="channelSections">
+      <p class="section-label">L&auml;dt&hellip;</p>
+    </div>
+
+    <!-- ============ Aktuell auf dem Display ============ -->
+    <p class="section-label">Aktuell auf dem Display <span class="repo-tag">screen.bmp</span></p>
+    <a class="bmp-card" href="screen.bmp" target="_blank" rel="noopener">
+      <img class="bmp-img" id="bmpImg" src="screen.bmp" alt="Aktuelles E-Ink-Display-Bild" />
+    </a>
+
+    <footer>
+      Karten mit externem Link (nicht-R.U.D.I.-Kategorien) &ouml;ffnen in neuem Tab und laufen im jeweils urspr&uuml;nglichen Repo &ndash; hier nur per iframe live eingebettet, kein Datei-Duplikat. Neue Seiten &uuml;ber <a href="control.html">control.html</a> registrieren, sie tauchen dann automatisch hier auf. F&uuml;r den E-Ink-Screenshot-Workflow z&auml;hlt weiterhin die Routing-Logik im rudi-Worker, nicht diese &Uuml;bersichtsseite.
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const WORKER = "https://rudi.marvinradar.workers.dev";
+
+    function cardHtml(c) {
+      const isExternal = /^https?:\/\//i.test(c.file);
+      const target = isExternal ? ` target="_blank" rel="noopener"` : "";
+      const wrapClass = c.isApp ? "thumb-wrap app" : "thumb-wrap";
+      const statusText = isExternal ? "Live &middot; extern" : "Live";
+
+      return `
+        <a class="card" href="${c.file}"${target}>
+          <div class="${wrapClass}"><iframe src="${c.file}" tabindex="-1"></iframe></div>
+          <div class="card-body">
+            <div class="name">${c.name}</div>
+            <div class="desc">${c.file}</div>
+            <span class="status live">${statusText}</span>
+          </div>
+        </a>
+      `;
+    }
+
+    async function loadChannels() {
+      const container = document.getElementById("channelSections");
+      try {
+        const res = await fetch(`${WORKER}/channels`, { cache: "no-store" });
+        const channels = await res.json();
+
+        if (!Array.isArray(channels)) {
+          const detail = channels && channels.error ? channels.error : "unerwartetes Format";
+          throw new Error(`/channels lieferte kein Array (${detail}) -- läuft im Worker der neueste Code mit /channels-Endpunkt?`);
+        }
+
+        // Nach category gruppieren, Reihenfolge des ersten Auftretens
+        const groups = new Map();
+        channels.forEach((c) => {
+          const cat = c.category || "Sonstiges";
+          if (!groups.has(cat)) groups.set(cat, []);
+          groups.get(cat).push(c);
+        });
+
+        container.innerHTML = Array.from(groups.entries()).map(([cat, items]) => `
+          <p class="section-label">${cat} <span class="repo-tag">${items.length} Seite${items.length === 1 ? "" : "n"}</span></p>
+          <div class="grid">${items.map(cardHtml).join("")}</div>
+        `).join("");
+      } catch (error) {
+        container.innerHTML = `<p class="section-label">Registry nicht erreichbar</p><p style="font-family:'Roboto Mono',monospace; font-size:11px; color:var(--gray);">${error.message}</p>`;
+      }
+    }
+
+    loadChannels();
+  </script>
+</body>
+</html>

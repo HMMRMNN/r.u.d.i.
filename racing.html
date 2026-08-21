@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Radrennen</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root { --black:#000000; --white:#ffffff; }
+    * { box-sizing: border-box; }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
+    body {
+      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
+    }
+    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+
+    .header {
+      position: absolute; top: 14px; left: 20px; right: 20px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--black);
+    }
+    .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
+    .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    .date-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    .date-badge .day { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
+    .date-badge .full { font-size: 10px; }
+
+    .main { position: absolute; top: 58px; left: 20px; right: 20px; bottom: 34px; display: grid; grid-template-columns: 1fr 220px; gap: 0; }
+
+    .content { padding-right: 16px; border-right: 1px solid var(--black); overflow: hidden; }
+    .content-label { margin: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .race-date { margin: 0 0 10px; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; opacity: 0.7; }
+    .content-label .tag {
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; font-weight: 400;
+      padding: 1px 6px; border: 1px solid var(--black); border-radius: 3px; margin-left: 8px; text-transform: none;
+    }
+
+    .gc-table { width: 100%; border-collapse: collapse; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 12.5px; }
+    .gc-table th, .gc-table td { text-align: left; padding: 5px 8px 6px 0; border-bottom: 1px solid #000; }
+    .gc-table th { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #000; }
+    .gc-table td.rk { opacity: 0.6; width: 22px; }
+    .gc-table td.rider { font-weight: 700; }
+
+    .stage-table { margin-bottom: 4px; }
+    .stage-table th, .stage-table td { padding: 3px 8px 4px 0; font-size: 11px; }
+    .content-label + .stage-table { margin-top: 2px; }
+    .stage-table + .content-label { margin-top: 10px; }
+
+    .upcoming { padding-left: 16px; display: flex; flex-direction: column; }
+    .upcoming h2 { margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .upcoming-list { margin: 0; padding: 0; list-style: none; }
+    .upcoming-list li { padding: 6px 0; border-bottom: 1px dashed #000; }
+    .upcoming-list li:last-child { border-bottom: none; }
+    .upcoming-list .u-name { font-size: 12px; font-weight: 700; line-height: 1.25; }
+    .upcoming-list .u-date { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9.5px; opacity: 0.7; margin-top: 2px; }
+
+    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; height: 100%; }
+    .empty .headline { font-size: 18px; font-weight: 800; }
+    .empty .sub { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; opacity: 0.75; }
+
+    .footer {
+      position: absolute; left: 20px; right: 20px; bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding-top: 7px; border-top: 1px solid var(--black);
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
+      font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="frame">
+    <header class="header">
+      <div>
+        <p class="brand" id="brandName">RADRENNEN</p>
+        <p class="subtitle" id="raceSubtitle">L&auml;dt&hellip;</p>
+      </div>
+      <div class="date-badge">
+        <div class="day" id="dayName">&ndash;</div>
+        <div class="full" id="fullDate">&ndash;</div>
+      </div>
+    </header>
+
+    <section class="main" id="main">
+      <div class="content"><div class="empty"><div class="headline">L&auml;dt&hellip;</div></div></div>
+      <div class="upcoming">
+        <h2>N&auml;chste Rennen</h2>
+        <ul class="upcoming-list" id="upcomingList"></ul>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>UCI WorldTour Radrennen</span>
+      <span id="updatedAt">Updating</span>
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const RACES_API = "https://rudi.marvinradar.workers.dev/races";
+    const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+
+    const mainEl = document.getElementById("main");
+    const upcomingList = document.getElementById("upcomingList");
+    const updatedAt = document.getElementById("updatedAt");
+    const dayName = document.getElementById("dayName");
+    const fullDate = document.getElementById("fullDate");
+    const raceSubtitle = document.getElementById("raceSubtitle");
+
+    function formatDate(iso) {
+      const d = new Date(iso + "T12:00:00");
+      return d.toLocaleDateString("de-DE", { day: "2-digit", month: "long", timeZone: "Europe/Berlin" });
+    }
+
+    function formatDateRange(startIso, endIso) {
+      if (!startIso) return "";
+      if (startIso === endIso) return formatDate(startIso);
+      return `${formatDate(startIso)} \u2013 ${formatDate(endIso)}`;
+    }
+
+    // Ehrlicher Hinweis: zaehlt KALENDERTAGE zwischen Start und Ende,
+    // nicht Etappen. Bei Grand Tours mit Ruhetagen (z.B. Vuelta: 23
+    // Kalendertage, aber nur 21 Etappen) weicht "Tag X von Y" also von
+    // der offiziellen Etappennummer ab. Der Kalender speichert aktuell
+    // keine Ruhetags-Termine, eine exakte Etappenzaehlung ist damit
+    // nicht moeglich, ohne diese Daten zu ergaenzen.
+    function dayCounter(startIso, endIso) {
+      if (!startIso || !endIso || startIso === endIso) return null;
+
+      const start = new Date(startIso + "T00:00:00");
+      const end = new Date(endIso + "T00:00:00");
+      const today = new Date(
+        new Date().toLocaleString("en-US", { timeZone: "Europe/Berlin" })
+      );
+      today.setHours(0, 0, 0, 0);
+
+      const totalDays = Math.round((end - start) / 86400000) + 1;
+      const rawDay = Math.round((today - start) / 86400000) + 1;
+      const day = Math.min(Math.max(rawDay, 1), totalDays);
+
+      return { day, totalDays };
+    }
+
+    async function load() {
+      const now = new Date();
+      dayName.textContent = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" }).toUpperCase();
+      fullDate.textContent = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
+
+      try {
+        const res = await fetch(RACES_API, { headers: { Accept: "application/json" }, cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        render(data);
+        updatedAt.textContent = `Updated ${now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}`;
+      } catch (error) {
+        console.error(error);
+        raceSubtitle.textContent = "Nicht verf\u00fcgbar";
+        mainEl.querySelector(".content").innerHTML = '<div class="empty"><div class="headline">Daten nicht verf&uuml;gbar</div></div>';
+        updatedAt.textContent = "Update failed";
+      }
+    }
+
+    function renderUpcoming(nextRaces) {
+      if (!nextRaces || !nextRaces.length) {
+        upcomingList.innerHTML = '<li style="opacity:0.6; font-size:11px;">Keine weiteren Rennen im Kalender</li>';
+        return;
+      }
+      upcomingList.innerHTML = nextRaces.map((r) => `
+        <li>
+          <div class="u-name">${r.name}</div>
+          <div class="u-date">${formatDate(r.start)}${r.start !== r.end ? " \u2013 " + formatDate(r.end) : ""}</div>
+        </li>
+      `).join("");
+    }
+
+    function render(data) {
+      renderUpcoming(data.nextRaces);
+
+      const contentEl = document.createElement("div");
+      contentEl.className = "content";
+
+      if (data.activeRace) {
+        raceSubtitle.textContent = data.activeRace.name;
+        contentEl.innerHTML = buildContentHtml(data.activeRace.name, data.data, "Live", data.activeRace);
+      } else if (data.data && data.isLastRace) {
+        raceSubtitle.textContent = "Gerade kein Rennen";
+        contentEl.innerHTML = buildContentHtml(data.data.race, data.data, "Letztes Ergebnis", data.lastRace);
+      } else {
+        raceSubtitle.textContent = "Gerade kein Rennen";
+        contentEl.innerHTML = `<div class="empty"><div class="headline">Gerade kein UCI-Rennen</div><div class="sub">37 Rennen im Kalender</div></div>`;
+      }
+
+      mainEl.querySelector(".content").replaceWith(contentEl);
+    }
+
+    function buildContentHtml(raceName, raceData, tag, calendarEntry) {
+      const dateRange = calendarEntry ? formatDateRange(calendarEntry.start, calendarEntry.end) : "";
+      const counter = calendarEntry ? dayCounter(calendarEntry.start, calendarEntry.end) : null;
+      const counterBadge = counter ? `<span class="tag">Tag ${counter.day}/${counter.totalDays}</span>` : "";
+      const label = `
+        <p class="content-label">${raceName}<span class="tag">${tag}</span>${counterBadge}</p>
+        ${dateRange ? `<p class="race-date">${dateRange}</p>` : ""}
+      `;
+
+      if (!raceData || raceData.error) {
+        return `${label}<div class="empty"><div class="sub">Wertung noch nicht abgerufen</div></div>`;
+      }
+
+      if (raceData.type === "stage" && raceData.gc && raceData.gc.length) {
+        const stageRows = (raceData.stageResult || []).slice(0, 3).map((r) => `
+          <tr>
+            <td class="rk">${r.rank}</td>
+            <td class="rider">${r.rider}</td>
+            <td>${r.team || ""}</td>
+            <td>${r.gap}</td>
+          </tr>
+        `).join("");
+
+        const stageBlock = (raceData.stageResult && raceData.stageResult.length) ? `
+          <p class="content-label" style="margin-top:0; font-size:9.5px;">Etappe heute</p>
+          <table class="gc-table stage-table">
+            <thead><tr><th></th><th>Fahrer</th><th>Team</th><th>Zeit</th></tr></thead>
+            <tbody>${stageRows}</tbody>
+          </table>
+        ` : "";
+
+        const gcRows = raceData.gc.map((r) => `
+          <tr>
+            <td class="rk">${r.rank}</td>
+            <td class="rider">${r.rider}</td>
+            <td>${r.team || ""}</td>
+            <td>${r.gap}</td>
+          </tr>
+        `).join("");
+
+        return `
+          ${label}
+          ${stageBlock}
+          <p class="content-label" style="font-size:9.5px;">Gesamtwertung</p>
+          <table class="gc-table">
+            <thead><tr><th></th><th>Fahrer</th><th>Team</th><th>Zeit</th></tr></thead>
+            <tbody>${gcRows}</tbody>
+          </table>
+        `;
+      }
+
+      if (raceData.type === "oneday" && raceData.result && raceData.result.length) {
+        const rows = raceData.result.map((r) => `
+          <tr>
+            <td class="rk">${r.rank}</td>
+            <td class="rider">${r.rider}</td>
+            <td>${r.team || ""}</td>
+          </tr>
+        `).join("");
+
+        return `
+          ${label}
+          <table class="gc-table">
+            <thead><tr><th></th><th>Fahrer</th><th>Team</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <p style="margin-top:12px; font-family:'Roboto Mono',ui-monospace,Menlo,monospace; font-size:9.5px; opacity:0.65;">
+            Eintagesrennen &ndash; keine Trikotwertung
+          </p>
+        `;
+      }
+
+      return `${label}<div class="empty"><div class="sub">Noch keine Daten verf&uuml;gbar</div></div>`;
+    }
+
+    load();
+    setInterval(load, REFRESH_INTERVAL_MS);
+  </script>
+</body>
+</html>
