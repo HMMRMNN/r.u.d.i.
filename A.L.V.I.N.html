@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Flugradar</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root { --black:#000000; --white:#ffffff; --gray:#777777; }
+    * { box-sizing: border-box; }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
+    body {
+      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
+    }
+    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+
+    .header {
+      position: absolute; top: 14px; left: 20px; right: 20px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--black);
+    }
+    .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
+    .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    .live-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+
+    /* Sehr subtil: kleiner, unauffälliger Kreis-Button, verschmilzt fast
+       mit dem Rahmen -- fällt auf dem E-Ink-Screenshot kaum auf, ist im
+       Browser aber anklickbar. */
+    .location-btn {
+      position: absolute; top: 6px; right: 6px; width: 16px; height: 16px;
+      border: 1px solid var(--black); border-radius: 50%; background: transparent;
+      color: var(--black); font-size: 8px; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; opacity: 0.35;
+      z-index: 10;
+    }
+    .location-btn:hover { opacity: 1; }
+
+    .location-modal {
+      position: absolute; top: 26px; right: 6px; z-index: 20;
+      width: 220px; background: var(--white); border: 1.5px solid var(--black);
+      border-radius: 6px; padding: 10px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .location-modal .lm-title { margin: 0 0 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .location-modal .lm-gps-btn {
+      width: 100%; padding: 6px 8px; font-size: 10.5px; font-family: "Work Sans", sans-serif;
+      border: 1px solid var(--black); border-radius: 4px; background: var(--white); cursor: pointer;
+    }
+    .location-modal .lm-gps-btn:hover { background: #f5f5f5; }
+    .location-modal .lm-or { margin: 8px 0 4px; font-size: 9px; opacity: 0.6; text-align: center; }
+    .location-modal .lm-input {
+      width: 100%; padding: 5px 6px; font-size: 10.5px; font-family: "Work Sans", sans-serif;
+      border: 1px solid var(--black); border-radius: 4px; box-sizing: border-box;
+    }
+    .location-modal .lm-buttons { display: flex; gap: 6px; margin-top: 8px; }
+    .location-modal .lm-buttons button {
+      flex: 1; padding: 5px 0; font-size: 10px; font-family: "Work Sans", sans-serif;
+      border: 1px solid var(--black); border-radius: 4px; cursor: pointer;
+    }
+    .location-modal .lm-cancel { background: var(--white); }
+    .location-modal .lm-save { background: var(--black); color: var(--white); }
+    .location-modal .lm-status { margin: 6px 0 0; font-size: 9px; opacity: 0.7; min-height: 11px; }
+
+    .aircraft-list { position: absolute; top: 58px; left: 20px; right: 20px; bottom: 34px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+    .aircraft { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 10px 10px 8px; text-align: left; }
+    .aircraft + .aircraft { border-left: 1px solid var(--black); }
+
+    .tail { display: grid; place-items: start center; width: 100%; height: 132px; min-height: 132px; padding: 0 2px 12px; border-bottom: 1px solid var(--black); }
+    .tail img {
+      display: block; width: 100%; max-width: 182px; max-height: 122px; object-fit: contain;
+      filter: grayscale(1) contrast(1.95) drop-shadow(0.5px 0 0 var(--black)) drop-shadow(-0.5px 0 0 var(--black)) drop-shadow(0 0.5px 0 var(--black)) drop-shadow(0 -0.5px 0 var(--black));
+    }
+    .tail-fallback { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; }
+
+    .route-block { min-width: 0; padding: 9px 0 8px; border-bottom: 1px solid var(--black); }
+    .aircraft-type { margin: 0; font-family: "Work Sans", Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; }
+    .to-line { margin: 4px 0 2px; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; line-height: 1; }
+    .destination { margin: 0; font-family: "Work Sans", Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+
+    .details { min-width: 0; padding-top: 8px; }
+    .detail-group { padding: 0 0 7px; }
+    .detail-group + .detail-group { padding-top: 7px; border-top: 1px solid var(--black); }
+
+    .meta { margin: 0; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; line-height: 1.15; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+    .meta + .meta { margin-top: 2px; }
+    .meta.route-meta { text-transform: uppercase; }
+    .meta.phase-meta { text-transform: uppercase; letter-spacing: 0.04em; }
+
+    .footer {
+      position: absolute; left: 20px; right: 20px; bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding-top: 7px; border-top: 1px solid var(--black);
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+    }
+    .empty { position: absolute; inset: 58px 20px 34px; display: grid; place-items: center; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 13px; text-align: center; line-height: 1.2; }
+
+    @media (max-width: 799px), (max-height: 479px) {
+      body { place-items: start; }
+      .frame { transform-origin: top left; transform: scale(0.9); }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="frame">
+    <button class="location-btn" id="locationBtn" title="Standort ändern">&#9679;</button>
+
+    <div class="location-modal" id="locationModal" style="display:none;">
+      <p class="lm-title">Standort ändern</p>
+      <button class="lm-gps-btn" id="lmGpsBtn">&#128205; Aktuellen GPS-Standort verwenden</button>
+      <p class="lm-or">oder Adresse eingeben</p>
+      <input type="text" class="lm-input" id="lmAddressInput" placeholder="z.B. Laimer Str. 27, München" />
+      <div class="lm-buttons">
+        <button class="lm-cancel" id="lmCancelBtn">Abbrechen</button>
+        <button class="lm-save" id="lmSaveBtn">Übernehmen</button>
+      </div>
+      <p class="lm-status" id="lmStatus"></p>
+    </div>
+    <header class="header">
+      <div>
+        <p class="brand">FLUGRADAR</p>
+        <p class="subtitle">Live-Flugverfolgung &amp; Routeninfo</p>
+      </div>
+      <p class="live-badge">Live</p>
+    </header>
+
+    <section class="aircraft-list" id="aircraftList">
+      <div class="empty">Loading aircraft...</div>
+    </section>
+
+    <footer class="footer">
+      <span id="footerCity">Loading location…</span>
+      <span id="updatedAt">Updating</span>
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    // Läuft jetzt über den rudi-Worker als Proxy (statt direktem
+    // Cross-Origin-Aufruf) -- damit spielt die CORS-Einstellung der
+    // alten aviradar-api keine Rolle mehr.
+    const API_BASE = "https://rudi.marvinradar.workers.dev/flights";
+    const RUDI_WORKER = "https://rudi.marvinradar.workers.dev";
+    let LOCATION = { lat: 48.1547, lon: 11.5074, label: "München" };
+    const MAX_AIRCRAFT = 4;
+    const REFRESH_INTERVAL_MS = 300000;
+
+    const aircraftList = document.getElementById("aircraftList");
+    const updatedAt = document.getElementById("updatedAt");
+    const footerCity = document.getElementById("footerCity");
+    const locationBtn = document.getElementById("locationBtn");
+
+    async function loadLocation() {
+      try {
+        const res = await fetch(`${RUDI_WORKER}/location`, { cache: "no-store" });
+        if (res.ok) LOCATION = await res.json();
+      } catch (error) {
+        console.error("Standort konnte nicht geladen werden, nutze Fallback:", error);
+      }
+      footerCity.textContent = LOCATION.label;
+    }
+
+    async function setLocation(lat, lon, label) {
+      try {
+        const res = await fetch(
+          `${RUDI_WORKER}/location?lat=${lat}&lon=${lon}&label=${encodeURIComponent(label)}`,
+          { cache: "no-store" }
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        LOCATION = { lat, lon, label };
+        footerCity.textContent = LOCATION.label;
+        loadDisplay();
+      } catch (error) {
+        alert("Standort konnte nicht gespeichert werden: " + error.message);
+      }
+    }
+
+    const locationModal = document.getElementById("locationModal");
+    const lmGpsBtn = document.getElementById("lmGpsBtn");
+    const lmAddressInput = document.getElementById("lmAddressInput");
+    const lmCancelBtn = document.getElementById("lmCancelBtn");
+    const lmSaveBtn = document.getElementById("lmSaveBtn");
+    const lmStatus = document.getElementById("lmStatus");
+
+    // Nominatim (OpenStreetMap) für Geokodierung -- kostenlos, kein
+    // Key nötig, nur ein User-Agent-Hinweis laut Nutzungsrichtlinie.
+    async function reverseGeocode(lat, lon) {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`,
+        { headers: { Accept: "application/json" } }
+      );
+      if (!res.ok) throw new Error("Reverse-Geocoding fehlgeschlagen");
+      const data = await res.json();
+      const a = data.address || {};
+      return a.city || a.town || a.village || a.municipality || a.county || data.display_name || "Unbekannt";
+    }
+
+    async function forwardGeocode(query) {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(query)}`,
+        { headers: { Accept: "application/json" } }
+      );
+      if (!res.ok) throw new Error("Adresssuche fehlgeschlagen");
+      const results = await res.json();
+      if (!results.length) throw new Error("Adresse nicht gefunden");
+      const r = results[0];
+      const a = r.address || {};
+      const city = a.city || a.town || a.village || a.municipality || a.county || r.display_name;
+      return { lat: Number(r.lat), lon: Number(r.lon), label: city };
+    }
+
+    function openLocationModal() {
+      locationModal.style.display = "block";
+      lmStatus.textContent = "";
+      lmAddressInput.value = "";
+    }
+
+    function closeLocationModal() {
+      locationModal.style.display = "none";
+    }
+
+    locationBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openLocationModal();
+    });
+
+    lmCancelBtn.addEventListener("click", closeLocationModal);
+
+    document.addEventListener("click", (e) => {
+      if (locationModal.style.display === "block" && !locationModal.contains(e.target) && e.target !== locationBtn) {
+        closeLocationModal();
+      }
+    });
+
+    lmGpsBtn.addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        lmStatus.textContent = "GPS auf diesem Gerät nicht verfügbar.";
+        return;
+      }
+      lmStatus.textContent = "Standort wird ermittelt…";
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude.toFixed(6);
+          const lon = pos.coords.longitude.toFixed(6);
+          try {
+            lmStatus.textContent = "Stadt wird ermittelt…";
+            const city = await reverseGeocode(lat, lon);
+            await setLocation(lat, lon, city);
+            closeLocationModal();
+          } catch (error) {
+            lmStatus.textContent = "Fehler: " + error.message;
+          }
+        },
+        () => { lmStatus.textContent = "GPS-Zugriff verweigert oder fehlgeschlagen."; },
+        { timeout: 8000 }
+      );
+    });
+
+    lmSaveBtn.addEventListener("click", async () => {
+      const query = lmAddressInput.value.trim();
+      if (!query) {
+        lmStatus.textContent = "Bitte eine Adresse eingeben.";
+        return;
+      }
+      lmStatus.textContent = "Suche…";
+      try {
+        const result = await forwardGeocode(query);
+        await setLocation(result.lat, result.lon, result.label);
+        closeLocationModal();
+      } catch (error) {
+        lmStatus.textContent = "Fehler: " + error.message;
+      }
+    });
+
+    async function loadDisplay() {
+      try {
+        const response = await fetch(`${API_BASE}/aircraft`, {
+          headers: { Accept: "application/json" }, cache: "no-store",
+        });
+        if (!response.ok) throw new Error(`Aircraft request failed with HTTP ${response.status}`);
+
+        const payload = await response.json();
+
+        const candidates = (Array.isArray(payload.ac) ? payload.ac : [])
+          .map(normalizeAircraft)
+          .filter(Boolean)
+          .filter((aircraft) => aircraft.altitude !== 0 && aircraft.callsign)
+          .map((aircraft) => ({ ...aircraft, distanceKm: haversineKm(LOCATION, aircraft) }))
+          .sort((a, b) => a.distanceKm - b.distanceKm)
+          .slice(0, 20);
+
+        const enriched = await Promise.all(candidates.map(enrichWithRoute));
+
+        const aircraft = enriched
+          .filter((item) => item && item.destinationCity)
+          .slice(0, MAX_AIRCRAFT);
+
+        renderAircraft(aircraft);
+
+        updatedAt.textContent = `Updated ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}`;
+      } catch (error) {
+        console.error(error);
+        aircraftList.innerHTML = '<div class="empty">Aircraft data unavailable.</div>';
+        updatedAt.textContent = "Update failed";
+      }
+    }
+
+    function normalizeAircraft(raw) {
+      const lat = Number(raw.lat);
+      const lon = Number(raw.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+      const callsign = cleanText(raw.flight);
+      const registration = cleanText(raw.r);
+      const type = cleanText(raw.t);
+      const operator = cleanText(raw.ownOp) || airlineNameFromCallsign(callsign) || "Unknown operator";
+      const altitude = raw.alt_baro === "ground" ? 0 : numericOrNull(raw.alt_baro ?? raw.alt_geom);
+
+      return {
+        lat, lon, callsign, registration, type, operator, altitude,
+        speed: numericOrNull(raw.gs),
+        verticalRate: numericOrNull(raw.baro_rate ?? raw.geom_rate),
+        track: normalizeHeading(raw.track ?? raw.true_heading ?? raw.mag_heading),
+        // Militär-Flag aus der Flugzeugdatenbank (Bit 0 = militärisch)
+        // -- dasselbe Feld, das wir für die Flugzeug-Alarm-Erkennung
+        // im Worker nutzen (siehe classifyInterestingAircraft).
+        isMilitary: Boolean(Number(raw.dbFlags) & 1),
+      };
+    }
+
+    async function enrichWithRoute(aircraft) {
+      try {
+        const response = await fetch(`${API_BASE}/route?callsign=${encodeURIComponent(aircraft.callsign)}`, {
+          headers: { Accept: "application/json" }, cache: "no-store",
+        });
+        if (!response.ok) return aircraft;
+
+        const data = await response.json();
+        const route = data?.route || null;
+        if (!route) return aircraft;
+
+        const destinationCity = cityOnly(extractFirst(
+          route?.destination?.municipality, route?.arrival?.municipality,
+          route?.destination?.name, route?.arrival?.name
+        ));
+        const originCity = cityOnly(extractFirst(
+          route?.origin?.municipality, route?.departure?.municipality,
+          route?.origin?.name, route?.departure?.name
+        ));
+        const airline = extractFirst(route?.airline?.name, aircraft.operator);
+        const iataFlight = buildIataFlightNumber(aircraft.callsign, route?.airline?.iata);
+        const remainingDistanceKm = computeRemainingDistanceKm(aircraft, route);
+        const remainingTime = computeRemainingTime(aircraft, remainingDistanceKm);
+
+        return { ...aircraft, operator: airline || aircraft.operator, destinationCity, originCity, iataFlight, remainingDistanceKm, remainingTime };
+      } catch (error) {
+        console.error(error);
+        return aircraft;
+      }
+    }
+
+    function renderAircraft(aircraft) {
+      if (!aircraft.length) {
+        aircraftList.innerHTML = '<div class="empty">No airborne aircraft with route data nearby.</div>';
+        return;
+      }
+
+      aircraftList.innerHTML = aircraft.map((item) => {
+        const airlineIcao = airlineIcaoFromCallsign(item.callsign);
+        // Bei bekanntem Militärflugzeug (dbFlags-Bit, siehe normalizeAircraft)
+        // gar nicht erst bei Logostream anfragen -- die haben ohnehin keine
+        // Militär-Logos (geprüft) -- stattdessen ein selbst gezeichnetes
+        // Leitwerk mit "M" zeigen. "Grau" ist auf 1-Bit-E-Ink nicht möglich
+        // (siehe Projektkonventionen), deshalb ein Punktraster-Muster: aus
+        // normalem Betrachtungsabstand wirkt es grau, jedes Pixel bleibt
+        // aber rein schwarz oder weiß und übersteht den Threshold sauber.
+        // Bei bekanntem Militärflugzeug (dbFlags-Bit, siehe normalizeAircraft)
+        // wird als Tail fest "Marabu Airlines" (ICAO MBU, echte estnische
+        // Fluggesellschaft) verwendet -- auf Nutzerwunsch, statt der
+        // tatsächlichen (bei Logostream ohnehin nicht vorhandenen)
+        // Militär-Kennung.
+        const effectiveIcao = item.isMilitary ? "MBU" : airlineIcao;
+        const tailUrl = effectiveIcao ? `${API_BASE}/airline-logo?icao=${encodeURIComponent(effectiveIcao)}&variant=tail` : null;
+        const flightLine = [item.operator, item.registration].filter(Boolean).join(" · ");
+        const altitudeMeters = item.altitude !== null ? Math.round(item.altitude * 0.3048) : null;
+        const speedKmh = item.speed !== null ? Math.round(item.speed * 1.852) : null;
+        const distanceToDestination = item.remainingDistanceKm !== null ? `${formatNumber(Math.round(item.remainingDistanceKm))} km to destination` : null;
+        const distanceFromHQ = item.distanceKm !== null ? `${formatNumber(Math.round(item.distanceKm))} km from ${LOCATION.label}` : null;
+        const routeSummary = [toUpperText(item.originCity), toUpperText(item.destinationCity)].filter(Boolean).join(" → ");
+        const flightPhase = deriveFlightPhase(altitudeMeters, item.verticalRate, item.remainingDistanceKm);
+
+        return `
+          <article class="aircraft">
+            <div class="tail">
+              ${tailUrl ? `
+                <img src="${escapeHtml(tailUrl)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+                <span class="tail-fallback" style="display:none">${escapeHtml(effectiveIcao)}</span>
+              ` : `<span class="tail-fallback">AIR</span>`}
+            </div>
+            <div class="route-block">
+              <p class="aircraft-type">${escapeHtml(expandAircraftType(item.type))}</p>
+              <p class="to-line">→</p>
+              <p class="destination">${escapeHtml(item.destinationCity)}</p>
+            </div>
+            <div class="details">
+              <div class="detail-group"><p class="meta"><strong>${escapeHtml(flightLine)}</strong></p></div>
+              <div class="detail-group"><p class="meta route-meta">${escapeHtml(routeSummary)}</p></div>
+              <div class="detail-group">
+                ${altitudeMeters !== null ? `<p class="meta">${escapeHtml(formatNumber(altitudeMeters))} m</p>` : ''}
+                ${speedKmh !== null ? `<p class="meta">${escapeHtml(formatNumber(speedKmh))} km/h</p>` : ''}
+                <p class="meta">${escapeHtml(`${Math.round(item.track)}°`)}</p>
+              </div>
+              <div class="detail-group">
+                ${distanceToDestination ? `<p class="meta">${escapeHtml(distanceToDestination)}</p>` : ''}
+                ${distanceFromHQ ? `<p class="meta">${escapeHtml(distanceFromHQ)}</p>` : ''}
+                <p class="meta phase-meta">${escapeHtml(flightPhase)}</p>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function expandAircraftType(code) {
+      const map = {
+         A388: "Airbus A380-800",
+         B744: "Boeing 747-400", B748: "Boeing 747-8", B752: "Boeing 757-200",
+        B763: "Boeing 767-300", B772: "Boeing 777-200", B773: "Boeing 777-300", B77W: "Boeing 777-300ER",
+        B788: "Boeing 787-8", B789: "Boeing 787-9", B78X: "Boeing 787-10", E190: "Embraer 190",
+        E195: "Embraer 195", E290: "Embraer E190-E2", E295: "Embraer E195-E2", CRJ9: "Bombardier CRJ900",
+        AT76: "ATR 72-600", DH8D: "De Havilland Dash 8-Q400",
+      };
+      const normalized = String(code || "").trim().toUpperCase();
+      return map[normalized] || normalized || "Unknown aircraft";
+    }
+
+    function computeRemainingDistanceKm(aircraft, route) {
+      const destLat = numericOrNull(extractFirst(
+        route?.destination?.latitude, route?.destination?.lat, route?.destination?.location?.lat,
+        route?.arrival?.latitude, route?.arrival?.lat
+      ));
+      const destLon = numericOrNull(extractFirst(
+        route?.destination?.longitude, route?.destination?.lon, route?.destination?.lng,
+        route?.destination?.location?.lon, route?.destination?.location?.lng,
+        route?.arrival?.longitude, route?.arrival?.lon, route?.arrival?.lng
+      ));
+      if (destLat === null || destLon === null) return null;
+      return haversineKm(aircraft, { lat: destLat, lon: destLon });
+    }
+
+    function computeRemainingTime(aircraft, distanceKm) {
+      if (distanceKm === null || aircraft.speed === null || aircraft.speed <= 80) return null;
+      const distanceNm = distanceKm / 1.852;
+      const totalMinutes = Math.round((distanceNm / aircraft.speed) * 60);
+      if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) return null;
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+    }
+
+    function deriveFlightPhase(altitudeMeters, verticalRateFpm, remainingDistanceKm) {
+      if (remainingDistanceKm !== null && remainingDistanceKm < 80 && altitudeMeters !== null && altitudeMeters < 3500) {
+        return "APPROACH";
+      }
+      if (verticalRateFpm !== null) {
+        if (verticalRateFpm > 500) return "CLIMB";
+        if (verticalRateFpm < -500) return "DESCENT";
+      }
+      return "CRUISE";
+    }
+
+    function toUpperText(value) { return value ? String(value).toUpperCase() : null; }
+
+    function buildIataFlightNumber(callsign, airlineIata) {
+      const normalized = String(callsign || "").trim().toUpperCase();
+      const number = normalized.replace(/^[A-Z]{3}/, "");
+      return airlineIata && number ? `${airlineIata}${number}` : null;
+    }
+
+    function cityOnly(value) {
+      if (!value) return null;
+      const text = String(value).trim()
+        .replace(/\s+International Airport$/i, "")
+        .replace(/\s+Airport$/i, "")
+        .replace(/\s+International$/i, "")
+        .trim();
+      return text.includes(",") ? text.split(",")[0].trim() : text;
+    }
+
+    function airlineIcaoFromCallsign(callsign) {
+      const match = String(callsign || "").trim().toUpperCase().match(/^([A-Z]{3})\d/);
+      return match ? match[1] : null;
+    }
+
+    function airlineNameFromCallsign(callsign) {
+      const map = {
+        DLH: "Lufthansa", BAW: "British Airways", AFR: "Air France", KLM: "KLM", UAE: "Emirates",
+        QTR: "Qatar Airways", THY: "Turkish Airlines", SAS: "Scandinavian Airlines", AUA: "Austrian Airlines",
+        SWR: "Swiss", EIN: "Aer Lingus", VLG: "Vueling", RYR: "Ryanair", EJU: "easyJet Europe",
+        EZY: "easyJet", TUI: "TUI fly",
+      };
+      const icao = airlineIcaoFromCallsign(callsign);
+      return icao ? map[icao] || icao : null;
+    }
+
+    function extractFirst(...values) {
+      for (const value of values) {
+        if (value !== null && value !== undefined && String(value).trim() !== "") return String(value).trim();
+      }
+      return null;
+    }
+
+    function cleanText(value) {
+      const text = String(value ?? "").trim().toUpperCase();
+      return text || null;
+    }
+
+    function numericOrNull(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    function normalizeHeading(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? ((number % 360) + 360) % 360 : 0;
+    }
+
+    function haversineKm(a, b) {
+      const earthRadiusKm = 6371.0088;
+      const deltaLat = radians(b.lat - a.lat);
+      const deltaLon = radians(b.lon - a.lon);
+      const latitudeA = radians(a.lat);
+      const latitudeB = radians(b.lat);
+      const value = Math.sin(deltaLat / 2) ** 2 + Math.cos(latitudeA) * Math.cos(latitudeB) * Math.sin(deltaLon / 2) ** 2;
+      return 2 * earthRadiusKm * Math.asin(Math.sqrt(value));
+    }
+
+    function radians(value) { return (value * Math.PI) / 180; }
+    function formatNumber(value) { return Math.round(value).toLocaleString("de-DE"); }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+    }
+
+    loadLocation().then(loadDisplay);
+    setInterval(loadDisplay, REFRESH_INTERVAL_MS);
+  </script>
+</body>
+</html>

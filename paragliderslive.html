@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Gleitschirm Live</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root { --black:#000000; --white:#ffffff; }
+    * { box-sizing: border-box; }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
+    body {
+      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
+    }
+    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+
+    .header {
+      position: absolute; top: 14px; left: 20px; right: 20px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--black);
+    }
+    .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
+    .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    .date-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    .date-badge .day { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
+    .date-badge .full { font-size: 10px; }
+
+    .main {
+      position: absolute; top: 58px; left: 20px; right: 20px; bottom: 34px;
+      display: grid; grid-template-columns: 1fr 250px; gap: 0;
+    }
+
+    .map-col { padding-right: 16px; border-right: 1px solid var(--black); position: relative; }
+    .list-col { padding-left: 16px; display: flex; flex-direction: column; overflow: hidden; }
+
+    h2 { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    #mapSvg { width: 100%; height: 100%; }
+
+    .pilot-list { margin: 0; padding: 0; list-style: none; overflow-y: hidden; }
+    .pilot-list li {
+      display: flex; align-items: baseline; gap: 8px; padding: 5px 0; border-bottom: 1px dashed #000;
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10.5px;
+    }
+    .pilot-list li:last-child { border-bottom: none; }
+    .pilot-list .p-num {
+      flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--black);
+      display: grid; place-items: center; font-size: 9px; font-weight: 700;
+    }
+    .pilot-list .p-alt { font-family: "Work Sans", Arial, sans-serif; font-weight: 800; font-size: 13px; }
+    .pilot-list .p-climb { margin-left: auto; font-weight: 700; }
+
+    .empty { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; gap: 8px; height: 100%; }
+    .empty .headline { font-size: 18px; font-weight: 800; }
+    .empty .sub { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; }
+
+    .footer {
+      position: absolute; left: 20px; right: 20px; bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding-top: 7px; border-top: 1px solid var(--black);
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
+      font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="frame">
+    <header class="header">
+      <div>
+        <p class="brand">GLEITSCHIRM LIVE</p>
+        <p class="subtitle" id="subtitle">L&auml;dt&hellip;</p>
+      </div>
+      <div class="date-badge">
+        <div class="day" id="dayName">&ndash;</div>
+        <div class="full" id="fullDate">&ndash;</div>
+      </div>
+    </header>
+
+    <section class="main" id="main">
+      <div class="map-col"><div class="empty"><div class="headline">L&auml;dt&hellip;</div></div></div>
+      <div class="list-col"></div>
+    </section>
+
+    <footer class="footer">
+      <span>Open Glider Network &middot; 15 km um Grassau</span>
+      <span id="updatedAt">Updating</span>
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const API = "https://rudi.marvinradar.workers.dev/paragliders";
+    const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // Live-Tracking, kürzerer Takt als andere Seiten
+
+    const mainEl = document.getElementById("main");
+    const subtitle = document.getElementById("subtitle");
+    const updatedAt = document.getElementById("updatedAt");
+    const dayName = document.getElementById("dayName");
+    const fullDate = document.getElementById("fullDate");
+
+    // SVG-Karte: einfache lokale Projektion (kein echtes Kartenmaterial
+    // nötig) -- Breiten-/Längengrad relativ zum Zentrum (Grassau) in
+    // Pixel umgerechnet. Auf dieser Reichweite (15km) ist die
+    // Verzerrung durch die vereinfachte Projektion vernachlässigbar.
+    function project(lat, lon, center, scalePxPerKm) {
+      const kmPerDegLat = 111;
+      const kmPerDegLon = 111 * Math.cos((center.lat * Math.PI) / 180);
+      const dxKm = (lon - center.lon) * kmPerDegLon;
+      const dyKm = (lat - center.lat) * kmPerDegLat;
+      return { x: dxKm * scalePxPerKm, y: -dyKm * scalePxPerKm };
+    }
+
+    function climbArrow(climbRate) {
+      if (climbRate == null) return "\u2013";
+      if (climbRate >= 1.5) return "\u2191\u2191";
+      if (climbRate >= 0.3) return "\u2191";
+      if (climbRate <= -1.5) return "\u2193\u2193";
+      if (climbRate <= -0.3) return "\u2193";
+      return "\u2192";
+    }
+
+    async function load() {
+      const now = new Date();
+      dayName.textContent = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" }).toUpperCase();
+      fullDate.textContent = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
+
+      try {
+        const res = await fetch(API, { headers: { Accept: "application/json" }, cache: "no-store" });
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          renderEmpty(data);
+        } else {
+          render(data);
+        }
+
+        updatedAt.textContent = `Updated ${now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}`;
+      } catch (error) {
+        console.error(error);
+        renderEmpty({ reason: "Verbindung fehlgeschlagen" });
+        updatedAt.textContent = "Update failed";
+      }
+    }
+
+    function renderEmpty(data) {
+      subtitle.textContent = "Keine Daten";
+      mainEl.querySelector(".map-col").innerHTML = `
+        <div class="empty">
+          <div class="headline">Nicht verf&uuml;gbar</div>
+          <div class="sub">${data.detail || data.reason || "OGN nicht erreichbar"}</div>
+        </div>`;
+      mainEl.querySelector(".list-col").innerHTML = "";
+    }
+
+    function render(data) {
+      const pilots = data.pilots || [];
+      subtitle.textContent = pilots.length
+        ? `${pilots.length} Gleitschirm${pilots.length === 1 ? "" : "e"} in der Luft`
+        : "Gerade niemand in der Luft";
+
+      // --- Karte ---
+      const W = 500, H = 388; // ungefähre verfügbare Fläche der linken Spalte
+      const scale = (Math.min(W, H) / 2 - 20) / data.radiusKm; // px pro km, mit Rand
+
+      const center = data.center;
+
+      let svg = `<svg id="mapSvg" viewBox="${-W/2} ${-H/2} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+      // Entfernungsringe (5/10/15 km)
+      [5, 10, 15].forEach((km) => {
+        svg += `<circle cx="0" cy="0" r="${km * scale}" fill="none" stroke="#000" stroke-width="1" stroke-dasharray="2 3" />`;
+        svg += `<text x="4" y="${-km * scale - 3}" font-size="8" font-family="Roboto Mono, monospace">${km}km</text>`;
+      });
+
+      // Zentrum (Grassau)
+      svg += `<circle cx="0" cy="0" r="4" fill="#000" />`;
+      svg += `<text x="7" y="4" font-size="10" font-weight="700" font-family="Work Sans, sans-serif">${center.label}</text>`;
+
+      // Bekannte Startplätze
+      (data.launchSites || []).forEach((site) => {
+        const p = project(site.lat, site.lon, center, scale);
+        if (Math.abs(p.x) > W / 2 || Math.abs(p.y) > H / 2) return; // außerhalb der Karte
+        svg += `<path d="M${p.x} ${p.y - 6} L${p.x + 5} ${p.y + 4} L${p.x - 5} ${p.y + 4} Z" fill="none" stroke="#000" stroke-width="1.5" />`;
+        svg += `<text x="${p.x + 8}" y="${p.y + 3}" font-size="8" font-family="Roboto Mono, monospace">${site.name}</text>`;
+      });
+
+      // Piloten als nummerierte Punkte
+      pilots.forEach((pilot, i) => {
+        const p = project(pilot.lat, pilot.lon, center, scale);
+        const num = i + 1;
+        svg += `<circle cx="${p.x}" cy="${p.y}" r="9" fill="#fff" stroke="#000" stroke-width="1.8" />`;
+        svg += `<text x="${p.x}" y="${p.y + 3.5}" font-size="9" font-weight="700" text-anchor="middle" font-family="Roboto Mono, monospace">${num}</text>`;
+      });
+
+      svg += `</svg>`;
+
+      mainEl.querySelector(".map-col").innerHTML = svg;
+
+      // --- Liste ---
+      if (!pilots.length) {
+        mainEl.querySelector(".list-col").innerHTML = `<h2>Piloten</h2><p style="font-size:11px;">Keine Gleitschirme im Umkreis erkannt.</p>`;
+        return;
+      }
+
+      const items = pilots.map((pilot, i) => `
+        <li>
+          <span class="p-num">${i + 1}</span>
+          <span class="p-alt">${pilot.altitude != null ? pilot.altitude : "\u2013"}<span style="font-size:9px; font-weight:600;"> m</span></span>
+          <span class="p-climb">${climbArrow(pilot.climbRate)}${pilot.climbRate != null ? " " + pilot.climbRate.toFixed(1) : ""}</span>
+        </li>
+      `).join("");
+
+      mainEl.querySelector(".list-col").innerHTML = `<h2>Piloten (${pilots.length})</h2><ul class="pilot-list">${items}</ul>`;
+    }
+
+    load();
+    setInterval(load, REFRESH_INTERVAL_MS);
+  </script>
+</body>
+</html>

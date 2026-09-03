@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Militärflugzeuge</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root { --black:#000000; --white:#ffffff; --gray:#777777; }
+    * { box-sizing: border-box; }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
+    body {
+      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
+    }
+    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+
+    .header {
+      position: absolute; top: 14px; left: 20px; right: 20px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--black);
+    }
+    .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
+    .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    .live-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+    .header-right { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+    .position-select {
+      appearance: none; -webkit-appearance: none;
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8.5px;
+      letter-spacing: 0.04em; color: var(--black); background: var(--white);
+      border: 1px solid var(--black); border-radius: 3px; padding: 2px 14px 2px 5px;
+      background-image: linear-gradient(45deg, transparent 50%, var(--black) 50%), linear-gradient(135deg, var(--black) 50%, transparent 50%);
+      background-position: right 6px center, right 3px center; background-size: 3px 3px, 3px 3px; background-repeat: no-repeat;
+    }
+
+    .aircraft-list { position: absolute; top: 58px; left: 20px; right: 20px; bottom: 34px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+    .aircraft { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 10px 10px 8px; text-align: left; }
+    .aircraft + .aircraft { border-left: 1px solid var(--black); }
+
+    /* Foto statt Tail -- gedithert (siehe ditherToCanvas), damit es
+       auf 1-Bit-E-Ink sauber bleibt statt zu einem Graufleck zu werden. */
+    .photo-box { display: grid; place-items: center; width: 100%; height: 132px; min-height: 132px; padding: 0 2px 12px; border-bottom: 1px solid var(--black); overflow: hidden; position: relative; }
+    .category-estimate-label {
+      position: absolute; bottom: 14px; left: 4px; right: 4px;
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 7.5px;
+      text-align: center; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .photo-box canvas { display: block; width: 100%; max-width: 182px; max-height: 122px; image-rendering: pixelated; }
+    .photo-fallback { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-align: center; line-height: 1.4; }
+
+    .route-block { min-width: 0; padding: 9px 0 8px; border-bottom: 1px solid var(--black); }
+    .aircraft-type { margin: 0; font-family: "Work Sans", Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; }
+    .operator-line { margin: 4px 0 0; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10.5px; line-height: 1.2; }
+
+    .details { min-width: 0; padding-top: 8px; }
+    .detail-group { padding: 0 0 7px; }
+    .detail-group + .detail-group { padding-top: 7px; border-top: 1px solid var(--black); }
+
+    .meta { margin: 0; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; line-height: 1.15; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+    .meta + .meta { margin-top: 2px; }
+    .meta.phase-meta { text-transform: uppercase; letter-spacing: 0.04em; }
+
+    .footer {
+      position: absolute; left: 20px; right: 20px; bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding-top: 7px; border-top: 1px solid var(--black);
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+    }
+    .empty { position: absolute; inset: 58px 20px 34px; display: grid; place-items: center; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 13px; text-align: center; line-height: 1.2; }
+  </style>
+</head>
+
+<body>
+  <main class="frame">
+    <header class="header">
+      <div>
+        <p class="brand">MILITÄRFLUGZEUGE</p>
+        <p class="subtitle">Live-Erfassung &amp; Fotos</p>
+      </div>
+      <div class="header-right">
+        <select id="positionSelect" class="position-select" aria-label="Position">
+          <option value="grassau">Grassau</option>
+          <option value="ismaning">Ismaning</option>
+        </select>
+        <p class="live-badge">Live</p>
+      </div>
+    </header>
+
+    <section class="aircraft-list" id="aircraftList">
+      <div class="empty">Loading aircraft...</div>
+    </section>
+
+    <footer class="footer">
+      <span id="footerCity">Loading location…</span>
+      <span id="updatedAt">Updating</span>
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const API_BASE = "https://rudi.marvinradar.workers.dev/flights";
+    const RUDI_WORKER = "https://rudi.marvinradar.workers.dev";
+    let LOCATION = { lat: 47.7756, lon: 12.4550, label: "Grassau" };
+
+    // Feste Positionen für das kleine Dropdown im Header -- bewusst nur
+    // clientseitig (ändert nur den Bezugspunkt für "X km von ..." und
+    // die Sortierung, NICHT die Flugzeug-Suche selbst, die weiterhin
+    // fest um München/Ismaning läuft). So bleibt die heute mühsam
+    // reduzierte Backend-Last unverändert -- eine echte Neuzentrierung
+    // der Suche würde für jede Position einen frischen adsb.lol-Abruf
+    // brauchen, genau das Problem, das wir heute den ganzen Tag
+    // reduziert haben.
+    const POSITIONS = {
+      grassau: { lat: 47.7756389, lon: 12.4551944, label: "Grassau" },
+      ismaning: { lat: 48.226, lon: 11.674, label: "Ismaning" },
+    };
+    const MAX_AIRCRAFT = 4;
+    const REFRESH_INTERVAL_MS = 300000;
+
+    const aircraftList = document.getElementById("aircraftList");
+    const updatedAt = document.getElementById("updatedAt");
+    const footerCity = document.getElementById("footerCity");
+
+    /* =========================================================
+       WIKIMEDIA-COMMONS-FOTOSUCHE + DITHERING
+
+       Sucht ein echtes, frei lizenziertes Foto zum Flugzeug (nach
+       Registrierung, sonst nach Typ) und wandelt es per Ordered
+       Dithering (Bayer-Matrix) in ein reines Schwarz/Weiß-Muster um --
+       jedes Pixel bleibt echt Schwarz oder Weiß, kein Grauton, der
+       beim späteren 1-Bit-Threshold der Screenshot-Pipeline verloren
+       gehen könnte. Das Dithering passiert VOR dem Screenshot (also
+       schon in echtem Schwarz/Weiß), die spätere Kontrast+Threshold-
+       Stufe der Pipeline verändert reine 0/255-Pixel praktisch nicht.
+       ========================================================= */
+
+    // 4x4-Bayer-Matrix für Ordered Dithering.
+    const BAYER_4X4 = [
+      [0, 8, 2, 10],
+      [12, 4, 14, 6],
+      [3, 11, 1, 9],
+      [15, 7, 13, 5],
+    ];
+
+    function ditherImageToCanvas(img, canvas) {
+      const targetWidth = 182, targetHeight = 122;
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext("2d");
+
+      // Bildausschnitt zentriert/gefüllt zeichnen (cover-Verhalten).
+      const scale = Math.max(targetWidth / img.naturalWidth, targetHeight / img.naturalHeight);
+      const drawWidth = img.naturalWidth * scale;
+      const drawHeight = img.naturalHeight * scale;
+      const offsetX = (targetWidth - drawWidth) / 2;
+      const offsetY = (targetHeight - drawHeight) / 2;
+      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+
+      const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+      const data = imageData.data;
+
+      // Kontrast vor dem Dithering leicht anheben -- sonst wirkt das
+      // Ergebnis oft zu grau/matschig.
+      const contrast = 1.35;
+      const midpoint = 128;
+
+      for (let y = 0; y < targetHeight; y++) {
+        for (let x = 0; x < targetWidth; x++) {
+          const idx = (y * targetWidth + x) * 4;
+          let gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+          gray = (gray - midpoint) * contrast + midpoint;
+          gray = Math.max(0, Math.min(255, gray));
+
+          const bayerValue = BAYER_4X4[y % 4][x % 4];
+          const threshold = ((bayerValue + 0.5) / 16) * 255;
+          const value = gray > threshold ? 255 : 0;
+
+          data[idx] = data[idx + 1] = data[idx + 2] = value;
+          data[idx + 3] = 255;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    /**
+     * Letzte, verlässliche Rückfallebene: ein Typ-Silhouetten-Symbol von
+     * adsbexchange.com (tar1090-Symbolsatz) -- keine Fotos, sondern
+     * einfache Top-View-Formen je Flugzeugtyp. Braucht nur einen Typ-Code
+     * (keine Registrierung nötig, anders als Planespotters), deshalb
+     * deutlich verlässlicher verfügbar. Ersetzt die frühere, unzuverlässige
+     * Wikimedia-Commons-Suche komplett (Fix 01.09.2026, auf Nutzerwunsch).
+     *
+     * WICHTIG (Nachbesserung 01.09.2026): KEIN crossOrigin mehr gesetzt --
+     * hatte dazu geführt, dass ausnahmslos JEDE Silhouette als "NO PHOTO"
+     * endete, weil der Ladevorgang selbst (nicht erst die Pixel-Auslesung)
+     * ohne passende CORS-Freigabe vom Server fehlschlägt.
+     */
+    /**
+     * Zeichnet die Silhouette und macht den Hintergrund WEISS -- egal
+     * welche Farbe er tatsächlich hat (blau, grau, was auch immer).
+     * Ansatz: Eckpunkte des Bildes abtasten (dort ist mit hoher
+     * Wahrscheinlichkeit Hintergrund, nicht die Flugzeug-Form in der
+     * Mitte), Durchschnittsfarbe davon als "das ist Hintergrund"
+     * merken, dann jeden Pixel einfärben: nah an dieser Farbe -> Weiß,
+     * alles andere -> Schwarz. Passt sich automatisch an, unabhängig
+     * vom tatsächlichen Blauton (den wir nicht kennen/testen konnten).
+     */
+    function renderSilhouetteToCanvas(img, canvas) {
+      const targetWidth = 182, targetHeight = 122;
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext("2d");
+
+      // Weißer Hintergrund zuerst -- sonst bleibt der Rand um das Bild
+      // (durch die "contain"-Skalierung unten) leer/transparent und der
+      // dahinterliegende schwarze Kartenhintergrund scheint durch.
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+      const scale = Math.min((targetWidth - 16) / img.naturalWidth, (targetHeight - 16) / img.naturalHeight);
+      const drawWidth = img.naturalWidth * scale;
+      const drawHeight = img.naturalHeight * scale;
+      const offsetX = (targetWidth - drawWidth) / 2;
+      const offsetY = (targetHeight - drawHeight) / 2;
+      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+
+      const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+      const data = imageData.data;
+
+      // WICHTIG: Eckpunkte des TATSÄCHLICH GEZEICHNETEN Bildbereichs
+      // abtasten (offsetX/offsetY-relativ), NICHT die Canvas-Ecken bei
+      // (0,0) -- durch die "contain"-Skalierung kann rundherum ein
+      // leerer/transparenter Rand entstehen, der fälschlich als
+      // Hintergrundfarbe erkannt würde (führte zu invertiertem Ergebnis
+      // im Test: Form wurde weiß, echter Hintergrund blieb schwarz).
+      const inset = 3;
+      const corners = [
+        [offsetX + inset, offsetY + inset],
+        [offsetX + drawWidth - 5 - inset, offsetY + inset],
+        [offsetX + inset, offsetY + drawHeight - 5 - inset],
+        [offsetX + drawWidth - 5 - inset, offsetY + drawHeight - 5 - inset],
+      ];
+      let sumR = 0, sumG = 0, sumB = 0, count = 0;
+      for (const [cx, cy] of corners) {
+        const startX = Math.max(0, Math.round(cx));
+        const startY = Math.max(0, Math.round(cy));
+        for (let y = startY; y < startY + 5 && y < targetHeight; y++) {
+          for (let x = startX; x < startX + 5 && x < targetWidth; x++) {
+            const idx = (y * targetWidth + x) * 4;
+            sumR += data[idx]; sumG += data[idx + 1]; sumB += data[idx + 2];
+            count++;
+          }
+        }
+      }
+      const bgR = sumR / count, bgG = sumG / count, bgB = sumB / count;
+
+      // Jeden Pixel INNERHALB des gezeichneten Bildbereichs: nah an der
+      // erkannten Hintergrundfarbe -> Weiß, sonst -> Schwarz. WICHTIG:
+      // nur der Bildbereich wird umgefärbt, nicht die ganze Canvas --
+      // sonst würde der weiße Rand (der ja "weit weg" von der erkannten
+      // Hintergrundfarbe, z.B. Blau, ist) fälschlich als "Vordergrund"
+      // eingestuft und schwarz eingefärbt (genau das war der Bug im
+      // echten Test: schwarzer Rahmen um die eigentliche Silhouette).
+      const tolerance = 45;
+      const left = Math.max(0, Math.floor(offsetX));
+      const right = Math.min(targetWidth, Math.ceil(offsetX + drawWidth));
+      const top = Math.max(0, Math.floor(offsetY));
+      const bottom = Math.min(targetHeight, Math.ceil(offsetY + drawHeight));
+
+      for (let y = top; y < bottom; y++) {
+        for (let x = left; x < right; x++) {
+          const i = (y * targetWidth + x) * 4;
+          const dist = Math.sqrt((data[i] - bgR) ** 2 + (data[i + 1] - bgG) ** 2 + (data[i + 2] - bgB) ** 2);
+          const value = dist < tolerance ? 255 : 0;
+          data[i] = data[i + 1] = data[i + 2] = value;
+          data[i + 3] = 255;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    /**
+     * Grobe Kategorie-Schätzung anhand Geschwindigkeit + Höhe, für Fälle
+     * ohne bekannten Typ-Code (siehe echter Testfall GAF660: "Typ
+     * unbekannt", 107 km/h, 1.836 m). Festflügler können nicht dauerhaft
+     * so langsam fliegen wie 107 km/h -- das grenzt Hubschrauber schon
+     * gut ein. Bei schnellen Jets unterscheidet die Höhe grob zwischen
+     * "tief und schnell" (eher Kampfjet-Profil) und "hoch und schnell"
+     * (eher Transporter/Tanker im Reiseflug). Grobe Heuristik, keine
+     * gesicherte Identifikation -- wird deshalb immer mit "≈" gekennzeichnet.
+     */
+    function estimateCategory(speedKmh, altitudeM) {
+      if (speedKmh === null || !Number.isFinite(speedKmh)) return null;
+      if (speedKmh < 160) return "helicopter";
+      if (speedKmh < 400) return "light";
+      if (speedKmh < 650) return "business";
+      if (altitudeM !== null && altitudeM > 7000) return "heavy";
+      return "fastjet";
+    }
+
+    // Ein bekannter, "typischer" Vertreter je Kategorie -- lädt über
+    // denselben /flights/silhouette-Proxy wie ein echter Typ-Treffer.
+    // Die ersten vier kamen heute nachweislich echt in unseren eigenen
+    // Daten vor; beim Kampfjet (EUFI) sind wir unsicher, ob das exakt
+    // der von adsbexchange erwartete Code ist -- fällt im Zweifel auf
+    // Text zurück, wie jeder andere unbekannte Typ auch.
+    const CATEGORY_REPRESENTATIVE_TYPE = {
+      helicopter: "EC35",
+      light: "PC21",
+      business: "GLF5",
+      heavy: "A400",
+      fastjet: "EUFI",
+    };
+    const CATEGORY_LABEL = {
+      helicopter: "Hubschrauber",
+      light: "Leichtflugzeug",
+      business: "Business-/Mitteljet",
+      heavy: "Schwerer Transporter",
+      fastjet: "Schneller Jet",
+    };
+
+    /**
+     * Letzte, verlässliche Rückfallebene: ein Typ-Silhouetten-Symbol von
+     * adsbexchange.com (tar1090-Symbolsatz), über unseren eigenen
+     * /flights/silhouette-Proxy geladen (siehe rudi-worker.js) -- der
+     * Proxy fügt die CORS-Freigabe hinzu, die adsbexchange.com selbst
+     * nicht sendet, damit wir die echten Pixel auslesen und den
+     * tatsächlichen Hintergrund erkennen können (siehe
+     * renderSilhouetteToCanvas). Braucht nur einen Typ-Code, keine
+     * Registrierung -- deutlich verlässlicher verfügbar als eine
+     * Bildersuche.
+     *
+     * isEstimate=true: der Typ-Code kommt nicht vom Flugzeug selbst,
+     * sondern ist nur ein repräsentativer Vertreter einer geschätzten
+     * Kategorie (siehe estimateCategory) -- zeigt dann ein "≈"-Label,
+     * damit klar bleibt, dass es eine Schätzung ist, kein bestätigter Typ.
+     */
+    function renderSilhouette(container, type, isEstimate = false, categoryLabel = null) {
+      if (!type) {
+        container.innerHTML = `<span class="photo-fallback">MILITARY<br>NO PHOTO</span>`;
+        return;
+      }
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          renderSilhouetteToCanvas(img, canvas);
+          container.innerHTML = "";
+          container.appendChild(canvas);
+          if (isEstimate && categoryLabel) {
+            const label = document.createElement("div");
+            label.className = "category-estimate-label";
+            label.textContent = `\u2248 ${categoryLabel}`;
+            container.appendChild(label);
+          }
+        } catch (error) {
+          console.warn("Silhouette-Rendering fehlgeschlagen", error);
+          container.innerHTML = `<span class="photo-fallback">${escapeHtml(type)}<br>NO PHOTO</span>`;
+        }
+      };
+      img.onerror = () => {
+        container.innerHTML = `<span class="photo-fallback">${escapeHtml(type)}<br>NO PHOTO</span>`;
+      };
+      img.src = `${RUDI_WORKER}/flights/silhouette?type=${encodeURIComponent(type)}`;
+    }
+
+    /**
+     * Erste Wahl: echtes Foto von Planespotters (via /identify, siehe
+     * enrichIdentity). Bei Fehlschlag (Bild nicht ladbar o.ä.) Rückfall
+     * auf die Typ-Silhouette statt direkt aufzugeben.
+     */
+    async function renderPhotoFromUrl(container, url, type) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          ditherImageToCanvas(img, canvas);
+          container.innerHTML = "";
+          container.appendChild(canvas);
+        } catch (error) {
+          console.warn("Dithering (Planespotters) fehlgeschlagen, Rückfall auf Silhouette", error);
+          renderSilhouette(container, type);
+        }
+      };
+      img.onerror = () => {
+        console.warn("Planespotters-Foto nicht ladbar, Rückfall auf Silhouette");
+        renderSilhouette(container, type);
+      };
+      img.src = url;
+    }
+
+    /* ========================================================= */
+
+    async function loadLocation() {
+      try {
+        const res = await fetch(`${RUDI_WORKER}/location`, { cache: "no-store" });
+        if (res.ok) LOCATION = await res.json();
+      } catch (error) {
+        console.error("Standort konnte nicht geladen werden, nutze Fallback:", error);
+      }
+      footerCity.textContent = LOCATION.label;
+
+      // Dropdown auf die per /location gelieferte Position vorauswählen,
+      // sofern sie zu einer der bekannten Positionen passt.
+      const positionSelect = document.getElementById("positionSelect");
+      if (positionSelect) {
+        const matchKey = Object.keys(POSITIONS).find(
+          (key) => POSITIONS[key].label.toLowerCase() === String(LOCATION.label || "").toLowerCase()
+        );
+        if (matchKey) positionSelect.value = matchKey;
+      }
+    }
+
+    async function loadDisplay() {
+      try {
+        const response = await fetch(`${API_BASE}/aircraft`, {
+          headers: { Accept: "application/json" }, cache: "no-store",
+        });
+        if (!response.ok) throw new Error(`Aircraft request failed with HTTP ${response.status}`);
+
+        const payload = await response.json();
+
+        const aircraft = (Array.isArray(payload.ac) ? payload.ac : [])
+          .map(normalizeAircraft)
+          .filter(Boolean)
+          .filter((a) => a.isMilitary && a.altitude !== 0 && a.callsign)
+          .map((a) => ({ ...a, distanceKm: haversineKm(LOCATION, a) }))
+          .sort((a, b) => a.distanceKm - b.distanceKm)
+          .slice(0, MAX_AIRCRAFT);
+
+        renderAircraft(aircraft);
+
+        updatedAt.textContent = `Updated ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}`;
+      } catch (error) {
+        console.error(error);
+        aircraftList.innerHTML = '<div class="empty">Aircraft data unavailable.</div>';
+        updatedAt.textContent = "Update failed";
+      }
+    }
+
+    function normalizeAircraft(raw) {
+      const lat = Number(raw.lat);
+      const lon = Number(raw.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+      const callsign = cleanText(raw.flight);
+      const registration = cleanText(raw.r);
+      const type = cleanText(raw.t);
+      const operator = cleanText(raw.ownOp) || "Operator unbekannt";
+      const altitude = raw.alt_baro === "ground" ? 0 : numericOrNull(raw.alt_baro ?? raw.alt_geom);
+
+      return {
+        hex: String(raw.hex || "").replace(/^~/, ""),
+        lat, lon, callsign, registration, type, operator, altitude,
+        speed: numericOrNull(raw.gs),
+        verticalRate: numericOrNull(raw.baro_rate ?? raw.geom_rate),
+        track: normalizeHeading(raw.track ?? raw.true_heading ?? raw.mag_heading),
+        isMilitary: Boolean(Number(raw.dbFlags) & 1),
+      };
+    }
+
+    function renderAircraft(aircraft) {
+      if (!aircraft.length) {
+        aircraftList.innerHTML = '<div class="empty">Gerade keine Militärflugzeuge in der Nähe.</div>';
+        return;
+      }
+
+      aircraftList.innerHTML = aircraft.map((item, index) => {
+        const altitudeMeters = item.altitude !== null ? Math.round(item.altitude * 0.3048) : null;
+        const speedKmh = item.speed !== null ? Math.round(item.speed * 1.852) : null;
+        const distanceFromHQ = item.distanceKm !== null ? `${formatNumber(Math.round(item.distanceKm))} km from ${LOCATION.label}` : null;
+        const flightPhase = deriveFlightPhase(item.verticalRate);
+
+        return `
+          <article class="aircraft">
+            <div class="photo-box" id="photo-${index}">
+              <span class="photo-fallback">LOADING</span>
+            </div>
+            <div class="route-block">
+              <p class="aircraft-type" id="type-${index}">${escapeHtml(item.type || "Identifiziere…")}</p>
+              <p class="operator-line" id="operator-${index}">${escapeHtml(item.operator)}</p>
+              <p class="operator-line" id="country-${index}"></p>
+            </div>
+            <div class="details">
+              <div class="detail-group"><p class="meta"><strong>${escapeHtml(item.callsign)}</strong> · ${escapeHtml(item.registration || "—")}</p></div>
+              <div class="detail-group">
+                ${altitudeMeters !== null ? `<p class="meta">${escapeHtml(formatNumber(altitudeMeters))} m</p>` : ''}
+                ${speedKmh !== null ? `<p class="meta">${escapeHtml(formatNumber(speedKmh))} km/h</p>` : ''}
+                <p class="meta">${escapeHtml(`${Math.round(item.track)}°`)}</p>
+              </div>
+              <div class="detail-group">
+                ${distanceFromHQ ? `<p class="meta">${escapeHtml(distanceFromHQ)}</p>` : ''}
+                <p class="meta phase-meta">${escapeHtml(flightPhase)}</p>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      // Identifikation (inkl. Foto -- siehe enrichIdentity) asynchron
+      // nachladen, blockiert das Rendering der übrigen Karte nicht.
+      aircraft.forEach((item, index) => enrichIdentity(item, index));
+    }
+
+    // Land-Codes -> Anzeigename (deckt die gängigsten NATO-/EU-Länder ab,
+    // die hier vorkommen -- reicht für die Anzeige, keine vollständige Liste).
+    const COUNTRY_NAMES = {
+      DE: "Germany", GB: "United Kingdom", FR: "France", IT: "Italy",
+      AT: "Austria", CH: "Switzerland", US: "United States", NL: "Netherlands",
+      BE: "Belgium", PL: "Poland", ES: "Spain", CA: "Canada",
+    };
+
+    /**
+     * Fragt /flights/identify für ein Flugzeug ab und füllt Typ/Betreiber/
+     * Land nach -- WICHTIG: liefert auch dann brauchbare Infos (z.B. Land
+     * aus dem ICAO-Hexcode-Block, Betreiber aus Rufzeichen-Mustern), wenn
+     * Typ und Registrierung leer sind (bei Militärflugzeugen aus OPSEC-
+     * Gründen häufig der Fall, siehe echter Testfall GNY4312/LK01/LK02).
+     *
+     * WICHTIG (Fix 01.09.2026): Dieselbe Antwort liefert bei Treffer auch
+     * ein echtes, kuratiertes Foto (Planespotters, über adsbdb.com) --
+     * deutlich zuverlässiger als die frühere eigene Wikimedia-Commons-
+     * Suche (die z.B. Cockpit-Innenaufnahmen statt Außenaufnahmen finden
+     * konnte, siehe Do-228-Vorfall). Rückfallebene ist jetzt eine
+     * Typ-Silhouette (siehe renderSilhouette), falls adsbdb kein Foto hat
+     * (z.B. weil keine Registrierung bekannt ist).
+     */
+    async function enrichIdentity(item, index) {
+      const typeEl = document.getElementById(`type-${index}`);
+      const operatorEl = document.getElementById(`operator-${index}`);
+      const countryEl = document.getElementById(`country-${index}`);
+      const photoContainer = document.getElementById(`photo-${index}`);
+
+      let identifiedPhotoUrl = null;
+      let identifiedTypeCode = null;
+
+      try {
+        const params = new URLSearchParams();
+        if (item.hex) params.set("icao", item.hex);
+        if (item.callsign) params.set("callsign", item.callsign);
+        if (item.registration) params.set("registration", item.registration);
+        if (item.type) params.set("type", item.type);
+        if (item.operator && item.operator !== "Operator unbekannt") params.set("operator", item.operator);
+        params.set("military", "1");
+        if (item.speed !== null) params.set("speedKt", String(item.speed));
+        if (item.altitude !== null) params.set("altitudeFt", String(item.altitude));
+        if (item.verticalRate !== null) params.set("verticalRateFpm", String(item.verticalRate));
+
+        const response = await fetch(`${RUDI_WORKER}/flights/identify?${params}`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        const x = data?.assessment;
+        if (!x) throw new Error("Keine Einschätzung erhalten");
+
+        if (typeEl) typeEl.textContent = x.aircraftType || item.type || "Typ unbekannt";
+        if (operatorEl) operatorEl.textContent = x.operator || item.operator;
+        if (countryEl) {
+          const countryName = COUNTRY_NAMES[x.countryCode] || x.countryCode || null;
+          countryEl.textContent = countryName ? countryName : "";
+        }
+
+        // WICHTIG (Fix 03.09.2026, nach echtem Anzeigefehler: JOKER10
+        // zeigte den Text "Airbus H145 LUH SAR" (aus der Rufzeichen-
+        // Familien-Erkennung), aber das Bild fiel trotzdem auf die
+        // Geschwindigkeits-Kategorie-Schätzung zurück -- weil nur
+        // item.type (die ROHE, oft leere ADS-B-Typkennung) geprüft
+        // wurde, nicht der über Registrierung/Rufzeichen erst ermittelte
+        // Typ. x.typeCode ist der kurze, adsbexchange-kompatible Code
+        // dafür (z.B. "H145" statt "Airbus H145 LUH SAR").
+        identifiedTypeCode = x.typeCode || null;
+        identifiedPhotoUrl = x.photo?.thumbnailUrl || x.photo?.url || null;
+      } catch (error) {
+        console.warn("Identifikation fehlgeschlagen", item.callsign, error);
+        if (typeEl) typeEl.textContent = item.type || "Typ unbekannt";
+      }
+
+      if (photoContainer) {
+        if (identifiedPhotoUrl) {
+          renderPhotoFromUrl(photoContainer, identifiedPhotoUrl, item.type);
+        } else {
+          renderSilhouetteWithCategoryFallback(photoContainer, item, identifiedTypeCode);
+        }
+      }
+    }
+
+    /**
+     * Rückfallebene: Typ-Silhouette wenn ein Typ-Code bekannt ist (roh
+     * vom ADS-B-Signal ODER über Registrierung/Rufzeichen-Familie erst
+     * ermittelt -- letzteres hat Vorrang, da meist spezifischer), sonst
+     * eine grobe Kategorie-Schätzung aus Geschwindigkeit/Höhe (siehe
+     * estimateCategory) mit "≈"-Kennzeichnung, sonst reiner Text.
+     */
+    function renderSilhouetteWithCategoryFallback(container, item, identifiedTypeCode) {
+      const typeForSilhouette = identifiedTypeCode || item.type;
+      if (typeForSilhouette) {
+        renderSilhouette(container, typeForSilhouette);
+        return;
+      }
+      const speedKmh = item.speed !== null ? item.speed * 1.852 : null;
+      const altitudeM = item.altitude !== null ? item.altitude * 0.3048 : null;
+      const category = estimateCategory(speedKmh, altitudeM);
+      if (category) {
+        renderSilhouette(container, CATEGORY_REPRESENTATIVE_TYPE[category], true, CATEGORY_LABEL[category]);
+      } else {
+        renderSilhouette(container, null);
+      }
+    }
+
+
+    function deriveFlightPhase(verticalRateFpm) {
+      if (verticalRateFpm !== null) {
+        if (verticalRateFpm > 500) return "CLIMB";
+        if (verticalRateFpm < -500) return "DESCENT";
+      }
+      return "CRUISE";
+    }
+
+    function cleanText(value) {
+      const text = String(value ?? "").trim().toUpperCase();
+      return text || null;
+    }
+    function numericOrNull(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }
+    function normalizeHeading(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? ((number % 360) + 360) % 360 : 0;
+    }
+    function haversineKm(a, b) {
+      const earthRadiusKm = 6371.0088;
+      const deltaLat = radians(b.lat - a.lat);
+      const deltaLon = radians(b.lon - a.lon);
+      const latitudeA = radians(a.lat);
+      const latitudeB = radians(b.lat);
+      const value = Math.sin(deltaLat / 2) ** 2 + Math.cos(latitudeA) * Math.cos(latitudeB) * Math.sin(deltaLon / 2) ** 2;
+      return 2 * earthRadiusKm * Math.asin(Math.sqrt(value));
+    }
+    function radians(value) { return (value * Math.PI) / 180; }
+    function formatNumber(value) { return Math.round(value).toLocaleString("de-DE"); }
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+    }
+
+    document.getElementById("positionSelect")?.addEventListener("change", (event) => {
+      const chosen = POSITIONS[event.target.value];
+      if (!chosen) return;
+      LOCATION = chosen;
+      footerCity.textContent = LOCATION.label;
+      loadDisplay();
+    });
+
+    loadLocation().then(loadDisplay);
+    setInterval(loadDisplay, REFRESH_INTERVAL_MS);
+  </script>
+</body>
+</html>
