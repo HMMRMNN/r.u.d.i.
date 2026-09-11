@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Pizza-Bilanz</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root { --black:#000000; --white:#ffffff; }
+    * { box-sizing: border-box; }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
+    body {
+      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
+    }
+    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+
+    .header {
+      position: absolute; top: 14px; left: 20px; right: 20px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--black);
+    }
+    .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
+    .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    .date-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    .date-badge .day { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
+    .date-badge .full { font-size: 10px; }
+
+    /* Zweispaltig wie bei weather.html/paragliding.html: links die
+       große Kennzahl stehend, rechts der visuelle Hauptteil. Löst das
+       vorherige Problem (Zahl und Text baseline-verrutscht nebeneinander). */
+    .main {
+      position: absolute; top: 58px; left: 20px; right: 20px; bottom: 34px;
+      display: grid; grid-template-rows: 1fr auto; gap: 0;
+    }
+
+    .top-row { display: grid; grid-template-columns: 220px 1fr; border-bottom: 1px solid var(--black); padding-bottom: 10px; }
+
+    .stat-col { padding-right: 16px; border-right: 1px solid var(--black); text-align: left; }
+    .big-number { font-size: 84px; font-weight: 800; line-height: 1; letter-spacing: -0.04em; }
+    .big-label { margin-top: 2px; font-size: 13px; font-weight: 700; }
+    .big-sub { margin-top: 6px; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; }
+
+    .stat-col .mini-stats { margin-top: 14px; display: grid; gap: 7px; }
+    .stat-col .mini-stat {
+      display: flex; justify-content: space-between; gap: 8px;
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10.5px;
+      padding-bottom: 6px; border-bottom: 1px solid #000;
+    }
+    .stat-col .mini-stat span:first-child { opacity: 0.7; }
+    .stat-col .mini-stat span:last-child { font-weight: 700; }
+
+    /* ---- Die Stuecke ---- */
+    .slices {
+      padding-left: 18px; display: flex; flex-wrap: wrap; align-content: center; justify-content: flex-start;
+      gap: 10px;
+    }
+    .slice { flex: 0 0 auto; }
+    /* Angebissenes Stueck = der Rest, der nicht ganz voll wird.
+       Gestrichelte Kontur, damit es sich klar vom vollen Stueck
+       unterscheidet -- auf 1-Bit gibt es keine Halbtoene dafuer. */
+    .slice.partial path.crustline { stroke-dasharray: 3 2.5; }
+
+    /* ---- Fusszeile mit den Fahrtdaten ---- */
+    .ride-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+      padding-top: 10px;
+    }
+    .ride-box { border: 1.5px solid var(--black); border-radius: 8px; padding: 9px 11px; text-align: left; }
+    .ride-box .rb-label { font-size: 8.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.65; }
+    .ride-box .rb-value { font-size: 19px; font-weight: 800; margin-top: 3px; line-height: 1; letter-spacing: -0.02em; }
+    .ride-box .rb-unit { font-size: 10px; font-weight: 600; }
+
+    .empty { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; gap: 8px; height: 100%; }
+    .empty .headline { font-size: 20px; font-weight: 800; }
+    .empty .sub { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; }
+
+    .footer {
+      position: absolute; left: 20px; right: 20px; bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding-top: 7px; border-top: 1px solid var(--black);
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
+      font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="frame">
+    <header class="header">
+      <div>
+        <p class="brand">PIZZA-BILANZ</p>
+        <p class="subtitle" id="subtitle">L&auml;dt&hellip;</p>
+      </div>
+      <div class="date-badge">
+        <div class="day" id="dayName">&ndash;</div>
+        <div class="full" id="fullDate">&ndash;</div>
+      </div>
+    </header>
+
+    <section class="main" id="main">
+      <div class="empty"><div class="headline">L&auml;dt&hellip;</div></div>
+    </section>
+
+    <footer class="footer">
+      <span id="basis">Nach der letzten Radfahrt</span>
+      <span id="updatedAt">Updating</span>
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const PIZZA_API = "https://rudi.marvinradar.workers.dev/pizza";
+    const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+
+    const mainEl = document.getElementById("main");
+    const subtitle = document.getElementById("subtitle");
+    const updatedAt = document.getElementById("updatedAt");
+    const dayName = document.getElementById("dayName");
+    const fullDate = document.getElementById("fullDate");
+    const basisEl = document.getElementById("basis");
+
+    // Ein Pizzastueck. Bewusst nur schwarze Konturen und
+    // Vollschwarz-Details -- Graustufen wuerden beim 1-Bit-Threshold
+    // entweder verschwinden oder zu Flaechen zulaufen.
+    function sliceSvg(size, partial) {
+      const s = size;
+      return `<svg class="slice${partial ? " partial" : ""}" width="${s}" height="${s}" viewBox="0 0 100 100">
+        <path d="M50 6 L92 84 Q50 98 8 84 Z" fill="none" stroke="#000" stroke-width="4" stroke-linejoin="round"/>
+        <path class="crustline" d="M12 76 Q50 90 88 76" fill="none" stroke="#000" stroke-width="3.5"/>
+        <circle cx="40" cy="40" r="6" fill="#000"/>
+        <circle cx="60" cy="52" r="6" fill="#000"/>
+        <circle cx="36" cy="60" r="5" fill="#000"/>
+        <circle cx="58" cy="28" r="4.5" fill="#000"/>
+      </svg>`;
+    }
+
+    // Je mehr Stuecke, desto kleiner -- weniger Platz als vorher (rechte
+    // Spalte statt volle Breite), deshalb etwas kleiner gestuft.
+    function sliceSize(count) {
+      if (count <= 3) return 92;
+      if (count <= 6) return 76;
+      if (count <= 9) return 62;
+      if (count <= 12) return 52;
+      if (count <= 20) return 42;
+      return 32;
+    }
+
+    function formatDate(iso) {
+      if (!iso) return "";
+      const d = new Date(iso + "T12:00:00");
+      return d.toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" });
+    }
+
+    function formatDuration(minutes) {
+      if (!minutes) return "\u2013";
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return h > 0 ? `${h}:${String(m).padStart(2, "0")} h` : `${m} min`;
+    }
+
+    async function load() {
+      const now = new Date();
+      dayName.textContent = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" }).toUpperCase();
+      fullDate.textContent = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
+
+      try {
+        const res = await fetch(PIZZA_API, { headers: { Accept: "application/json" }, cache: "no-store" });
+        const data = await res.json();
+
+        if (!res.ok || !data.kcal) {
+          renderEmpty(data);
+        } else {
+          render(data);
+        }
+
+        updatedAt.textContent = `Updated ${now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}`;
+      } catch (error) {
+        console.error(error);
+        renderEmpty({ reason: "Verbindung fehlgeschlagen" });
+        updatedAt.textContent = "Update failed";
+      }
+    }
+
+    function renderEmpty(data) {
+      subtitle.textContent = "Keine Fahrt";
+      mainEl.innerHTML = `
+        <div class="empty">
+          <div class="headline">Noch keine Fahrt erfasst</div>
+          <div class="sub">${data.reason || "Nach der n\u00e4chsten Radfahrt geht es hier weiter"}</div>
+        </div>`;
+    }
+
+    function render(data) {
+      const slices = data.slices || 0;
+      // Rest, der kein volles Stueck mehr ergibt -- wird als
+      // angebissenes Stueck dargestellt, sofern nennenswert.
+      const restKcal = (data.kcal || 0) - slices * (data.kcalProStueck || 285);
+      const showPartial = restKcal >= (data.kcalProStueck || 285) * 0.35;
+
+      const total = slices + (showPartial ? 1 : 0);
+      const size = sliceSize(total);
+
+      let svgs = "";
+      for (let i = 0; i < slices; i++) svgs += sliceSvg(size, false);
+      if (showPartial) svgs += sliceSvg(size, true);
+
+      subtitle.textContent = `${data.kcal.toLocaleString("de-DE")} kcal verbrannt`;
+      basisEl.textContent = `1 St\u00fcck = ${data.kcalProStueck || 285} kcal`;
+
+      mainEl.innerHTML = `
+        <div class="top-row">
+          <div class="stat-col">
+            <div class="big-number">${slices}</div>
+            <div class="big-label">St&uuml;ck Pizza verdient</div>
+            <div class="big-sub">${showPartial ? "+ 1 angebissenes" : "glatt aufgegangen"}</div>
+
+            <div class="mini-stats">
+              <div class="mini-stat"><span>Verbrauch</span><span>${data.kcal.toLocaleString("de-DE")} kcal</span></div>
+              <div class="mini-stat"><span>Datum</span><span>${formatDate(data.date)}</span></div>
+            </div>
+          </div>
+
+          <div class="slices">${svgs || '<div class="big-sub">Nicht genug f&uuml;r ein ganzes St&uuml;ck</div>'}</div>
+        </div>
+
+        <div class="ride-row">
+          <div class="ride-box">
+            <div class="rb-label">Distanz</div>
+            <div class="rb-value">${data.km}<span class="rb-unit"> km</span></div>
+          </div>
+          <div class="ride-box">
+            <div class="rb-label">H&ouml;henmeter</div>
+            <div class="rb-value">${data.elevation}<span class="rb-unit"> hm</span></div>
+          </div>
+          <div class="ride-box">
+            <div class="rb-label">Dauer</div>
+            <div class="rb-value">${formatDuration(data.minutes)}</div>
+          </div>
+          <div class="ride-box">
+            <div class="rb-label">Verbrauch</div>
+            <div class="rb-value">${data.kcal}<span class="rb-unit"> kcal</span></div>
+          </div>
+        </div>
+      `;
+    }
+
+    load();
+    setInterval(load, REFRESH_INTERVAL_MS);
+  </script>
+</body>
+</html>

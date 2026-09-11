@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Wetter &amp; Familie</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root { --black:#000000; --white:#ffffff; }
+    * { box-sizing: border-box; }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
+    body {
+      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
+    }
+    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+
+    .header {
+      position: absolute; top: 14px; left: 20px; right: 20px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--black);
+    }
+    .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
+    .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    .date-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    .date-badge .day { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
+    .date-badge .full { font-size: 10px; }
+
+    .main {
+      position: absolute; top: 58px; left: 20px; right: 20px; bottom: 34px;
+      display: grid; grid-template-rows: 2fr 1fr; gap: 0;
+    }
+
+    /* ---- Obere Hälfte: Wetter heute + Ausblick ---- */
+    .weather-row { display: grid; grid-template-columns: 230px 1fr; border-bottom: 1px solid var(--black); padding-bottom: 10px; }
+    .today { padding-right: 16px; border-right: 1px solid var(--black); }
+
+    .temp-big { font-size: 76px; font-weight: 800; line-height: 1; letter-spacing: -0.04em; }
+    .temp-range { margin-top: 4px; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 12px; }
+
+    .mini-stats { margin-top: 14px; display: grid; gap: 7px; }
+    .mini-stat {
+      display: flex; justify-content: space-between; gap: 8px;
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10.5px;
+      padding-bottom: 5px; border-bottom: 1px solid #000;
+    }
+    .mini-stat span:first-child { opacity: 0.7; }
+    .mini-stat span:last-child { font-weight: 700; }
+
+    .outlook { padding-left: 18px; }
+    .outlook h2, .kids h2 { margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .outlook-list { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .outlook-day { border: 1.5px solid var(--black); border-radius: 8px; padding: 12px 10px; text-align: left; }
+    .outlook-day .d-name { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    .outlook-day .d-temp { margin-top: 6px; font-family: "Work Sans", Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+    .outlook-day .d-cond { font-size: 9.5px; margin-top: 6px; line-height: 1.25; }
+
+    /* ---- Untere Hälfte: Familie ---- */
+    .family-row { display: grid; grid-template-columns: 230px 1fr; padding-top: 10px; }
+    .activities { padding-right: 16px; border-right: 1px solid var(--black); }
+    .activity-list { margin: 0; padding: 0; list-style: none; }
+    .activity-list li { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-bottom: 1px dashed #000; font-size: 11.5px; }
+    .activity-list li .num { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; opacity: 0.5; width: 12px; flex-shrink: 0; }
+
+    .kids { padding-left: 18px; }
+    .meal-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .meal { border: 1.5px solid var(--black); border-radius: 8px; padding: 10px 11px; text-align: left; overflow: hidden; }
+    .meal .tag { font-size: 8px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; }
+    .meal .name {
+      font-size: 12.5px; font-weight: 700; margin-top: 4px; line-height: 1.25;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      max-height: 2.6em;
+    }
+    .meal .desc {
+      font-size: 9px; margin-top: 5px; opacity: 0.8; line-height: 1.35;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      max-height: 2.4em;
+    }
+
+    .clothing-box { margin-top: 8px; padding: 6px 9px; border: 1.5px solid var(--black); display: flex; justify-content: space-between; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; }
+
+    .footer {
+      position: absolute; left: 20px; right: 20px; bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding-top: 7px; border-top: 1px solid var(--black);
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
+      font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+    }
+    .empty {
+      position: absolute; inset: 58px 20px 34px; display: grid; place-items: center;
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 13px; text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="frame">
+    <header class="header">
+      <div>
+        <p class="brand">WETTER &amp; FAMILIE</p>
+        <p class="subtitle">Heute, Ausblick &amp; Aktivit&auml;ten</p>
+      </div>
+      <div class="date-badge">
+        <div class="day" id="dayName">&ndash;</div>
+        <div class="full" id="fullDate">&ndash;</div>
+      </div>
+    </header>
+
+    <section class="main" id="main">
+      <div class="empty">Loading&hellip;</div>
+    </section>
+
+    <footer class="footer">
+      <span>Grassau, Germany</span>
+      <span id="updatedAt">Updating</span>
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const LOCATION = { lat: 47.7756, lon: 12.4550 };
+    const WEATHER_API = "https://api.open-meteo.com/v1/forecast";
+    const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+
+    const WEATHER_LABELS = {
+      0: "Klar", 1: "\u00dcberw. klar", 2: "Teilw. bew\u00f6lkt", 3: "Bedeckt",
+      45: "Nebel", 48: "Reifnebel",
+      51: "Nieselregen", 53: "Nieselregen", 55: "Nieselregen",
+      61: "Regen", 63: "Regen", 65: "Regen",
+      71: "Schnee", 73: "Schnee", 75: "Schnee",
+      80: "Schauer", 81: "Schauer", 82: "Schauer",
+      95: "Gewitter", 96: "Gewitter", 99: "Gewitter",
+    };
+
+    function weatherLabel(code) { return WEATHER_LABELS[Number(code)] || "Unbekannt"; }
+
+    // Inspirationsliste kindgerechter Gerichte fürs Kleinkind – überwiegend,
+    // aber nicht ausschließlich für den Thermomix geeignet. Bewusst kurz
+    // und ohne vollständiges Rezept gehalten: soll nur Ideen liefern, keine
+    // exakten Mengen/Stufen/Zeiten vorgeben (siehe frühere Überlegung:
+    // keine ungeeigneten/scharfen Vorschläge riskieren, keine erfundenen
+    // TM-Einstellungen als vermeintlich verifizierte Fakten ausgeben).
+    // Keine Aufteilung nach Mahlzeit (Frühstück/Mittag/Abend) – flache Liste.
+    const RECIPE_IDEAS = [
+      { name: "Tomatensuppe", desc: "Tomaten, Zwiebel, etwas Sahne, fein p&uuml;riert" },
+      { name: "Bolognese", desc: "Faschiertes, Tomaten, Gem&uuml;se fein gehackt, mit Nudeln" },
+      { name: "K&uuml;rbissuppe", desc: "K&uuml;rbis, Kartoffel, etwas Kokosmilch, cremig p&uuml;riert" },
+      { name: "Brokkoli-K&auml;se-Suppe", desc: "Brokkoli, Kartoffel, milder K&auml;se, s&auml;mig" },
+      { name: "K&auml;se-Sp&auml;tzle", desc: "Sp&auml;tzleteig, mit K&auml;se untergehoben" },
+      { name: "Milchreis", desc: "Rundkornreis, Milch, leicht ges&uuml;&szlig;t, mit Zimt" },
+      { name: "Gem&uuml;se-Risotto", desc: "Reis, buntes Gem&uuml;se fein gew&uuml;rfelt, cremig gegart" },
+      { name: "Linsen-Curry (mild)", desc: "Rote Linsen, Kokosmilch, ohne Sch&auml;rfe" },
+      { name: "Hackb&auml;llchen in Tomatensauce", desc: "Kleine B&auml;llchen, milde Sauce, dazu Kartoffelp&uuml;ree" },
+      { name: "Ofengem&uuml;se-Sticks", desc: "Karotte, Zucchini, S&uuml;&szlig;kartoffel, weich im Ofen gegart" },
+      { name: "Gem&uuml;se-Frikadellen", desc: "Karotte, Zucchini, Haferflocken, in der Pfanne gebraten" },
+      { name: "Apfelmus", desc: "&Auml;pfel weich gegart, fein p&uuml;riert, ohne Zuckerzusatz" },
+      { name: "Grie&szlig;brei", desc: "Milch, Grie&szlig;, mild ges&uuml;&szlig;t, mit Fruchtmus" },
+      { name: "Blumenkohl-K&auml;se-Auflauf", desc: "Blumenkohl gegart, milde K&auml;sesauce, &uuml;berbacken" },
+      { name: "Gem&uuml;se-Couscous", desc: "Couscous, fein gew&uuml;rfeltes Gem&uuml;se, mild gew&uuml;rzt" },
+      { name: "Pfannkuchen", desc: "D&uuml;nner Teig, in der Pfanne gebacken, mit Apfelmus" },
+      { name: "Vollkorn-Pizza mit Gem&uuml;se", desc: "Teig, mildem Belag, im Ofen &uuml;berbacken" },
+      { name: "S&uuml;&szlig;kartoffel-P&uuml;ree", desc: "S&uuml;&szlig;kartoffel, etwas Butter, cremig gest&auml;mpft" },
+      { name: "Zucchini-Puffer", desc: "Zucchini fein geraspelt, in der Pfanne goldbraun gebraten" },
+      { name: "Kartoffel-M&ouml;hren-Eintopf", desc: "Kartoffel, Karotte, mild gew&uuml;rzt, st&uuml;ckig oder p&uuml;riert" },
+      { name: "H&auml;hnchen-Gem&uuml;se-Auflauf", desc: "Zartes H&auml;hnchen, Brokkoli, wenig K&auml;se &uuml;berbacken" },
+      { name: "Blumenkohlsuppe", desc: "Blumenkohl, Kartoffel, etwas Muskat, fein p&uuml;riert" },
+      { name: "S&uuml;&szlig;kartoffelsuppe", desc: "S&uuml;&szlig;kartoffel, Karotte, mild gew&uuml;rzt" },
+      { name: "Spinat-Kartoffel-Suppe", desc: "Blattspinat, Kartoffel, etwas Sahne, fein p&uuml;riert" },
+      { name: "Maissuppe", desc: "Mais, Kartoffel, etwas Sahne, leicht s&uuml;&szlig;lich" },
+      { name: "Tomaten-K&auml;se-Nudeln", desc: "Nudeln, milde Tomatensauce, geriebener K&auml;se" },
+      { name: "Fr&uuml;hst&uuml;cksmuffins herzhaft", desc: "Ei, Gem&uuml;se, wenig K&auml;se, im Muffinblech gebacken" },
+      { name: "Hirsebrei", desc: "Hirse, Milch, mild ges&uuml;&szlig;t, mit Obst" },
+      { name: "Polenta mit Gem&uuml;se", desc: "Maisgrie&szlig; cremig gekocht, mit weichem Gem&uuml;se" },
+      { name: "Fischst&auml;bchen selbstgemacht", desc: "Fisch, milde Panade, im Ofen statt frittiert" },
+      { name: "Kichererbsenbratlinge", desc: "Kichererbsen, Karotte, mild gew&uuml;rzt, gebraten" },
+      { name: "Kartoffelpuffer", desc: "Kartoffel fein geraspelt, in der Pfanne goldbraun" },
+      { name: "Ofen-Gem&uuml;sepuffer", desc: "Buntes Gem&uuml;se, Haferflocken, im Ofen statt in Fett gebacken" },
+      { name: "Bananen-Hafer-Pfannkuchen", desc: "Nur Banane, Ei, Haferflocken, ohne Zuckerzusatz" },
+      { name: "Vollkorn-Br&ouml;tchen", desc: "Einfacher Teig, als kleine Portionen gebacken" },
+      { name: "Birnen-Kompott", desc: "Birnen weich gegart, leicht ges&uuml;&szlig;t, mit Zimt" },
+      { name: "Vanillepudding", desc: "Milch, Vanille, hausgemacht statt Fertigpulver" },
+      { name: "Hausgemachte Tomatensauce", desc: "Tomaten, Zwiebel, Karotte, fein p&uuml;riert, als Basis" },
+      { name: "Gem&uuml;se-Muffins s&uuml;&szlig;", desc: "Karotte oder Zucchini im Teig versteckt, mild ges&uuml;&szlig;t" },
+      { name: "Mini-Gem&uuml;se-Quiche", desc: "M&uuml;rbteig, mit mildem Gem&uuml;se-Belag, im Ofen gebacken" },
+    ];
+
+    const mainEl = document.getElementById("main");
+    const updatedAt = document.getElementById("updatedAt");
+    const dayName = document.getElementById("dayName");
+    const fullDate = document.getElementById("fullDate");
+
+    function dayOfYear(date) {
+      const start = new Date(date.getFullYear(), 0, 0);
+      return Math.floor((date - start) / 86400000);
+    }
+
+    function deriveActivities(tempMax, precipSum, weathercode) {
+      const isRainy = precipSum > 1 || [51,53,55,61,63,65,80,81,82,95,96,99].includes(weathercode);
+      const isSnowy = [71,73,75].includes(weathercode) || tempMax < 1;
+      const isHot = tempMax >= 24;
+      const isNice = !isRainy && tempMax >= 12;
+
+      if (isSnowy) return { activities: ["Schlitten fahren", "Schneemann bauen", "Kakao-Pause danach"] };
+      if (isRainy) return { activities: ["Indoor-Spielplatz", "Backen zusammen", "Bastelnachmittag"] };
+      if (isHot) return { activities: ["Freibad / Planschbecken", "Wasserspiele im Garten", "Schatten-Spielplatz vormittags"] };
+      if (isNice) return { activities: ["Spielplatz-Besuch", "Spaziergang / kleine Wanderung", "Fahrrad/Laufrad \u00fcben"] };
+      return { activities: ["Kurzer Spaziergang zwischendurch", "Spielplatz, wenn's trocken bleibt", "Bastel-/Spielenachmittag"] };
+    }
+
+    async function loadWeather() {
+      try {
+        const params = new URLSearchParams({
+          latitude: String(LOCATION.lat),
+          longitude: String(LOCATION.lon),
+          hourly: ["temperature_2m"].join(","),
+          daily: [
+            "temperature_2m_max", "temperature_2m_min", "uv_index_max",
+            "sunrise", "sunset", "precipitation_sum", "windspeed_10m_max", "weathercode",
+          ].join(","),
+          timezone: "Europe/Berlin",
+          forecast_days: "6",
+        });
+
+        const response = await fetch(`${WEATHER_API}?${params.toString()}`, {
+          headers: { Accept: "application/json" }, cache: "no-store",
+        });
+        if (!response.ok) throw new Error(`Weather HTTP ${response.status}`);
+
+        const data = await response.json();
+        render(data);
+
+        updatedAt.textContent = `Updated ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}`;
+      } catch (error) {
+        console.error(error);
+        mainEl.innerHTML = '<div class="empty">Wetterdaten nicht verf&uuml;gbar.</div>';
+        updatedAt.textContent = "Update failed";
+      }
+    }
+
+    function render(data) {
+      const now = new Date();
+      dayName.textContent = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" }).toUpperCase();
+      fullDate.textContent = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
+
+      const daily = data.daily;
+      const hourly = data.hourly;
+
+      const tMax = Math.round(daily.temperature_2m_max[0]);
+      const tMin = Math.round(daily.temperature_2m_min[0]);
+      const uvMax = daily.uv_index_max[0];
+      const precipSum = daily.precipitation_sum[0];
+      const windMax = Math.round(daily.windspeed_10m_max[0]);
+      const sunrise = new Date(daily.sunrise[0]).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+      const sunset = new Date(daily.sunset[0]).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+      const weathercode = daily.weathercode[0];
+      const condition = weatherLabel(weathercode);
+
+      const nowIsoHour = now.toISOString().slice(0, 13);
+      let liveIdx = hourly.time.findIndex((t) => t.startsWith(nowIsoHour));
+      if (liveIdx < 0) liveIdx = 12;
+      const tLive = Math.round(hourly.temperature_2m[liveIdx]);
+
+      // 5-Tage-Ausblick: Index 1-5 (heute = 0)
+      const outlookDays = [1, 2, 3, 4, 5].map((i) => {
+        const d = new Date(daily.time[i] + "T12:00:00");
+        return {
+          name: d.toLocaleDateString("de-DE", { weekday: "short", timeZone: "Europe/Berlin" }).toUpperCase(),
+          cond: weatherLabel(daily.weathercode[i]),
+          tMin: Math.round(daily.temperature_2m_min[i]),
+          tMax: Math.round(daily.temperature_2m_max[i]),
+        };
+      });
+
+      const plan = deriveActivities(tMax, precipSum, weathercode);
+      const doy = dayOfYear(now);
+      const n = RECIPE_IDEAS.length;
+      const recipe1 = RECIPE_IDEAS[doy % n];
+      const recipe2 = RECIPE_IDEAS[(doy + Math.floor(n / 3)) % n];
+      const recipe3 = RECIPE_IDEAS[(doy + Math.floor((2 * n) / 3)) % n];
+      const needsJacket = tMax < 15 || precipSum > 0.5;
+      const needsSunscreen = uvMax >= 4;
+
+      mainEl.innerHTML = `
+        <div class="weather-row">
+          <div class="today">
+            <div class="temp-big">${tLive}&deg;</div>
+            <div class="temp-range">Jetzt &middot; ${condition}</div>
+            <div class="temp-range" style="margin-top:2px;">Heute: ${tMin}&deg;&ndash;${tMax}&deg;C</div>
+            <div class="mini-stats">
+              <div class="mini-stat"><span>UV-Index</span><span>${uvMax.toFixed(1)}</span></div>
+              <div class="mini-stat"><span>Regen</span><span>${precipSum.toFixed(1)} mm</span></div>
+              <div class="mini-stat"><span>Wind max.</span><span>${windMax} km/h</span></div>
+              <div class="mini-stat"><span>Sonne auf/unter</span><span>${sunrise} / ${sunset}</span></div>
+            </div>
+          </div>
+          <div class="outlook">
+            <h2>5-Tage-Ausblick</h2>
+            <div class="outlook-list">
+              ${outlookDays.map((d) => `
+                <div class="outlook-day">
+                  <div class="d-name">${d.name}</div>
+                  <div class="d-temp">${d.tMax}&deg;</div>
+                  <div class="d-cond">${d.cond}</div>
+                </div>
+              `).join("")}
+            </div>
+            <div class="clothing-box">
+              <span>${needsJacket ? "Jacke mitnehmen" : "Leicht reicht"}</span>
+              <span>${needsSunscreen ? "Sonnencreme n\u00f6tig" : "Kein starker Schutz n\u00f6tig"}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="family-row">
+          <div class="activities">
+            <h2 style="font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin:0 0 8px;">Aktivit&auml;ten heute</h2>
+            <ul class="activity-list">
+              ${plan.activities.map((a, i) => `<li><span class="num">${i + 1}</span><span>${a}</span></li>`).join("")}
+            </ul>
+          </div>
+          <div class="kids">
+            <h2>Rezeptideen</h2>
+            <div class="meal-card">
+              <div class="meal">
+                <div class="name">${recipe1.name}</div>
+                <div class="desc">${recipe1.desc}</div>
+              </div>
+              <div class="meal">
+                <div class="name">${recipe2.name}</div>
+                <div class="desc">${recipe2.desc}</div>
+              </div>
+              <div class="meal">
+                <div class="name">${recipe3.name}</div>
+                <div class="desc">${recipe3.desc}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    loadWeather();
+    setInterval(loadWeather, REFRESH_INTERVAL_MS);
+  </script>
+</body>
+</html>
