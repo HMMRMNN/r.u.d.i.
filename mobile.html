@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="R.U.D.I." />
+  <title>R.U.D.I. Mobile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    /* =========================================================
+       R.U.D.I. -- MOBILE
+       Reines Schwarz/Weiß, keine Opacity-Grautöne -- Hierarchie
+       entsteht über Größe und Schriftgewicht, nicht über
+       Transparenz (gleiche Regel wie auf den Display-Seiten).
+       ========================================================= */
+    :root {
+      --black: #000000;
+      --white: #ffffff;
+      --page-x: 20px;
+      --page-top: 20px;
+      --page-bottom: 16px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html { width: 100%; height: 100%; background: var(--black); color-scheme: dark; }
+    body {
+      width: 100%; min-height: 100%; margin: 0;
+      background: var(--black); color: var(--white);
+      font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---- Topbar ---- */
+    .topbar {
+      position: relative; z-index: 20; min-height: 52px;
+      background: var(--black); color: var(--white);
+      padding: calc(env(safe-area-inset-top, 0px) + 12px) var(--page-x) 12px;
+      border-bottom: 2px solid var(--white);
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .topbar .brand { font-size: 13px; font-weight: 800; letter-spacing: 0.18em; }
+    .topbar nav { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; }
+    .topbar nav::-webkit-scrollbar { display: none; }
+    .topbar nav a {
+      font-family: "Roboto Mono", monospace; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.05em; text-transform: uppercase; color: var(--white);
+      text-decoration: none; white-space: nowrap;
+    }
+
+    /* ---- Snap-Scroller ---- */
+    .scroller {
+      height: calc(100dvh - var(--topbar-h, 52px));
+      overflow-y: auto; overflow-x: hidden;
+      scroll-snap-type: y mandatory; scroll-behavior: smooth;
+      scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .scroller::-webkit-scrollbar { display: none; }
+
+    section.page {
+      position: relative;
+      height: calc(100dvh - var(--topbar-h, 52px));
+      scroll-snap-align: start; scroll-snap-stop: always;
+      padding: var(--page-top) var(--page-x) var(--page-bottom);
+      display: flex; flex-direction: column;
+      background: var(--black); color: var(--white);
+      border-bottom: 8px solid var(--white);
+      overflow: hidden;
+    }
+    section.page:last-child { border-bottom: none; }
+    .page-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+
+    /* ---- Kopf pro Seite: großzügiger als vorher ---- */
+    .page-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px; padding-bottom: 14px; margin-bottom: 22px;
+      border-bottom: 1px solid var(--white); flex-shrink: 0;
+    }
+    .page-header .brand { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.14em; }
+    .page-header .subtitle { margin: 5px 0 0; font-family: "Roboto Mono", monospace; font-size: 10.5px; color: var(--white); }
+    .date-badge { flex-shrink: 0; text-align: right; font-family: "Roboto Mono", monospace; }
+    .date-badge .day { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; }
+    .date-badge .full { margin-top: 3px; font-size: 10px; }
+    .live-badge { margin: 0; font-family: "Roboto Mono", monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+    .mono { font-family: "Roboto Mono", monospace; }
+
+    h2.section-h {
+      margin: 26px 0 14px; font-size: 12px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    h2.section-h.first { margin-top: 0; }
+
+    /* ---- Große Kennzahl ---- */
+    .big-stat { margin: 0; font-family: "Roboto Mono", monospace; font-size: clamp(58px, 17vw, 72px); line-height: 0.95; font-weight: 800; letter-spacing: -0.04em; }
+    .big-sub { margin-top: 10px; font-family: "Roboto Mono", monospace; font-size: 12px; }
+
+    /* ---- Mini-Stat-Zeilen: mehr Luft, klare Linie, kein Grau ---- */
+    .mini-stats { margin-top: 24px; display: grid; gap: 0; }
+    .mini-stat {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+      padding: 11px 0; font-family: "Roboto Mono", monospace; font-size: 13px;
+      border-bottom: 1px solid var(--white);
+    }
+    .mini-stat span:last-child { font-weight: 700; }
+
+    /* ---- 5-Tage-Ausblick ---- */
+    .card-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 7px; }
+    .outlook-day { border: 1px solid var(--white); border-radius: 6px; padding: 10px 6px; text-align: center; }
+    .outlook-day .d-name { font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; }
+    .outlook-day .d-temp { margin-top: 8px; font-family: "Roboto Mono", monospace; font-size: 19px; font-weight: 800; }
+
+    /* ---- Bilanz-Kästen (Training) ---- */
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-box { border: 1px solid var(--white); border-radius: 6px; padding: 12px 10px; }
+    .stat-box .sb-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .stat-box .sb-value { margin-top: 6px; font-size: 21px; font-weight: 800; }
+    .stat-box .sb-value .unit { font-size: 11px; font-weight: 600; }
+
+    /* ---- Aktivitäten-Liste ---- */
+    ul.num-list { margin: 0; padding: 0; list-style: none; }
+    ul.num-list li { display: flex; align-items: baseline; gap: 11px; padding: 10px 0; border-bottom: 1px dashed var(--white); font-size: 13.5px; }
+    ul.num-list li:last-child { border-bottom: none; }
+    ul.num-list li .num { flex-shrink: 0; width: 14px; font-family: "Roboto Mono", monospace; font-size: 10px; }
+
+    /* ---- Tabellen ---- */
+    table.data-table { width: 100%; border-collapse: collapse; font-family: "Roboto Mono", monospace; font-size: 12px; }
+    table.data-table th, table.data-table td { text-align: left; padding: 9px 8px 9px 0; border-bottom: 1px solid var(--white); }
+    table.data-table th { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 2px solid var(--white); }
+
+    /* ---- Flugtag-Bewertung ---- */
+    .rating-box { padding: 16px 18px; border: 2px solid var(--white); border-radius: 8px; }
+    .rating-box .label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+    .rating-box .value { margin-top: 8px; font-size: 26px; font-weight: 800; }
+
+    /* ---- Aircraft-Karten ---- */
+    .aircraft-card { border: 1px solid var(--white); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .aircraft-card .ac-tail { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--white); }
+    .aircraft-card .ac-tail .tail-fallback { flex-shrink: 0; width: 40px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-align: center; }
+    .aircraft-card .ac-type { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
+    .aircraft-card .ac-airline { margin-top: 3px; font-family: "Roboto Mono", monospace; font-size: 11px; }
+    .aircraft-card .ac-meta { font-family: "Roboto Mono", monospace; font-size: 12px; line-height: 1.7; }
+    .aircraft-card .ac-meta strong { font-weight: 700; }
+    .aircraft-card .ac-phase { display: inline-block; margin-top: 10px; font-family: "Roboto Mono", monospace; font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid var(--white); border-radius: 999px; padding: 4px 10px; }
+
+    /* ---- Gleitschirm-Radar ---- */
+    #pgMap { display: block; width: 100%; max-width: 300px; height: auto; margin: 4px auto 18px; }
+    .pilot-row { display: flex; align-items: baseline; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--white); font-family: "Roboto Mono", monospace; font-size: 13px; }
+    .pilot-row:last-child { border-bottom: none; }
+    .pilot-row .p-num { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--white); display: grid; place-items: center; font-size: 9.5px; font-weight: 700; }
+    .pilot-row .p-alt { font-family: "Work Sans", sans-serif; font-size: 15px; font-weight: 800; }
+    .pilot-row .p-climb { margin-left: auto; font-weight: 700; }
+
+    /* ---- Jahresziel ---- */
+    .goal-head { display: flex; justify-content: space-between; align-items: baseline; font-family: "Roboto Mono", monospace; font-size: 12px; }
+    .goal-head strong { font-family: "Work Sans", sans-serif; font-size: 19px; font-weight: 800; }
+    .bar { height: 16px; border: 1px solid var(--white); border-radius: 3px; position: relative; overflow: hidden; margin-top: 10px; }
+    .bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--white); }
+    .goal-foot { margin-top: 10px; font-family: "Roboto Mono", monospace; font-size: 10.5px; }
+
+    /* ---- Panel (Form) ---- */
+    .panel { border: 1px solid var(--white); border-radius: 8px; padding: 14px 16px; margin-top: 16px; }
+    .panel .p-head { margin-bottom: 10px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .kv { display: flex; justify-content: space-between; align-items: baseline; font-family: "Roboto Mono", monospace; font-size: 12px; padding: 7px 0; border-bottom: 1px solid var(--white); }
+    .kv:last-child { border-bottom: none; }
+    .kv .v { font-weight: 700; font-size: 13px; }
+    .form-main { font-size: 28px; font-weight: 800; line-height: 1; }
+    .form-main .fm-unit { font-size: 11px; font-weight: 600; }
+
+    /* ---- Live-Badge ---- */
+    .badge-live {
+      display: inline-flex; align-items: center; gap: 7px; width: fit-content;
+      font-family: "Roboto Mono", monospace; font-size: 10.5px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      border: 1px solid var(--white); border-radius: 999px; padding: 7px 12px; margin-bottom: 18px;
+    }
+    .badge-live .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--white); animation: pulse 1.6s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+    .empty-msg { margin: auto 0; font-family: "Roboto Mono", monospace; font-size: 12px; text-align: center; padding: 30px 10px; }
+
+    .footer-note {
+      flex-shrink: 0; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--white);
+      display: flex; justify-content: space-between; font-family: "Roboto Mono", monospace; font-size: 9px;
+      letter-spacing: 0.03em;
+    }
+
+    @media (max-height: 700px) {
+      :root { --page-top: 16px; --page-bottom: 12px; }
+      .big-stat { font-size: 50px; }
+      .page-header { margin-bottom: 16px; }
+      h2.section-h { margin: 18px 0 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="brand">R.U.D.I.</span>
+    <nav>
+      <a href="#p-weather">Wetter</a>
+      <a href="#p-paragliding">Gleitschirm</a>
+      <a href="#p-flights">Flugradar</a>
+      <a href="#p-pglive">GS Live</a>
+      <a href="#p-training">Training</a>
+    </nav>
+  </div>
+
+  <main class="scroller">
+
+  <section class="page" id="p-weather">
+    <div class="page-header">
+      <div><p class="brand">WETTER &amp; FAMILIE</p><p class="subtitle">Heute &amp; Ausblick</p></div>
+      <div class="date-badge"><div class="day" id="dayName">&ndash;</div><div class="full" id="fullDate">&ndash;</div></div>
+    </div>
+    <div id="weatherBody" class="page-body"><p class="empty-msg">L&auml;dt&hellip;</p></div>
+    <div class="footer-note"><span>Grassau, Germany</span><span id="weatherUpdated">Updating</span></div>
+  </section>
+
+  <section class="page" id="p-paragliding">
+    <div class="page-header">
+      <div><p class="brand">GLEITSCHIRM &amp; SEGELFLUG</p><p class="subtitle">Live-Wind &amp; Flugtag</p></div>
+      <div class="date-badge"><div class="day" id="dayName2">&ndash;</div><div class="full" id="fullDate2">&ndash;</div></div>
+    </div>
+    <div id="paraglidingBody" class="page-body"><p class="empty-msg">L&auml;dt&hellip;</p></div>
+    <div class="footer-note"><span>Grassau, Germany</span><span id="paraglidingUpdated">Updating</span></div>
+  </section>
+
+  <section class="page" id="p-flights">
+    <div class="page-header">
+      <div><p class="brand">FLUGRADAR</p><p class="subtitle">Live-Flugverfolgung</p></div>
+      <p class="live-badge">Live</p>
+    </div>
+    <div id="flightsBody" class="page-body"><p class="empty-msg">L&auml;dt&hellip;</p></div>
+    <div class="footer-note"><span id="flightsCity">M&uuml;nchen</span><span id="flightsUpdated">Updating</span></div>
+  </section>
+
+  <section class="page" id="p-pglive">
+    <div class="page-header">
+      <div><p class="brand">GLEITSCHIRM LIVE</p><p class="subtitle" id="pgliveSubtitle">L&auml;dt&hellip;</p></div>
+      <p class="live-badge">Live</p>
+    </div>
+    <div id="pgliveBody" class="page-body"><p class="empty-msg">L&auml;dt&hellip;</p></div>
+    <div class="footer-note"><span>15 km um Grassau</span><span id="pgliveUpdated">Updating</span></div>
+  </section>
+
+  <section class="page" id="p-training">
+    <div class="page-header">
+      <div><p class="brand">TRAINING &middot; RAD</p><p class="subtitle" id="trainingSubtitle">L&auml;dt&hellip;</p></div>
+      <div class="date-badge"><div class="day" id="dayName3">&ndash;</div><div class="full" id="fullDate3">&ndash;</div></div>
+    </div>
+    <div id="trainingBody" class="page-body"><p class="empty-msg">L&auml;dt&hellip;</p></div>
+    <div class="footer-note"><span>intervals.icu</span><span id="trainingUpdated">Updating</span></div>
+  </section>
+
+  </main>
+
+  <script>
+    "use strict";
+    const WORKER = "https://rudi.marvinradar.workers.dev";
+    const LOCATION = { lat: 47.7756, lon: 12.4550 };
+
+    function nowBerlin() { return new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Berlin" })); }
+    function timeNow() { return new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" }); }
+    function setDateBadges() {
+      const now = new Date();
+      const day = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" }).toUpperCase();
+      const full = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
+      ["dayName", "dayName2", "dayName3"].forEach((id) => { const el = document.getElementById(id); if (el) el.textContent = day; });
+      ["fullDate", "fullDate2", "fullDate3"].forEach((id) => { const el = document.getElementById(id); if (el) el.textContent = full; });
+    }
+    function escapeHtml(value) {
+      return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+    }
+
+    /* ================= WETTER (ohne Rezepte, ohne Kleidungs-Hinweis) ================= */
+    const WEATHER_LABELS = {
+      0:"Klar",1:"\u00dcberw. klar",2:"Teilw. bew\u00f6lkt",3:"Bedeckt",45:"Nebel",48:"Reifnebel",
+      51:"Nieselregen",53:"Nieselregen",55:"Nieselregen",61:"Regen",63:"Regen",65:"Regen",
+      71:"Schnee",73:"Schnee",75:"Schnee",80:"Schauer",81:"Schauer",82:"Schauer",95:"Gewitter",96:"Gewitter",99:"Gewitter",
+    };
+    function weatherLabel(code) { return WEATHER_LABELS[Number(code)] || "Unbekannt"; }
+
+    function deriveActivities(tempMax, precipSum, weathercode) {
+      const isRainy = precipSum > 1 || [51,53,55,61,63,65,80,81,82,95,96,99].includes(weathercode);
+      const isSnowy = [71,73,75].includes(weathercode) || tempMax < 1;
+      const isHot = tempMax >= 24;
+      const isNice = !isRainy && tempMax >= 12;
+      if (isSnowy) return ["Schlitten fahren", "Schneemann bauen"];
+      if (isRainy) return ["Indoor-Spielplatz", "Backen zusammen"];
+      if (isHot) return ["Freibad / Planschbecken", "Wasserspiele im Garten"];
+      if (isNice) return ["Spielplatz-Besuch", "Spaziergang / kleine Wanderung"];
+      return ["Kurzer Spaziergang zwischendurch", "Spielplatz, wenn's trocken bleibt"];
+    }
+
+    async function loadWeather() {
+      const body = document.getElementById("weatherBody");
+      try {
+        const params = new URLSearchParams({
+          latitude: String(LOCATION.lat), longitude: String(LOCATION.lon),
+          hourly: "temperature_2m",
+          daily: "temperature_2m_max,temperature_2m_min,uv_index_max,sunrise,sunset,precipitation_sum,windspeed_10m_max,weathercode",
+          timezone: "Europe/Berlin", forecast_days: "6",
+        });
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+
+        const daily = data.daily, hourly = data.hourly;
+        const now = new Date();
+        const tMax = Math.round(daily.temperature_2m_max[0]);
+        const tMin = Math.round(daily.temperature_2m_min[0]);
+        const uvMax = daily.uv_index_max[0];
+        const precipSum = daily.precipitation_sum[0];
+        const windMax = Math.round(daily.windspeed_10m_max[0]);
+        const weathercode = daily.weathercode[0];
+
+        const nowIsoHour = now.toISOString().slice(0, 13);
+        let liveIdx = hourly.time.findIndex((t) => t.startsWith(nowIsoHour));
+        if (liveIdx < 0) liveIdx = 12;
+        const tLive = Math.round(hourly.temperature_2m[liveIdx]);
+
+        const outlookDays = [1,2,3,4,5].map((i) => {
+          const d = new Date(daily.time[i] + "T12:00:00");
+          return {
+            name: d.toLocaleDateString("de-DE", { weekday: "short", timeZone: "Europe/Berlin" }).toUpperCase(),
+            tMax: Math.round(daily.temperature_2m_max[i]),
+          };
+        });
+
+        const activities = deriveActivities(tMax, precipSum, weathercode);
+
+        body.innerHTML = `
+          <div class="big-stat mono">${tLive}&deg;</div>
+          <div class="big-sub">${weatherLabel(weathercode)} &middot; Heute ${tMin}&deg;&ndash;${tMax}&deg;C</div>
+          <div class="mini-stats">
+            <div class="mini-stat"><span>UV-Index</span><span>${uvMax.toFixed(1)}</span></div>
+            <div class="mini-stat"><span>Regen</span><span>${precipSum.toFixed(1)} mm</span></div>
+            <div class="mini-stat"><span>Wind max.</span><span>${windMax} km/h</span></div>
+          </div>
+          <h2 class="section-h">5-Tage-Ausblick</h2>
+          <div class="card-grid">
+            ${outlookDays.map((d) => `<div class="outlook-day"><div class="d-name">${d.name}</div><div class="d-temp">${d.tMax}&deg;</div></div>`).join("")}
+          </div>
+          <h2 class="section-h">Aktivit&auml;ten heute</h2>
+          <ul class="num-list">${activities.map((a, i) => `<li><span class="num">${i+1}</span><span>${a}</span></li>`).join("")}</ul>
+        `;
+        document.getElementById("weatherUpdated").textContent = `Updated ${timeNow()}`;
+      } catch (error) {
+        body.innerHTML = '<p class="empty-msg">Wetterdaten nicht verf&uuml;gbar.</p>';
+        document.getElementById("weatherUpdated").textContent = "Update failed";
+      }
+    }
+
+    /* ================= GLEITSCHIRM (nur Rating + Kernwerte + Live-Wind) ================= */
+    function renderHolfuyTable(holfuyData) {
+      if (!holfuyData || !Array.isArray(holfuyData.stations)) return "";
+      const valid = holfuyData.stations.filter((s) => !s.error && s.wind != null);
+      if (!valid.length) return "";
+      return `
+        <h2 class="section-h">Startpl\u00e4tze &ndash; Live-Wind</h2>
+        <table class="data-table">
+          <thead><tr><th>Startplatz</th><th>Wind</th><th>B\u00f6e</th></tr></thead>
+          <tbody>${valid.map((s) => `<tr><td>${s.label}</td><td>${s.wind ?? "-"} km/h</td><td>${s.gust ?? "-"} km/h</td></tr>`).join("")}</tbody>
+        </table>
+      `;
+    }
+
+    async function loadParagliding() {
+      const body = document.getElementById("paraglidingBody");
+      try {
+        const params = new URLSearchParams({
+          latitude: String(LOCATION.lat), longitude: String(LOCATION.lon),
+          daily: "precipitation_sum,windspeed_10m_max,sunrise,sunset",
+          timezone: "Europe/Berlin",
+        });
+
+        const [res, pgRes, holfuyRes] = await Promise.all([
+          fetch(`https://api.open-meteo.com/v1/forecast?${params}`, { cache: "no-store" }),
+          fetch(`${WORKER}/paraglidable`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
+          fetch(`${WORKER}/holfuy`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
+        ]);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        const daily = data.daily;
+        const precipSum = daily.precipitation_sum[0];
+        const windMax = Math.round(daily.windspeed_10m_max[0]);
+        const sunrise = new Date(daily.sunrise[0]).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Berlin"});
+        const sunset = new Date(daily.sunset[0]).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Berlin"});
+
+        let ratingLabel = "K.A.", ratingSub = "";
+        if (pgRes && typeof pgRes === "object") {
+          const today = Object.keys(pgRes).sort()[0];
+          const spots = today ? pgRes[today] : null;
+          if (spots && spots.length) {
+            const bestFly = Math.max(...spots.map(s => s.forecast.fly));
+            const best = spots.find(s => s.forecast.fly === bestFly);
+            ratingLabel = bestFly >= 0.75 ? "GUT" : bestFly >= 0.4 ? "M\u00c4SSIG" : "SCHLECHT";
+            ratingSub = `${best.name} &middot; ${Math.round(bestFly*100)}% Fly-Score`;
+          }
+        }
+
+        body.innerHTML = `
+          <div class="rating-box">
+            <div class="label">Flugtag-Bewertung</div>
+            <div class="value">${ratingLabel}</div>
+            ${ratingSub ? `<div class="big-sub" style="margin-top:8px;">${ratingSub}</div>` : ""}
+          </div>
+          <div class="mini-stats">
+            <div class="mini-stat"><span>Niederschlag</span><span>${precipSum.toFixed(1)} mm</span></div>
+            <div class="mini-stat"><span>Wind max.</span><span>${windMax} km/h</span></div>
+            <div class="mini-stat"><span>Sonne auf/unter</span><span>${sunrise} / ${sunset}</span></div>
+          </div>
+          ${renderHolfuyTable(holfuyRes)}
+        `;
+        document.getElementById("paraglidingUpdated").textContent = `Updated ${timeNow()}`;
+      } catch (error) {
+        body.innerHTML = '<p class="empty-msg">Nicht verf\u00fcgbar.</p>';
+        document.getElementById("paraglidingUpdated").textContent = "Update failed";
+      }
+    }
+
+    /* ================= FLUGRADAR ================= */
+    const AIRCRAFT_TYPES = {
+      A318:"Airbus A318-100",A319:"Airbus A319-100",A320:"Airbus A320-200",A321:"Airbus A321-100/200",
+      A20N:"Airbus A320neo",A21N:"Airbus A321neo",A332:"Airbus A330-200",A333:"Airbus A330-300",
+      A339:"Airbus A330-900neo",A359:"Airbus A350-900",A35K:"Airbus A350-1000",A388:"Airbus A380-800",
+      B737:"Boeing 737-700",B738:"Boeing 737-800",B739:"Boeing 737-900",B38M:"Boeing 737 MAX 8",
+      B39M:"Boeing 737 MAX 9",B744:"Boeing 747-400",B748:"Boeing 747-8",B752:"Boeing 757-200",
+      B763:"Boeing 767-300",B772:"Boeing 777-200",B773:"Boeing 777-300",B77W:"Boeing 777-300ER",
+      B788:"Boeing 787-8",B789:"Boeing 787-9",B78X:"Boeing 787-10",E190:"Embraer 190",
+      E195:"Embraer 195",AT76:"ATR 72-600",DH8D:"De Havilland Dash 8-Q400",
+    };
+    const AIRLINE_NAMES = { DLH:"Lufthansa",BAW:"British Airways",AFR:"Air France",KLM:"KLM",UAE:"Emirates",QTR:"Qatar Airways",THY:"Turkish Airlines",SAS:"Scandinavian Airlines",AUA:"Austrian Airlines",SWR:"Swiss",RYR:"Ryanair",EZY:"easyJet",EJU:"easyJet Europe" };
+
+    function haversineKm(a, b) {
+      const R = 6371.0088;
+      const dLat = (b.lat-a.lat)*Math.PI/180, dLon = (b.lon-a.lon)*Math.PI/180;
+      const la1 = a.lat*Math.PI/180, la2 = b.lat*Math.PI/180;
+      const v = Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;
+      return 2*R*Math.asin(Math.sqrt(v));
+    }
+    function airlineIcaoFromCallsign(cs) {
+      const m = String(cs||"").trim().toUpperCase().match(/^([A-Z]{3})\d/);
+      return m ? m[1] : null;
+    }
+    function flightPhaseFor(altM, vRateFpm, distKm) {
+      if (distKm !== null && distKm < 80 && altM !== null && altM < 3500) return "APPROACH";
+      if (vRateFpm !== null) { if (vRateFpm > 500) return "CLIMB"; if (vRateFpm < -500) return "DESCENT"; }
+      return "CRUISE";
+    }
+
+    async function loadFlights() {
+      const body = document.getElementById("flightsBody");
+      try {
+        const locRes = await fetch(`${WORKER}/location`, { cache: "no-store" }).then(r => r.json()).catch(() => null);
+        const loc = locRes || { lat: 48.1547, lon: 11.5074, label: "M\u00fcnchen" };
+        document.getElementById("flightsCity").textContent = loc.label;
+
+        const res = await fetch(`${WORKER}/flights/aircraft`, { cache: "no-store" });
+        const data = await res.json();
+        const aircraft = (data.ac || []).filter(a => a.lat && a.lon && a.flight);
+
+        const enriched = aircraft.map(a => ({
+          ...a,
+          distFromLoc: haversineKm(loc, { lat: a.lat, lon: a.lon }),
+          altM: a.alt_baro === "ground" ? 0 : Math.round((a.alt_baro || 0) * 0.3048),
+        })).sort((a,b) => a.distFromLoc - b.distFromLoc).slice(0, 4);
+
+        if (!enriched.length) {
+          body.innerHTML = '<p class="empty-msg">Gerade nichts in der N\u00e4he.</p>';
+        } else {
+          body.innerHTML = enriched.map(a => {
+            const type = AIRCRAFT_TYPES[String(a.t||"").toUpperCase()] || a.t || "Unbekannt";
+            const icao = airlineIcaoFromCallsign(a.flight);
+            const airline = icao ? (AIRLINE_NAMES[icao] || icao) : "?";
+            const speedKmh = a.gs ? Math.round(a.gs * 1.852) : null;
+            const phase = flightPhaseFor(a.altM, a.baro_rate, null);
+            return `
+              <div class="aircraft-card">
+                <div class="ac-tail"><span class="tail-fallback">${escapeHtml(icao || "AIR")}</span>
+                  <div><div class="ac-type">${escapeHtml(type)}</div><div class="ac-airline">${escapeHtml(airline)} &middot; ${escapeHtml(a.r || "?")}</div></div>
+                </div>
+                <div class="ac-meta">
+                  <strong>${escapeHtml((a.flight||"").trim())}</strong><br/>
+                  ${a.altM.toLocaleString("de-DE")} m &middot; ${speedKmh ?? "\u2013"} km/h<br/>
+                  ${a.distFromLoc.toFixed(0)} km von ${escapeHtml(loc.label)}
+                </div>
+                <span class="ac-phase">${phase}</span>
+              </div>
+            `;
+          }).join("");
+        }
+        document.getElementById("flightsUpdated").textContent = `Updated ${timeNow()}`;
+      } catch (error) {
+        body.innerHTML = '<p class="empty-msg">Nicht verf\u00fcgbar.</p>';
+        document.getElementById("flightsUpdated").textContent = "Update failed";
+      }
+    }
+
+    /* ================= GLEITSCHIRM LIVE ================= */
+    function project(lat, lon, center, scalePxPerKm) {
+      const kmPerDegLat = 111, kmPerDegLon = 111*Math.cos(center.lat*Math.PI/180);
+      const dxKm = (lon-center.lon)*kmPerDegLon, dyKm = (lat-center.lat)*kmPerDegLat;
+      return { x: dxKm*scalePxPerKm, y: -dyKm*scalePxPerKm };
+    }
+    function climbArrow(cr) {
+      if (cr == null) return "\u2013";
+      if (cr >= 1.5) return "\u2191\u2191"; if (cr >= 0.3) return "\u2191";
+      if (cr <= -1.5) return "\u2193\u2193"; if (cr <= -0.3) return "\u2193";
+      return "\u2192";
+    }
+
+    async function loadParagliderLive() {
+      const body = document.getElementById("pgliveBody");
+      try {
+        const res = await fetch(`${WORKER}/paragliders`, { cache: "no-store" });
+        const data = await res.json();
+        const pilots = data.pilots || [];
+        document.getElementById("pgliveSubtitle").textContent = pilots.length ? `${pilots.length} Gleitschirm${pilots.length===1?"":"e"} in der Luft` : "Gerade niemand in der Luft";
+
+        if (!pilots.length) {
+          body.innerHTML = '<p class="empty-msg">Gerade niemand in der Luft.</p>';
+        } else {
+          const W = 300, H = 260;
+          const scale = (Math.min(W,H)/2 - 16) / data.radiusKm;
+          const center = data.center;
+          let svg = `<svg id="pgMap" viewBox="${-W/2} ${-H/2} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+          [5,10,15].forEach((km) => {
+            svg += `<circle cx="0" cy="0" r="${km*scale}" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="2 3"/>`;
+          });
+          svg += `<circle cx="0" cy="0" r="4" fill="#fff"/><text x="7" y="4" font-size="9" font-weight="700" fill="#fff" font-family="Work Sans, sans-serif">${escapeHtml(center.label)}</text>`;
+          (data.launchSites||[]).forEach((site) => {
+            const p = project(site.lat, site.lon, center, scale);
+            if (Math.abs(p.x) > W/2 || Math.abs(p.y) > H/2) return;
+            svg += `<path d="M${p.x} ${p.y-5} L${p.x+4} ${p.y+3} L${p.x-4} ${p.y+3} Z" fill="none" stroke="#fff" stroke-width="1.3"/>`;
+            svg += `<text x="${p.x+6}" y="${p.y+2}" font-size="7" fill="#fff" font-family="Roboto Mono, monospace">${escapeHtml(site.name)}</text>`;
+          });
+          pilots.forEach((pilot, i) => {
+            const p = project(pilot.lat, pilot.lon, center, scale);
+            svg += `<circle cx="${p.x}" cy="${p.y}" r="8" fill="#000" stroke="#fff" stroke-width="1.5"/>`;
+            svg += `<text x="${p.x}" y="${p.y+3}" font-size="8" font-weight="700" text-anchor="middle" fill="#fff" font-family="Roboto Mono, monospace">${i+1}</text>`;
+          });
+          svg += `</svg>`;
+
+          body.innerHTML = svg + `<div class="page-body">` + pilots.slice(0,6).map((p,i) => `
+            <div class="pilot-row">
+              <span class="p-num">${i+1}</span>
+              <span class="p-alt">${p.altitude ?? "\u2013"} m</span>
+              <span class="p-climb">${climbArrow(p.climbRate)}${p.climbRate!=null ? " "+p.climbRate.toFixed(1)+" m/s" : ""}</span>
+            </div>
+          `).join("") + `</div>`;
+        }
+        document.getElementById("pgliveUpdated").textContent = `Updated ${timeNow()}`;
+      } catch (error) {
+        body.innerHTML = '<p class="empty-msg">Nicht verf\u00fcgbar.</p>';
+        document.getElementById("pgliveUpdated").textContent = "Update failed";
+      }
+    }
+
+    /* ================= TRAINING (Bilanz + Ziel + Form -- ohne Leistung/letzte Fahrten) ================= */
+    function yearProgressPercent() {
+      const now = nowBerlin();
+      const start = new Date(now.getFullYear(),0,1), end = new Date(now.getFullYear()+1,0,1);
+      return ((now-start)/(end-start))*100;
+    }
+    function formLabel(form) {
+      if (form == null) return "";
+      if (form > 15) return "sehr frisch"; if (form > 5) return "frisch";
+      if (form >= -10) return "ausgeglichen"; if (form >= -25) return "belastet";
+      return "stark belastet";
+    }
+
+    async function loadTraining() {
+      const body = document.getElementById("trainingBody");
+      try {
+        const [trainRes, pizzaRes] = await Promise.all([
+          fetch(`${WORKER}/training`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
+          fetch(`${WORKER}/pizza`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
+        ]);
+
+        if (!trainRes || trainRes.error) {
+          document.getElementById("trainingSubtitle").textContent = "Nicht verf\u00fcgbar";
+          body.innerHTML = '<p class="empty-msg">Noch nicht verbunden.</p>';
+          return;
+        }
+
+        document.getElementById("trainingSubtitle").textContent = "Radfahren";
+
+        let html = "";
+        if (pizzaRes && pizzaRes.active) {
+          html += `
+            <div class="badge-live"><span class="pulse"></span>Frische Fahrt erkannt</div>
+            <div class="big-stat mono">${pizzaRes.slices ?? 0}</div>
+            <div class="big-sub">St\u00fcck Pizza verdient &middot; ${pizzaRes.km ?? "\u2013"} km</div>
+          `;
+        }
+
+        html += `
+          <h2 class="section-h ${pizzaRes?.active ? "" : "first"}">Bilanz</h2>
+          <div class="stat-grid">
+            <div class="stat-box"><div class="sb-label">Woche</div><div class="sb-value">${trainRes.week.km}<span class="unit"> km</span></div></div>
+            <div class="stat-box"><div class="sb-label">Monat</div><div class="sb-value">${trainRes.month.km}<span class="unit"> km</span></div></div>
+            <div class="stat-box"><div class="sb-label">Jahr</div><div class="sb-value">${trainRes.year.km}<span class="unit"> km</span></div></div>
+          </div>
+        `;
+
+        const goalKm = trainRes.goalKm || 0, yearKm = trainRes.year.km || 0;
+        const pct = goalKm ? Math.min((yearKm/goalKm)*100, 100) : 0;
+        const targetPct = yearProgressPercent();
+        html += `
+          <h2 class="section-h">Jahresziel</h2>
+          <div class="goal-head"><span><strong>${yearKm}</strong> von ${goalKm} km</span><span>${Math.round(pct)}%</span></div>
+          <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <div class="goal-foot">Noch ${Math.max(goalKm-yearKm,0)} km &middot; Soll heute: ${Math.round(targetPct)}%</div>
+        `;
+
+        const w = trainRes.wellness;
+        if (w) {
+          html += `
+            <div class="panel">
+              <div class="p-head">Form</div>
+              <div class="form-main">${w.form > 0 ? "+" : ""}${w.form ?? "\u2013"}<span class="fm-unit"> &middot; ${formLabel(w.form)}</span></div>
+              <div class="kv"><span>Fitness (CTL)</span><span class="v">${w.fitness ?? "\u2013"}</span></div>
+              <div class="kv"><span>Erm\u00fcdung (ATL)</span><span class="v">${w.fatigue ?? "\u2013"}</span></div>
+            </div>
+          `;
+        }
+
+        body.innerHTML = html;
+        document.getElementById("trainingUpdated").textContent = `Updated ${timeNow()}`;
+      } catch (error) {
+        body.innerHTML = '<p class="empty-msg">Nicht verf\u00fcgbar.</p>';
+        document.getElementById("trainingUpdated").textContent = "Update failed";
+      }
+    }
+
+    function setTopbarHeight() {
+      const topbar = document.querySelector(".topbar");
+      if (topbar) document.documentElement.style.setProperty("--topbar-h", `${topbar.offsetHeight}px`);
+    }
+    setTopbarHeight();
+    window.addEventListener("resize", setTopbarHeight);
+
+    setDateBadges();
+    loadWeather();
+    loadParagliding();
+    loadFlights();
+    loadParagliderLive();
+    loadTraining();
+
+    setInterval(() => { setDateBadges(); loadWeather(); }, 15*60*1000);
+    setInterval(loadParagliding, 15*60*1000);
+    setInterval(loadFlights, 5*60*1000);
+    setInterval(loadParagliderLive, 5*60*1000);
+    setInterval(loadTraining, 20*60*1000);
+  </script>
+</body>
+</html>

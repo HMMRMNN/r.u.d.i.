@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>R.U.D.I. – Steuerung</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root { --black:#000000; --white:#ffffff; --gray:#777777; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; min-height:100%; background:var(--white); color:var(--black); font-family:"Work Sans", Arial, sans-serif; }
+    body { padding: 32px 20px 60px; }
+    .page { max-width: 720px; margin: 0 auto; }
+
+    header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 3px solid var(--black); }
+    h1 { margin: 0 0 4px; font-size: 26px; font-weight: 900; letter-spacing: -0.02em; }
+    .subtitle { margin: 0; color: var(--gray); font-size: 13px; font-family:"Roboto Mono", ui-monospace, Menlo, monospace; }
+
+    .current-box {
+      border: 2px solid var(--black); border-radius: 6px; padding: 16px 18px; margin-bottom: 28px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    }
+    .current-box .lbl { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray); }
+    .current-box .val { font-size: 20px; font-weight: 800; margin-top: 3px; }
+    .current-box .src { font-family:"Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; color: var(--gray); margin-top: 2px; }
+    .clear-btn {
+      font-family:"Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 700;
+      padding: 8px 14px; border: 1.5px solid var(--black); border-radius: 999px; background: var(--white);
+      cursor: pointer;
+    }
+    .clear-btn:hover { background: #f2f2f2; }
+    .clear-btn:disabled { opacity: 0.4; cursor: default; }
+
+    .section-label { margin: 0 0 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray); }
+
+    .add-form { margin-bottom: 32px; }
+    .add-form summary {
+      cursor: pointer; font-size: 12px; font-weight: 700; color: var(--gray);
+      font-family:"Roboto Mono", ui-monospace, Menlo, monospace; padding: 6px 0;
+    }
+    .add-form-body { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .add-form-body input:not([type="checkbox"]):not([type="radio"]) {
+      flex: 1 1 200px; padding: 9px 12px; border: 1.5px solid var(--black); border-radius: 4px;
+      font-family: "Work Sans", Arial, sans-serif; font-size: 13px;
+    }
+    .add-form-body input[type="checkbox"], .add-form-body input[type="radio"] {
+      width: 16px; height: 16px; flex: none; margin: 0;
+    }
+    .add-form-body button {
+      padding: 9px 18px; border: 1.5px solid var(--black); border-radius: 4px; background: var(--black);
+      color: var(--white); font-weight: 700; font-size: 13px; cursor: pointer;
+    }
+    .add-form-body button:hover { opacity: 0.85; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 32px; }
+    .channel-btn {
+      display: block; width: 100%; text-align: left; padding: 14px 16px; border: 2px solid var(--black);
+      border-radius: 6px; background: var(--white); cursor: pointer; font-family: inherit; color: var(--black);
+    }
+    .channel-btn { position: relative; }
+    .channel-btn:hover { background: #f7f7f7; }
+    .channel-btn.active { background: var(--black); color: var(--white); }
+    .channel-btn .name { font-size: 15px; font-weight: 700; padding-right: 20px; }
+    .channel-btn .file { font-size: 10.5px; font-family:"Roboto Mono", ui-monospace, Menlo, monospace; opacity: 0.7; margin-top: 3px; }
+    .channel-remove {
+      position: absolute; top: 8px; right: 8px; width: 20px; height: 20px;
+      border: 1.5px solid currentColor; border-radius: 50%; background: transparent;
+      color: inherit; font-size: 12px; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; opacity: 0.6;
+    }
+    .channel-remove:hover { opacity: 1; }
+
+    .schedule-table { width: 100%; border-collapse: collapse; font-family:"Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11.5px; margin-bottom: 20px; }
+    .schedule-table th, .schedule-table td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #ddd; }
+    .schedule-table th { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gray); border-bottom: 2px solid var(--black); }
+
+    .month-grid { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 480px; }
+    .month-grid th, .month-grid td { padding: 7px 10px; border-bottom: 1px solid #ddd; text-align: center; }
+    .month-grid th { font-size: 10px; font-weight: 700; text-align: center; border-bottom: 2px solid var(--black); }
+    .month-grid th:first-child, .month-grid td:first-child { text-align: left; font-weight: 700; white-space: nowrap; }
+    .month-grid tr:hover { background: #fafafa; }
+    .month-grid input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--black); color: var(--white); padding: 10px 20px; border-radius: 999px;
+      font-size: 13px; font-weight: 600; opacity: 0; transition: all 0.25s ease; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .display-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .display-tab {
+      padding: 8px 16px; border: 1.5px solid var(--black); border-radius: 999px;
+      background: var(--white); font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; color: var(--black);
+    }
+    .display-tab.active { background: var(--black); color: var(--white); }
+    .display-tab.add-tab { border-style: dashed; font-weight: 400; opacity: 0.7; }
+
+    footer { margin-top: 20px; padding-top: 14px; border-top: 1px solid #ccc; font-size: 11px; color: var(--gray); font-family:"Roboto Mono", ui-monospace, Menlo, monospace; }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <header>
+      <h1>R.U.D.I. Steuerung</h1>
+      <p class="subtitle">Manuelle Auswahl &amp; Jahres-Zeitplan</p>
+    </header>
+
+    <div class="display-tabs" id="displayTabs"></div>
+
+    <div class="current-box">
+      <div>
+        <div class="lbl">Wird gerade angezeigt</div>
+        <div class="val" id="currentLabel">Lädt&hellip;</div>
+        <div class="src" id="currentSource">&ndash;</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="clear-btn" id="refreshBtn">Jetzt aktualisieren</button>
+        <button class="clear-btn" id="clearBtn" disabled>Override aufheben</button>
+      </div>
+    </div>
+
+    <p class="section-label">Heute manuell festlegen</p>
+    <div class="grid" id="channelGrid"></div>
+
+    <details class="add-form">
+      <summary>+ Neue Seite registrieren</summary>
+      <div class="add-form-body">
+        <input type="text" id="newName" placeholder="Name (z.B. Schneehöhen)" />
+        <input type="text" id="newFile" placeholder="Datei/URL (z.B. snow.html)" />
+        <button id="addBtn">Hinzufügen</button>
+      </div>
+    </details>
+
+    <details class="add-form">
+      <summary>&#9888; Liste zur&uuml;cksetzen (r&auml;umt Karteileichen auf)</summary>
+      <div class="add-form-body">
+        <p style="font-size:12px; color:var(--gray); margin:0 0 10px; flex-basis:100%;">
+          Setzt die Liste auf den aktuellen Grundbestand zur&uuml;ck (Wetter, Gleitschirm, Schnee, Flugradar).
+          Eigene manuell hinzugef&uuml;gte Seiten gehen dabei verloren.
+        </p>
+        <button id="resetBtn" style="background:#c0392b; border-color:#c0392b;">Registry zur&uuml;cksetzen</button>
+      </div>
+    </details>
+
+    <p class="section-label">Monats-Zeitplan <span style="font-weight:400; text-transform:none; color:var(--gray);">&ndash; du bestimmst, welche Seiten in welchem Monat rotieren. R&uuml;hrst du nichts an, l&auml;uft's stur nach dieser Tabelle weiter.</span></p>
+    <div id="monthlyScheduleGrid" style="overflow-x:auto; margin-bottom:14px;"></div>
+
+    <label style="font-size:13px; display:flex; align-items:center; gap:8px; margin-bottom:20px;">
+      Wechsel alle
+      <input type="number" id="rotationMinutesInput" min="1" max="120" style="width:60px; padding:4px 6px; border:1px solid var(--black); border-radius:4px; font-family:inherit;" />
+      Minuten
+    </label>
+
+    <p class="section-label">Nachtmodus <span style="font-weight:400; text-transform:none; color:var(--gray);">&ndash; pausiert die Aktualisierung komplett, spart GitHub-Minuten und schont das Display.</span></p>
+    <div style="border:1.5px solid var(--black); border-radius:8px; padding:12px 14px; margin-bottom:32px; display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+      <label style="font-size:13px; display:flex; align-items:center; gap:8px; font-weight:700;">
+        <input type="checkbox" id="nightModeEnabled" style="width:16px; height:16px;" />
+        Aktiv
+      </label>
+      <label style="font-size:13px; display:flex; align-items:center; gap:8px;">
+        von
+        <input type="number" id="nightModeStart" min="0" max="23" style="width:50px; padding:4px 6px; border:1px solid var(--black); border-radius:4px; font-family:inherit;" />
+        Uhr
+      </label>
+      <label style="font-size:13px; display:flex; align-items:center; gap:8px;">
+        bis
+        <input type="number" id="nightModeEnd" min="0" max="23" style="width:50px; padding:4px 6px; border:1px solid var(--black); border-radius:4px; font-family:inherit;" />
+        Uhr
+      </label>
+      <span style="font-size:11px; color:var(--gray);">Zeiten in Berlin-Zeit, d&uuml;rfen &uuml;ber Mitternacht gehen (z.B. 23 bis 7)</span>
+    </div>
+
+    <button id="saveScheduleBtn" style="padding:10px 24px; border:1.5px solid var(--black); border-radius:999px; background:var(--black); color:var(--white); font-family:inherit; font-weight:700; font-size:13px; cursor:pointer; margin-bottom:32px;">Zeitplan speichern</button>
+
+    <p class="section-label">Aktuell auf dem Display <span style="font-family:'Roboto Mono',ui-monospace,Menlo,monospace; font-size:9px; font-weight:400; padding:1px 6px; border:1px solid var(--gray); border-radius:3px; text-transform:none;">screen.bmp</span></p>
+    <a id="bmpLink" href="https://hmmrmnn.github.io/r.u.d.i./screen.bmp" target="_blank" rel="noopener" style="display:block; border:2px solid var(--black); border-radius:4px; overflow:hidden; max-width:800px; margin-bottom:28px; text-decoration:none;">
+      <img id="bmpImg" src="https://hmmrmnn.github.io/r.u.d.i./screen.bmp" alt="Aktuelles E-Ink-Display-Bild" style="display:block; width:100%; height:auto; image-rendering:pixelated;" />
+    </a>
+
+    <footer>
+      Override gilt nur f&uuml;r heute (bis Mitternacht Berlin-Zeit), danach greift automatisch wieder der Zeitplan.
+      &Auml;nderungen werden beim n&auml;chsten Screenshot-Lauf wirksam (nicht sofort auf dem Display).
+    </footer>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    "use strict";
+
+    const WORKER = "https://rudi.marvinradar.workers.dev";
+
+    let currentDisplay = "display1";
+    let displays = [];
+
+    const displayTabs = document.getElementById("displayTabs");
+    const currentLabel = document.getElementById("currentLabel");
+    const currentSource = document.getElementById("currentSource");
+    const clearBtn = document.getElementById("clearBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const bmpImg = document.getElementById("bmpImg");
+
+    function bmpUrlFor(displayId) {
+      const file = displayId === "display1" ? "screen.bmp" : `${displayId}.bmp`;
+      return `https://hmmrmnn.github.io/r.u.d.i./${file}`;
+    }
+
+    function reloadBmp() {
+      bmpImg.src = bmpUrlFor(currentDisplay) + "?t=" + Date.now();
+    }
+
+    async function loadDisplays() {
+      try {
+        const res = await fetch(`${WORKER}/displays`, { cache: "no-store" });
+        displays = await res.json();
+        if (!Array.isArray(displays) || !displays.length) {
+          displays = [{ id: "display1", name: "Hauptdisplay" }];
+        }
+      } catch (error) {
+        displays = [{ id: "display1", name: "Hauptdisplay" }];
+      }
+      renderDisplayTabs();
+    }
+
+    function renderDisplayTabs() {
+      displayTabs.innerHTML = displays.map((d) => `
+        <button class="display-tab ${d.id === currentDisplay ? "active" : ""}" data-id="${d.id}">${d.name}</button>
+      `).join("") + `<button class="display-tab add-tab" id="addDisplayTab">+ Display</button>`;
+
+      displayTabs.querySelectorAll(".display-tab[data-id]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          currentDisplay = btn.dataset.id;
+          renderDisplayTabs();
+          loadCurrent();
+        });
+      });
+
+      document.getElementById("addDisplayTab").addEventListener("click", async () => {
+        const id = prompt("Kurze technische ID f\u00fcr das neue Display (nur Kleinbuchstaben/Zahlen, z.B. \"display2\" oder \"kueche\") -- diese ID muss exakt in der trmnl.yaml des neuen Ger\u00e4ts stehen:");
+        if (!id || !/^[a-z0-9_-]+$/.test(id)) {
+          if (id) showToast("Nur Kleinbuchstaben, Zahlen, - und _ erlaubt");
+          return;
+        }
+        const name = prompt("Anzeigename (z.B. \"K\u00fcche\"):") || id;
+        try {
+          const res = await fetch(`${WORKER}/displays`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, name }),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          showToast(`Display "${name}" hinzugef\u00fcgt -- BMP-Datei hei\u00dft "${id}.bmp"`);
+          await loadDisplays();
+        } catch (error) {
+          showToast("Fehler: " + error.message);
+        }
+      });
+    }
+
+    const grid = document.getElementById("channelGrid");
+    const toast = document.getElementById("toast");
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    let channels = [];
+
+    function renderChannels(activeUrl) {
+      grid.innerHTML = channels.map((c) => {
+        const isActive = activeUrl && activeUrl.endsWith(c.file.split("/").pop());
+        return `
+          <button class="channel-btn ${isActive ? "active" : ""}" data-file="${c.file}">
+            <span class="channel-remove" data-remove-file="${c.file}" title="Entfernen">&times;</span>
+            <div class="name">${c.name}</div>
+            <div class="file">${c.file}</div>
+          </button>
+        `;
+      }).join("");
+
+      grid.querySelectorAll(".channel-btn").forEach((btn) => {
+        btn.addEventListener("click", () => setOverride(btn.dataset.file, btn.querySelector(".name").textContent));
+      });
+
+      grid.querySelectorAll(".channel-remove").forEach((btn) => {
+        btn.addEventListener("click", async (event) => {
+          event.stopPropagation(); // verhindert, dass die Karte gleichzeitig als Override ausgewählt wird
+          const file = btn.dataset.removeFile;
+          const name = btn.closest(".channel-btn").querySelector(".name").textContent;
+          if (!confirm(`"${name}" wirklich aus der Liste entfernen?`)) return;
+          try {
+            const res = await fetch(`${WORKER}/channels/remove?file=${encodeURIComponent(file)}`, { cache: "no-store" });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            showToast(`"${name}" entfernt`);
+            await loadCurrent();
+          } catch (error) {
+            showToast("Fehler beim Entfernen: " + error.message);
+          }
+        });
+      });
+    }
+
+    async function loadChannels() {
+      try {
+        const res = await fetch(`${WORKER}/channels`, { cache: "no-store" });
+        const data = await res.json();
+        if (!Array.isArray(data)) {
+          throw new Error("Kein Array -- läuft im Worker der neueste Code mit /channels?");
+        }
+        channels = data;
+      } catch (error) {
+        channels = [];
+        showToast("Kanalliste konnte nicht geladen werden: " + error.message);
+      }
+    }
+
+    async function loadCurrent() {
+      await loadChannels();
+      reloadBmp();
+      try {
+        const res = await fetch(`${WORKER}/route?display=${encodeURIComponent(currentDisplay)}`, { cache: "no-store" });
+        const data = await res.json();
+
+        if (data.sleeping) {
+          currentLabel.textContent = "\ud83c\udf19 Nachtmodus aktiv";
+          currentSource.textContent = "Aktualisierung pausiert, bis das Zeitfenster endet";
+          clearBtn.disabled = true;
+          renderChannels(null);
+          return;
+        }
+
+        currentLabel.textContent = data.label || data.url;
+        currentSource.textContent =
+          data.source === "override" ? "Manueller Override (heute)" :
+          data.source === "rotation" ? `${data.monthName || ""} \u00b7 Rotation (Slot ${data.slot || "?"}: ${(data.rotation || []).join(" \u2192 ")})` :
+          data.source === "fallback" ? "Kein Zeitplan f\u00fcr diesen Monat -- zeigt Wetter" :
+          "Standard";
+        clearBtn.disabled = data.source !== "override";
+        renderChannels(data.url);
+      } catch (error) {
+        currentLabel.textContent = "Nicht verfügbar";
+        currentSource.textContent = String(error);
+        renderChannels(null);
+      }
+    }
+
+    async function setOverride(file, label) {
+      try {
+        const res = await fetch(`${WORKER}/route/override?url=${encodeURIComponent(file)}&label=${encodeURIComponent(label)}&display=${encodeURIComponent(currentDisplay)}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        showToast(`"${label}" für heute gesetzt`);
+        await loadCurrent();
+      } catch (error) {
+        showToast("Fehler beim Setzen: " + error.message);
+      }
+    }
+
+    async function clearOverride() {
+      try {
+        const res = await fetch(`${WORKER}/route/override?clear=1&display=${encodeURIComponent(currentDisplay)}`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        showToast("Override aufgehoben, Zeitplan aktiv");
+        await loadCurrent();
+      } catch (error) {
+        showToast("Fehler: " + error.message);
+      }
+    }
+
+    let currentSchedule = null;
+    const MONTH_LABELS = ["Jan", "Feb", "M\u00e4r", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+
+    async function loadSchedule() {
+      try {
+        const res = await fetch(`${WORKER}/route/schedule`, { cache: "no-store" });
+        const schedule = await res.json();
+        currentSchedule = schedule;
+        renderMonthlyGrid(schedule);
+        document.getElementById("rotationMinutesInput").value = schedule.rotationMinutes || 15;
+
+        const nightMode = schedule.nightMode || { enabled: false, startHour: 0, endHour: 7 };
+        document.getElementById("nightModeEnabled").checked = Boolean(nightMode.enabled);
+        document.getElementById("nightModeStart").value = nightMode.startHour ?? 0;
+        document.getElementById("nightModeEnd").value = nightMode.endHour ?? 7;
+      } catch (error) {
+        document.getElementById("monthlyScheduleGrid").innerHTML =
+          `<p style="font-size:12px; color:var(--gray);">Zeitplan nicht verf\u00fcgbar: ${error.message}</p>`;
+      }
+    }
+
+    // Baut das 12-Monats-Raster: eine Zeile pro Monat, eine Spalte pro
+    // registrierter Seite (aus der Kanal-Registry, siehe "channels").
+    // Angehakt = diese Seite rotiert in diesem Monat mit.
+    function renderMonthlyGrid(schedule) {
+      const container = document.getElementById("monthlyScheduleGrid");
+
+      if (!channels.length) {
+        container.innerHTML = '<p style="font-size:12px; opacity:0.6;">Keine Seiten registriert -- erst oben eine Seite hinzuf\u00fcgen.</p>';
+        return;
+      }
+
+      const monthly = schedule.monthlyRotation || {};
+
+      const headerCells = channels.map((c) => `<th title="${c.file}">${c.name}</th>`).join("");
+
+      const rows = MONTH_LABELS.map((label, index) => {
+        const month = index + 1;
+        const activeUrls = new Set((monthly[month] || []).map((w) => w.url));
+
+        const cells = channels.map((c) => `
+          <td>
+            <input
+              type="checkbox"
+              class="month-check"
+              data-month="${month}"
+              data-file="${c.file}"
+              data-label="${c.name}"
+              ${activeUrls.has(c.file) ? "checked" : ""}
+            />
+          </td>
+        `).join("");
+
+        return `<tr><td>${label}</td>${cells}</tr>`;
+      }).join("");
+
+      container.innerHTML = `
+        <table class="month-grid">
+          <thead><tr><th></th>${headerCells}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    document.getElementById("saveScheduleBtn").addEventListener("click", async () => {
+      const monthlyRotation = {};
+
+      for (let month = 1; month <= 12; month++) {
+        const checked = document.querySelectorAll(`.month-check[data-month="${month}"]:checked`);
+        monthlyRotation[month] = Array.from(checked).map((el) => ({
+          url: el.dataset.file,
+          label: el.dataset.label,
+        }));
+      }
+
+      const emptyMonths = Object.entries(monthlyRotation).filter(([, list]) => !list.length).map(([m]) => MONTH_LABELS[m - 1]);
+      if (emptyMonths.length) {
+        if (!confirm(`Diese Monate haben keine Seite ausgew\u00e4hlt: ${emptyMonths.join(", ")}. Dort zeigt das Display dann nur den Wetter-Fallback. Trotzdem speichern?`)) {
+          return;
+        }
+      }
+
+      const rotationMinutes = Number(document.getElementById("rotationMinutesInput").value) || 15;
+
+      const nightModeEnabled = document.getElementById("nightModeEnabled").checked;
+      const nightModeStart = Number(document.getElementById("nightModeStart").value);
+      const nightModeEnd = Number(document.getElementById("nightModeEnd").value);
+
+      if (nightModeEnabled && (
+        !Number.isInteger(nightModeStart) || nightModeStart < 0 || nightModeStart > 23 ||
+        !Number.isInteger(nightModeEnd) || nightModeEnd < 0 || nightModeEnd > 23
+      )) {
+        showToast("Nachtmodus-Uhrzeiten müssen zwischen 0 und 23 liegen");
+        return;
+      }
+
+      const nightMode = { enabled: nightModeEnabled, startHour: nightModeStart, endHour: nightModeEnd };
+      const newSchedule = { monthlyRotation, rotationMinutes, nightMode };
+
+      try {
+        const res = await fetch(`${WORKER}/route/schedule`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newSchedule),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        showToast("Zeitplan gespeichert");
+        currentSchedule = newSchedule;
+        await loadCurrent();
+      } catch (error) {
+        showToast("Fehler beim Speichern: " + error.message);
+      }
+    });
+
+    clearBtn.addEventListener("click", clearOverride);
+
+    refreshBtn.addEventListener("click", async () => {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = "Läuft…";
+      try {
+        const res = await fetch(`${WORKER}/refresh`, { method: "POST", cache: "no-store" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        showToast("Screenshot-Workflow gestartet (~1 Min)");
+        // Bild nach ~70s neu laden (Workflow-Laufzeit + Puffer)
+        setTimeout(reloadBmp, 70000);
+      } catch (error) {
+        showToast("Fehler: " + error.message);
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = "Jetzt aktualisieren";
+      }
+    });
+
+    document.getElementById("addBtn").addEventListener("click", async () => {
+      const name = document.getElementById("newName").value.trim();
+      const file = document.getElementById("newFile").value.trim();
+      if (!name || !file) {
+        showToast("Bitte Name und Datei/URL angeben");
+        return;
+      }
+      try {
+        const res = await fetch(`${WORKER}/channels`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, file }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        document.getElementById("newName").value = "";
+        document.getElementById("newFile").value = "";
+        showToast(`"${name}" registriert`);
+        await loadCurrent();
+      } catch (error) {
+        showToast("Fehler: " + error.message);
+      }
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", async () => {
+      if (!confirm("Wirklich die komplette Liste zur\u00fccksetzen? Eigene hinzugef\u00fcgte Seiten gehen dabei verloren.")) return;
+      try {
+        const res = await fetch(`${WORKER}/channels/reset`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        showToast("Liste zur\u00fcckgesetzt");
+        await loadCurrent();
+      } catch (error) {
+        showToast("Fehler: " + error.message);
+      }
+    });
+
+    loadDisplays().then(loadCurrent).then(loadSchedule);
+  </script>
+</body>
+</html>
