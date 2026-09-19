@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#ffffff" />
+<title>Chiemsee</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+  rel="stylesheet"
+/>
+
+<style>
+  :root { --black: #000; --white: #fff; }
+  * { box-sizing: border-box; -webkit-font-smoothing: none; }
+  html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--white); color: var(--black); font-family: "Work Sans", Arial, Helvetica, sans-serif; }
+  .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+  .header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 14px 20px 8px; border-bottom: 1px solid var(--black);
+  }
+  .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
+  .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+  .live-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin: 0; }
+  .live-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--black); margin-right: 5px; vertical-align: middle; }
+
+  .main-layout { display: flex; height: 358px; }
+  .col { flex: 1; padding: 12px 20px; display: flex; flex-direction: column; min-width: 0; }
+  .col + .col { border-left: 1px solid var(--black); }
+
+  .metric-label { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 4px; }
+  .metric-row { display: flex; align-items: baseline; gap: 8px; }
+  .metric-value { font-size: 40px; font-weight: 800; line-height: 1; margin: 0; }
+  .metric-unit { font-size: 16px; font-weight: 600; }
+  .metric-meta { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; margin: 4px 0 0; }
+
+  .chart-wrap { flex: 1; margin-top: 10px; min-height: 0; }
+  .chart-wrap svg { width: 100%; height: 100%; display: block; }
+
+  .wind-row { display: flex; align-items: baseline; gap: 12px; }
+  .wind-arrow { font-size: 24px; }
+  .wind-gust { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; margin-top: 4px; }
+
+  .rating-badge {
+    margin-top: 8px; padding: 7px 10px; border: 1px solid var(--black); border-radius: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .rating-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--black); flex-shrink: 0; }
+  .rating-dot.medium { background: repeating-linear-gradient(45deg, #000 0 2px, #fff 2px 4px); }
+  .rating-dot.low { background: var(--white); border: 1.5px solid var(--black); }
+  .rating-text { font-size: 11px; font-weight: 700; margin: 0; }
+
+  .outlook { margin-top: 10px; flex: 1; display: flex; flex-direction: column; border-top: 1px solid var(--black); padding-top: 8px; min-height: 0; }
+  .outlook-label { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 6px; }
+  .outlook-row { display: flex; align-items: center; justify-content: space-between; padding: 3px 0; }
+  .outlook-day { font-size: 11px; font-weight: 700; width: 38px; }
+  .outlook-arrow { font-size: 13px; width: 24px; text-align: center; }
+  .outlook-speed { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 700; width: 56px; text-align: right; }
+  .outlook-bar-wrap { flex: 1; height: 8px; border: 1px solid var(--black); margin: 0 8px; }
+  .outlook-bar { height: 100%; background: var(--black); }
+
+  .footer {
+    position: absolute; left: 20px; right: 20px; bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding-top: 7px; border-top: 1px solid var(--black);
+    font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+  }
+  .empty { padding: 20px 0; text-align: center; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <header class="header">
+      <div>
+        <p class="brand">Chiemsee</p>
+        <p class="subtitle">Wassertemperatur &amp; Wind</p>
+      </div>
+      <p class="live-badge"><span class="live-dot"></span>LIVE</p>
+    </header>
+
+    <div class="main-layout">
+      <div class="col" id="waterCol">
+        <p class="metric-label">Wassertemperatur</p>
+        <div class="empty">Loading...</div>
+      </div>
+      <div class="col" id="windCol">
+        <p class="metric-label">Wind jetzt</p>
+        <div class="empty">Loading...</div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span id="footerNote">Loading…</span>
+      <span id="updatedAt">Updating</span>
+    </footer>
+  </div>
+
+  <script>
+    const RUDI_WORKER = "https://rudi.marvinradar.workers.dev";
+    const CHIEMSEE_LAT = 47.875;
+    const CHIEMSEE_LON = 12.45;
+    const REFRESH_INTERVAL_MS = 900000;
+
+    const waterCol = document.getElementById("waterCol");
+    const windCol = document.getElementById("windCol");
+    const footerNote = document.getElementById("footerNote");
+    const updatedAt = document.getElementById("updatedAt");
+
+    function escapeHtml(str) {
+      return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    function windArrow(deg) {
+      const arrows = ["↓", "↙", "←", "↖", "↑", "↗", "→", "↘"];
+      const idx = Math.round(((deg + 180) % 360) / 45) % 8;
+      return arrows[idx];
+    }
+    function compassLabel(deg) {
+      const dirs = ["N", "NO", "O", "SO", "S", "SW", "W", "NW"];
+      return dirs[Math.round((deg % 360) / 45) % 8];
+    }
+    function windRating(speedKmh, gustKmh) {
+      if (gustKmh >= 35 || speedKmh >= 28) return { level: "low", text: "Zu stark zum Fahren" };
+      if (speedKmh >= 16) return { level: "medium", text: "Gut für Geübte" };
+      if (speedKmh >= 6) return { level: "high", text: "Gut geeignet (SUP & Segeln)" };
+      return { level: "medium", text: "Sehr ruhig, kaum Wind" };
+    }
+
+    /**
+     * Linien-Graph mit Min/Max-Band als reines SVG. Zeigt den
+     * Tages-Temperaturverlauf seit 1. Januar (Mittelwert als Linie,
+     * Tagesspanne als helles Band), mit Monatsmarken zur Orientierung.
+     */
+    function renderTempChart(history) {
+      if (!history || history.length < 2) return "";
+      const W = 260, H = 90, padX = 4, padY_top = 12, padY_bottom = 16;
+      const allValues = history.flatMap((h) => [h.meanC, h.maxC, h.minC]);
+      const minT = Math.min(...allValues), maxT = Math.max(...allValues);
+      const range = Math.max(maxT - minT, 0.5);
+
+      const xFor = (i) => padX + (i / (history.length - 1)) * (W - padX * 2);
+      const yFor = (t) => padY_top + (1 - (t - minT) / range) * (H - padY_top - padY_bottom);
+
+      const meanPoints = history.map((h, i) => ({ x: xFor(i), y: yFor(h.meanC) }));
+      const meanPath = meanPoints.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+
+      // Min/Max-Band als gefüllte Fläche (oben die Max-Kurve, unten
+      // rückwärts die Min-Kurve) -- zeigt die Tagesschwankung.
+      const maxPath = history.map((h, i) => `${i === 0 ? "M" : "L"}${xFor(i).toFixed(1)},${yFor(h.maxC).toFixed(1)}`).join(" ");
+      const minPathReversed = [...history].reverse().map((h, i) => {
+        const origIdx = history.length - 1 - i;
+        return `L${xFor(origIdx).toFixed(1)},${yFor(h.minC).toFixed(1)}`;
+      }).join(" ");
+      const bandPath = `${maxPath} ${minPathReversed} Z`;
+
+      // Monatsmarken: an jedem Monatswechsel eine dünne Linie + Label.
+      let monthMarks = "";
+      let lastMonth = null;
+      history.forEach((h, i) => {
+        const month = h.date.split(".")[1];
+        if (month !== lastMonth) {
+          const x = xFor(i);
+          const monthLabel = new Date(2000, Number(month) - 1, 1).toLocaleDateString("de-DE", { month: "short" });
+          monthMarks += `<line x1="${x}" y1="${padY_top}" x2="${x}" y2="${H - padY_bottom}" stroke="#000" stroke-width="0.5" stroke-dasharray="1 2"/>`;
+          monthMarks += `<text x="${x}" y="${H - 3}" font-size="7" font-family="Roboto Mono, monospace" text-anchor="start">${monthLabel}</text>`;
+          lastMonth = month;
+        }
+      });
+
+      const last = history[history.length - 1];
+      const lastY = yFor(last.meanC);
+
+      return `
+        <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+          <path d="${bandPath}" fill="#000" opacity="0.12" stroke="none"/>
+          ${monthMarks}
+          <path d="${meanPath}" fill="none" stroke="#000" stroke-width="1.8" stroke-linejoin="round"/>
+          <circle cx="${xFor(history.length - 1)}" cy="${lastY}" r="2.5" fill="#000"/>
+          <text x="${xFor(history.length - 1)}" y="${lastY - 6}" font-size="9" font-family="Roboto Mono, monospace" font-weight="700" text-anchor="end">${last.meanC.toFixed(1)}°</text>
+        </svg>
+      `;
+    }
+
+    async function loadWaterTemp() {
+      try {
+        const [currentRes, historyRes] = await Promise.all([
+          fetch(`${RUDI_WORKER}/chiemsee/watertemp`, { headers: { Accept: "application/json" }, cache: "no-store" }),
+          fetch(`${RUDI_WORKER}/chiemsee/watertemp/history`, { headers: { Accept: "application/json" }, cache: "no-store" }),
+        ]);
+        if (!currentRes.ok) throw new Error(`HTTP ${currentRes.status}`);
+        const data = await currentRes.json();
+
+        // Langzeit-Verlauf ist "nice to have" -- falls der fehlschlägt,
+        // zeigen wir trotzdem den aktuellen Wert ohne Graph.
+        let history = null;
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          history = historyData.history;
+        }
+
+        const rangeNote = history && history.length > 1
+          ? `Verlauf seit ${escapeHtml(history[0].date)}`
+          : "";
+
+        waterCol.innerHTML = `
+          <p class="metric-label">Wassertemperatur</p>
+          <div class="metric-row">
+            <p class="metric-value">${data.temperatureC.toFixed(1)}<span class="metric-unit">°C</span></p>
+          </div>
+          <p class="metric-meta">Station ${escapeHtml(data.station)} · ${escapeHtml(data.measuredAt)}</p>
+          <div class="chart-wrap">${history ? renderTempChart(history) : '<div class="empty">Verlauf gerade nicht verfügbar.</div>'}</div>
+          ${rangeNote ? `<p class="metric-meta">${rangeNote}</p>` : ""}
+        `;
+      } catch (error) {
+        console.error(error);
+        waterCol.innerHTML = `<p class="metric-label">Wassertemperatur</p><div class="empty">Wert gerade nicht verfügbar.</div>`;
+      }
+    }
+
+    async function loadWind() {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${CHIEMSEE_LAT}&longitude=${CHIEMSEE_LON}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m&daily=wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant&timezone=Europe%2FBerlin&wind_speed_unit=kmh&forecast_days=5`;
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        const speed = Math.round(data.current.wind_speed_10m);
+        const gust = Math.round(data.current.wind_gusts_10m);
+        const dir = data.current.wind_direction_10m;
+        const rating = windRating(speed, gust);
+
+        // Mehrtages-Übersicht statt Karte -- auf E-Ink praktischer:
+        // Balken relativ zum höchsten Tageswert, damit windige Tage
+        // auf einen Blick auffallen.
+        const dailySpeeds = data.daily.wind_speed_10m_max;
+        const maxDailySpeed = Math.max(...dailySpeeds, 1);
+        const outlookRows = data.daily.time.map((dateStr, i) => {
+          const date = new Date(dateStr);
+          const dayLabel = date.toLocaleDateString("de-DE", { weekday: "short" });
+          const speedVal = Math.round(dailySpeeds[i]);
+          const barPct = Math.round((speedVal / maxDailySpeed) * 100);
+          return `
+            <div class="outlook-row">
+              <span class="outlook-day">${escapeHtml(dayLabel)}</span>
+              <span class="outlook-arrow">${windArrow(data.daily.wind_direction_10m_dominant[i])}</span>
+              <div class="outlook-bar-wrap"><div class="outlook-bar" style="width:${barPct}%"></div></div>
+              <span class="outlook-speed">${speedVal} km/h</span>
+            </div>
+          `;
+        }).join("");
+
+        windCol.innerHTML = `
+          <p class="metric-label">Wind jetzt</p>
+          <div class="wind-row">
+            <p class="metric-value">${speed}<span class="metric-unit">km/h</span></p>
+            <span class="wind-arrow">${windArrow(dir)}</span>
+          </div>
+          <p class="metric-meta">Aus ${compassLabel(dir)} · Böen bis ${gust} km/h</p>
+          <div class="rating-badge">
+            <span class="rating-dot ${rating.level}"></span>
+            <p class="rating-text">${escapeHtml(rating.text)}</p>
+          </div>
+          <div class="outlook">
+            <p class="outlook-label">5-Tage-Wind-Aussicht (Tagesmaximum)</p>
+            ${outlookRows}
+          </div>
+        `;
+      } catch (error) {
+        console.error(error);
+        windCol.innerHTML = `<p class="metric-label">Wind jetzt</p><div class="empty">Wert gerade nicht verfügbar.</div>`;
+      }
+    }
+
+    async function loadDisplay() {
+      await Promise.all([loadWaterTemp(), loadWind()]);
+      footerNote.textContent = "Wasser: GKD Bayern (Stock) · Wind: Open-Meteo";
+      updatedAt.textContent = new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+    }
+
+    loadDisplay();
+    setInterval(loadDisplay, REFRESH_INTERVAL_MS);
+  </script>
+</body>
+</html>
