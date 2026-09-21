@@ -179,7 +179,7 @@ jobs:
               render_display(d["id"])
           EOF
 
-      - name: Bilder committen (amend nur auf eigene Commits, kein Anfassen des Workflow-Commits)
+      - name: Bilder committen (nie amend/force -- das hat wiederholt gemergte PRs zerstört)
         if: steps.check.outputs.sleeping != 'true'
         run: |
           git config user.name "github-actions[bot]"
@@ -188,14 +188,27 @@ jobs:
 
           if git diff --quiet --cached; then
             echo "Kein Bildupdate, nichts zu committen."
-          elif [ "$(git log -1 --pretty=%s)" = "Update e-ink screenshot" ]; then
-            # Der letzte Commit war schon ein eigener Screenshot-Commit ->
-            # sicher zu amenden, enthält garantiert keine Workflow-Datei.
-            git commit --amend --no-edit
-            git push --force
-          else
-            # Erster Lauf (oder der letzte Commit war ein manueller/anderer
-            # Commit, ggf. mit Workflow-Dateien) -> normaler neuer Commit.
-            git commit -m "Update e-ink screenshot"
-            git push
+            exit 0
           fi
+
+          git commit -m "Update e-ink screenshot"
+
+          # Nie amend + push --force: das hat wiederholt main zerstört, sobald
+          # dieser Lauf mit einem anderen Push (z.B. einem PR-Merge) zeitlich
+          # überlappte -- der Amend rewritete den lokal veralteten Tip und
+          # der Force-Push riss dabei alles mit, was zwischenzeitlich auf
+          # main gelandet war (siehe #6, versehentlich verlorener PR-Merge).
+          # Stattdessen: normaler Commit, und bei einem Push-Konflikt (Race
+          # mit einem anderen Schreiber) einfach neu rebasen und erneut
+          # versuchen -- niemals überschreiben.
+          for i in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push fehlgeschlagen (vermutlich Race mit einem anderen Schreiber), Versuch $i/5 -- rebase und erneut versuchen."
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
+            sleep 3
+          done
+          echo "Push nach 5 Versuchen weiterhin fehlgeschlagen." >&2
+          exit 1
