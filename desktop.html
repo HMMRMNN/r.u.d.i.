@@ -238,14 +238,41 @@
   .num-cell { font-family: "Roboto Mono", monospace; font-size: 13px; text-align: right; white-space: nowrap; }
 
   /* Wetter */
-  .weather-hero { display: flex; align-items: center; gap: 32px; }
+  .weather-hero { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
   .weather-temp-big { font-size: 72px; font-weight: 800; line-height: 1; }
   .weather-desc { font-size: 15px; color: var(--ink-soft); margin-top: 6px; }
-  .outlook-strip { display: flex; gap: 14px; margin-top: 20px; }
-  .outlook-day-card { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 10px; text-align: center; }
+  .weather-hero-cond { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .weather-mini-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 24px; }
+  .weather-mini span { display: block; font-family: "Roboto Mono", monospace; font-size: 9.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+  .weather-mini b { font-size: 15px; font-weight: 700; }
+  .outlook-strip { display: flex; gap: 12px; margin-top: 0; flex-wrap: wrap; }
+  .outlook-day-card { flex: 1; min-width: 96px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 10px; text-align: center; }
   .outlook-day-name { font-family: "Roboto Mono", monospace; font-size: 10px; color: var(--ink-soft); text-transform: uppercase; }
   .outlook-day-temp { font-size: 20px; font-weight: 700; margin-top: 8px; }
   .outlook-day-temp-min { font-size: 13px; color: var(--ink-soft); }
+  .outlook-day-cond { font-size: 9.5px; color: var(--ink-soft); margin-top: 6px; line-height: 1.3; min-height: 2.4em; }
+  .outlook-day-precip { font-family: "Roboto Mono", monospace; font-size: 9.5px; color: var(--sky); margin-top: 6px; }
+
+  .hourly-scroll { overflow-x: auto; }
+  .hourly-chart-wrap svg { display: block; }
+
+  .sun-arc-wrap { display: flex; flex-direction: column; align-items: center; }
+  .sun-arc-wrap svg { width: 100%; max-width: 340px; height: auto; display: block; }
+  .sun-meta-row { display: flex; justify-content: space-between; width: 100%; max-width: 340px; margin-top: 4px; font-family: "Roboto Mono", monospace; font-size: 11px; color: var(--ink-soft); }
+  .sun-kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; margin-top: 14px; width: 100%; }
+
+  .aq-badge-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .aq-badge { flex: 1; min-width: 90px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #000000; }
+  .aq-badge .val { font-size: 20px; font-weight: 800; }
+  .aq-badge .lbl { font-family: "Roboto Mono", monospace; font-size: 9px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+  .pollen-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+  .pollen-row:last-child { border-bottom: none; }
+  .pollen-name { width: 92px; flex-shrink: 0; color: var(--ink-soft); }
+  .pollen-bar-wrap { flex: 1; height: 8px; background: #000000; border-radius: 4px; overflow: hidden; }
+  .pollen-bar-fill { height: 100%; background: var(--forest); }
+  .pollen-bar-fill.medium { background: var(--gold); }
+  .pollen-bar-fill.high { background: var(--brick); }
+  .pollen-val { width: 46px; text-align: right; font-family: "Roboto Mono", monospace; font-size: 11px; }
 
   /* Chiemsee chart */
   .chart-wrap svg { width: 100%; height: 140px; display: block; }
@@ -417,14 +444,40 @@
 
       <!-- ======================= WETTER ======================= -->
       <section class="page" id="page-weather">
-        <div class="page-head">
-          <p class="page-eyebrow mono">Open-Meteo · Grassau</p>
-          <h1 class="page-title">Wetter</h1>
+        <div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end;">
+          <div>
+            <p class="page-eyebrow mono">Open-Meteo · Grassau</p>
+            <h1 class="page-title">Wetter</h1>
+          </div>
+          <span class="mono" id="weatherStamp" style="font-size:11px; color:var(--ink-soft);">Stand: lädt…</span>
         </div>
+
         <div class="panel">
           <div class="weather-hero" id="weatherHero"><div class="empty-note">Lädt…</div></div>
         </div>
-        <div class="outlook-strip" id="weatherOutlook"></div>
+
+        <div class="grid" style="grid-template-columns: 1fr; margin-top:18px;">
+          <div class="panel" id="weatherHourlyPanel">
+            <p class="panel-label">Verlauf · nächste 24 Stunden (Temperatur &amp; Regenwahrscheinlichkeit)</p>
+            <div class="empty-note">Lädt…</div>
+          </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr; margin-top:18px;">
+          <p class="panel-label" style="margin:0 0 10px 2px;">7-Tage-Vorhersage</p>
+          <div class="outlook-strip" id="weatherOutlook"><div class="empty-note">Lädt…</div></div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; margin-top:18px; align-items:start;">
+          <div class="panel" id="weatherSunPanel">
+            <p class="panel-label">Sonne &amp; Tageslänge</p>
+            <div class="empty-note">Lädt…</div>
+          </div>
+          <div class="panel" id="weatherAirPanel">
+            <p class="panel-label">Luftqualität &amp; Pollen</p>
+            <div class="empty-note">Lädt…</div>
+          </div>
+        </div>
       </section>
 
       <!-- ======================= CHIEMSEE ======================= -->
@@ -1062,37 +1115,221 @@
     // ---------------------------------------------------------------
     // Wetter
     // ---------------------------------------------------------------
+    const AIR_QUALITY_API = "https://air-quality-api.open-meteo.com/v1/air-quality";
+    const WEATHER_LABELS = {
+      0: "Klar", 1: "Überw. klar", 2: "Teilw. bewölkt", 3: "Bedeckt",
+      45: "Nebel", 48: "Reifnebel",
+      51: "Nieselregen", 53: "Nieselregen", 55: "Nieselregen",
+      56: "Gefr. Niesel", 57: "Gefr. Niesel",
+      61: "Regen", 63: "Regen", 65: "Regen",
+      66: "Gefr. Regen", 67: "Gefr. Regen",
+      71: "Schnee", 73: "Schnee", 75: "Schnee", 77: "Schneegriesel",
+      80: "Schauer", 81: "Schauer", 82: "Schauer",
+      85: "Schneeschauer", 86: "Schneeschauer",
+      95: "Gewitter", 96: "Gewitter", 99: "Gewitter",
+    };
+    function weatherLabel(code) { return WEATHER_LABELS[Number(code)] || "–"; }
+
+    const POLLEN_TYPES = [
+      { key: "alder_pollen", label: "Erle" },
+      { key: "birch_pollen", label: "Birke" },
+      { key: "grass_pollen", label: "Gräser" },
+      { key: "mugwort_pollen", label: "Beifuß" },
+      { key: "olive_pollen", label: "Olive" },
+      { key: "ragweed_pollen", label: "Ambrosia" },
+    ];
+    function pollenLevel(v) {
+      if (v >= 50) return { cls: "high", label: "hoch" };
+      if (v >= 10) return { cls: "medium", label: "mittel" };
+      if (v > 0) return { cls: "", label: "gering" };
+      return { cls: "", label: "keine" };
+    }
+
+    function renderHourlyChart(hourly, startIdx) {
+      const W = 760, H = 170, padX = 6, padTop = 20, tempAreaH = 86, gapH = 10, barAreaH = 40, labelH = 14;
+      const n = 24;
+      const temps = [], precs = [], labels = [];
+      for (let i = 0; i < n; i++) {
+        const idx = startIdx + i;
+        temps.push(hourly.temperature_2m[idx]);
+        precs.push(hourly.precipitation_probability ? hourly.precipitation_probability[idx] ?? 0 : 0);
+        labels.push(new Date(hourly.time[idx]));
+      }
+      const minT = Math.min(...temps), maxT = Math.max(...temps);
+      const range = Math.max(maxT - minT, 2);
+      const xFor = (i) => padX + (i / (n - 1)) * (W - padX * 2);
+      const yForTemp = (t) => padTop + (1 - (t - minT) / range) * tempAreaH;
+      const barTop = padTop + tempAreaH + gapH;
+      const barW = ((W - padX * 2) / n) * 0.55;
+
+      const linePath = temps.map((t, i) => `${i === 0 ? "M" : "L"}${xFor(i).toFixed(1)},${yForTemp(t).toFixed(1)}`).join(" ");
+      let bars = "", labelsSvg = "", dots = "";
+      temps.forEach((t, i) => {
+        dots += `<circle cx="${xFor(i).toFixed(1)}" cy="${yForTemp(t).toFixed(1)}" r="2" fill="#DDFF2C"/>`;
+        if (i % 3 === 0) labelsSvg += `<text x="${xFor(i).toFixed(1)}" y="${yForTemp(t) - 9}" font-size="9" fill="#F2F4F0" text-anchor="middle" font-family="Roboto Mono, monospace">${Math.round(t)}°</text>`;
+        const bh = (Math.max(0, Math.min(100, precs[i])) / 100) * barAreaH;
+        bars += `<rect x="${(xFor(i) - barW / 2).toFixed(1)}" y="${(barTop + barAreaH - bh).toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="#6FA8DC" rx="1.5"/>`;
+        if (i % 3 === 0) labelsSvg += `<text x="${xFor(i).toFixed(1)}" y="${(barTop + barAreaH + labelH).toFixed(1)}" font-size="9" fill="#8F968E" text-anchor="middle" font-family="Roboto Mono, monospace">${labels[i].toLocaleTimeString("de-DE", { hour: "2-digit", timeZone: "Europe/Berlin" })}</text>`;
+      });
+      return `<div class="hourly-scroll"><div class="hourly-chart-wrap">
+        <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+          <line x1="${padX}" y1="${barTop}" x2="${W - padX}" y2="${barTop}" stroke="#2A2C29" stroke-width="1"/>
+          <path d="${linePath}" fill="none" stroke="#DDFF2C" stroke-width="2"/>
+          ${dots}
+          ${bars}
+          ${labelsSvg}
+        </svg>
+      </div></div>
+      <div class="radar-legend" style="margin-top:8px;">
+        <span><span class="legend-swatch" style="background:#DDFF2C"></span>Temperatur</span>
+        <span><span class="legend-swatch" style="background:#6FA8DC; border-radius:2px;"></span>Regenwahrscheinlichkeit</span>
+      </div>`;
+    }
+
+    function renderSunPanel(daily, now) {
+      const sunrise = new Date(daily.sunrise[0]), sunset = new Date(daily.sunset[0]);
+      const dayMs = sunset - sunrise;
+      const p = dayMs > 0 ? Math.max(0, Math.min(1, (now - sunrise) / dayMs)) : 0.5;
+      const isDaytime = now >= sunrise && now <= sunset;
+      const cx = 170, cy = 150, r = 130;
+      const angle = p * Math.PI;
+      const dotX = cx - r * Math.cos(angle), dotY = cy - r * Math.sin(angle);
+      const durationMin = Math.round((daily.daylight_duration ? daily.daylight_duration[0] : dayMs / 1000) / 60);
+      const durH = Math.floor(durationMin / 60), durM = durationMin % 60;
+      const untilLabel = isDaytime
+        ? `${Math.max(0, Math.round((sunset - now) / 60000))} min bis Sonnenuntergang`
+        : (now < sunrise ? `${Math.max(0, Math.round((sunrise - now) / 60000))} min bis Sonnenaufgang` : "Nacht");
+      const fmt = (d) => d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+      return `
+        <div class="sun-arc-wrap">
+          <svg viewBox="0 0 340 160" xmlns="http://www.w3.org/2000/svg">
+            <path d="M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}" fill="none" stroke="#2A2C29" stroke-width="2"/>
+            <circle cx="${cx - r}" cy="${cy}" r="3" fill="#8F968E"/>
+            <circle cx="${cx + r}" cy="${cy}" r="3" fill="#8F968E"/>
+            ${isDaytime ? `<circle cx="${dotX.toFixed(1)}" cy="${dotY.toFixed(1)}" r="7" fill="#FFC857"/>` : ""}
+          </svg>
+          <div class="sun-meta-row"><span>${fmt(sunrise)} Aufgang</span><span>${fmt(sunset)} Untergang</span></div>
+        </div>
+        <div class="sun-kv-grid">
+          <div class="kv-row"><span>Tageslänge</span><span>${durH}h ${durM}m</span></div>
+          <div class="kv-row"><span>Status</span><span>${untilLabel}</span></div>
+        </div>
+      `;
+    }
+
+    function renderAirPanel(aq) {
+      const c = aq.current || {};
+      const badges = [
+        { label: "PM2.5", val: c.pm2_5, unit: "µg/m³" },
+        { label: "PM10", val: c.pm10, unit: "µg/m³" },
+        { label: "Ozon", val: c.ozone, unit: "µg/m³" },
+        { label: "Europ. AQI", val: c.european_aqi, unit: "" },
+      ];
+      const badgeHtml = badges.map((b) => `
+        <div class="aq-badge">
+          <div class="val">${b.val !== undefined && b.val !== null ? Math.round(b.val) : "–"}</div>
+          <div class="lbl">${b.label}${b.unit ? ` · ${b.unit}` : ""}</div>
+        </div>
+      `).join("");
+      const pollenRows = POLLEN_TYPES
+        .map((p) => ({ ...p, val: c[p.key] }))
+        .filter((p) => p.val !== undefined && p.val !== null)
+        .map((p) => {
+          const lvl = pollenLevel(p.val);
+          const pct = Math.max(2, Math.min(100, (p.val / 80) * 100));
+          return `<div class="pollen-row">
+            <span class="pollen-name">${p.label}</span>
+            <div class="pollen-bar-wrap"><div class="pollen-bar-fill ${lvl.cls}" style="width:${pct}%;"></div></div>
+            <span class="pollen-val">${lvl.label}</span>
+          </div>`;
+        }).join("");
+      return `
+        <div class="aq-badge-row">${badgeHtml}</div>
+        ${pollenRows || '<div class="empty-note">Keine Pollendaten (außerhalb der Saison).</div>'}
+      `;
+    }
+
     async function loadWeather() {
+      const now = new Date();
       try {
         const params = new URLSearchParams({
           latitude: String(LOCATION.lat), longitude: String(LOCATION.lon),
-          current: "temperature_2m,weathercode",
-          daily: ["temperature_2m_max","temperature_2m_min","precipitation_sum","windspeed_10m_max","weathercode"].join(","),
-          timezone: "Europe/Berlin", forecast_days: "6",
+          current: ["temperature_2m", "relative_humidity_2m", "apparent_temperature", "is_day", "precipitation", "weathercode", "cloud_cover", "pressure_msl", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m"].join(","),
+          hourly: ["temperature_2m", "precipitation_probability", "weathercode"].join(","),
+          daily: ["weathercode", "temperature_2m_max", "temperature_2m_min", "precipitation_sum", "precipitation_probability_max", "windspeed_10m_max", "windgusts_10m_max", "winddirection_10m_dominant", "uv_index_max", "sunrise", "sunset", "daylight_duration"].join(","),
+          timezone: "Europe/Berlin", forecast_days: "7",
         });
         const data = await fetchJson(`${WEATHER_API}?${params.toString()}`);
+        const cur = data.current, daily = data.daily, hourly = data.hourly;
+
+        const stampEl = document.getElementById("weatherStamp");
+        if (stampEl) stampEl.textContent = `Stand: ${now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })} Uhr`;
+
         const hero = document.getElementById("weatherHero");
         hero.innerHTML = `
           <div>
-            <div class="weather-temp-big">${Math.round(data.current.temperature_2m)}°</div>
+            <div class="weather-temp-big">${Math.round(cur.temperature_2m)}°</div>
+            <p class="weather-hero-cond">${weatherLabel(cur.weathercode)}</p>
+            <p class="weather-desc">Heute · ${Math.round(daily.temperature_2m_max[0])}° / ${Math.round(daily.temperature_2m_min[0])}°</p>
           </div>
-          <div>
-            <p class="weather-desc">Heute · ${Math.round(data.daily.temperature_2m_max[0])}° / ${Math.round(data.daily.temperature_2m_min[0])}°</p>
-            <p class="weather-desc mono">Niederschlag ${data.daily.precipitation_sum[0]} mm · Wind bis ${Math.round(data.daily.windspeed_10m_max[0])} km/h</p>
+          <div class="weather-mini-grid">
+            <div class="weather-mini"><span>Gefühlt</span><b>${Math.round(cur.apparent_temperature)}°</b></div>
+            <div class="weather-mini"><span>Luftfeuchte</span><b>${Math.round(cur.relative_humidity_2m)}%</b></div>
+            <div class="weather-mini"><span>Wind</span><b>${Math.round(cur.wind_speed_10m)} km/h ${compassLabel(cur.wind_direction_10m)}</b></div>
+            <div class="weather-mini"><span>Böen</span><b>${Math.round(cur.wind_gusts_10m)} km/h</b></div>
+            <div class="weather-mini"><span>Luftdruck</span><b>${Math.round(cur.pressure_msl)} hPa</b></div>
+            <div class="weather-mini"><span>Bewölkung</span><b>${Math.round(cur.cloud_cover)}%</b></div>
+            <div class="weather-mini"><span>Niederschlag jetzt</span><b>${cur.precipitation.toFixed(1)} mm</b></div>
+            <div class="weather-mini"><span>UV-Index heute</span><b>${daily.uv_index_max[0].toFixed(1)}</b></div>
           </div>
         `;
+
+        const nowIsoHour = now.toISOString().slice(0, 13);
+        let startIdx = hourly.time.findIndex((t) => t.startsWith(nowIsoHour));
+        if (startIdx < 0) startIdx = 0;
+        startIdx = Math.min(startIdx, hourly.time.length - 24);
+        document.getElementById("weatherHourlyPanel").innerHTML = `
+          <p class="panel-label">Verlauf · nächste 24 Stunden (Temperatur &amp; Regenwahrscheinlichkeit)</p>
+          ${renderHourlyChart(hourly, Math.max(0, startIdx))}
+        `;
+
         const outlook = document.getElementById("weatherOutlook");
-        outlook.innerHTML = data.daily.time.map((d, i) => {
-          const day = new Date(d).toLocaleDateString("de-DE", { weekday: "short" });
+        outlook.innerHTML = daily.time.map((d, i) => {
+          const day = new Date(d + "T12:00:00").toLocaleDateString("de-DE", { weekday: "short" });
           return `<div class="outlook-day-card">
             <p class="outlook-day-name mono">${day}</p>
-            <div class="outlook-day-temp">${Math.round(data.daily.temperature_2m_max[i])}°</div>
-            <div class="outlook-day-temp-min">${Math.round(data.daily.temperature_2m_min[i])}°</div>
+            <div class="outlook-day-temp">${Math.round(daily.temperature_2m_max[i])}°</div>
+            <div class="outlook-day-temp-min">${Math.round(daily.temperature_2m_min[i])}°</div>
+            <div class="outlook-day-cond">${weatherLabel(daily.weathercode[i])}</div>
+            <div class="outlook-day-precip">${Math.round(daily.precipitation_probability_max[i])}% · ${Math.round(daily.windspeed_10m_max[i])} km/h</div>
           </div>`;
         }).join("");
+
+        document.getElementById("weatherSunPanel").innerHTML = `
+          <p class="panel-label">Sonne &amp; Tageslänge</p>
+          ${renderSunPanel(daily, now)}
+        `;
       } catch (error) {
         console.error(error);
         document.getElementById("weatherHero").innerHTML = `<div class="empty-note">Wetterdaten gerade nicht verfügbar.</div>`;
+        document.getElementById("weatherHourlyPanel").innerHTML = `<p class="panel-label">Verlauf · nächste 24 Stunden</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
+        document.getElementById("weatherSunPanel").innerHTML = `<p class="panel-label">Sonne &amp; Tageslänge</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
+      }
+
+      try {
+        const aqParams = new URLSearchParams({
+          latitude: String(LOCATION.lat), longitude: String(LOCATION.lon),
+          current: ["pm2_5", "pm10", "ozone", "european_aqi", ...POLLEN_TYPES.map((p) => p.key)].join(","),
+          timezone: "Europe/Berlin",
+        });
+        const aq = await fetchJson(`${AIR_QUALITY_API}?${aqParams.toString()}`);
+        document.getElementById("weatherAirPanel").innerHTML = `
+          <p class="panel-label">Luftqualität &amp; Pollen</p>
+          ${renderAirPanel(aq)}
+        `;
+      } catch (error) {
+        console.error(error);
+        document.getElementById("weatherAirPanel").innerHTML = `<p class="panel-label">Luftqualität &amp; Pollen</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
       }
     }
 
