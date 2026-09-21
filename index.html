@@ -41,12 +41,44 @@
     }
     .page { max-width: 1240px; margin: 0; }
 
-    header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
-    h1 { margin: 0 0 4px; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
-    .subtitle { margin: 0; color: var(--ink-label); font-size: 13px; font-family: var(--mono); }
+    /* ---- Topbar (wie control.html) ---- */
+    .topbar {
+      height: 48px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--line); margin-bottom: 28px; font-family: var(--mono);
+      font-size: 10px; letter-spacing: 0.05em;
+    }
+    .topbar-brand { display: flex; align-items: center; gap: 10px; }
+    .topbar-brand .dot { width: 8px; height: 8px; background: var(--ink); flex-shrink: 0; }
+    .topbar-brand .name { color: var(--ink); text-transform: uppercase; letter-spacing: 0.2em; font-weight: 500; }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .topbar-item { display: flex; align-items: center; gap: 8px; color: var(--ink-label); text-transform: uppercase; }
+    .topbar-item b { color: var(--ink-dim); font-weight: 500; }
+
+    /* ---- Eckenklammern & Hero (wie control.html) ---- */
+    .corners { position: relative; }
+    .corner { position: absolute; width: 10px; height: 10px; border: 1px solid var(--ink-ghost); pointer-events: none; }
+    .corner-tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+    .corner-tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+    .corner-bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+    .corner-br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    .cursor-blink { animation: blink 1s step-start infinite; }
+
+    .hero {
+      border: 1px solid var(--line); background: var(--panel); padding: 32px 28px 26px;
+      margin-bottom: 24px;
+    }
+    .eyebrow { font-family: var(--mono); font-size: 10px; color: var(--ink-label); text-transform: uppercase; letter-spacing: 0.3em; margin: 0 0 10px; }
+    h1.ow-h1 { margin: 0 0 14px; font-size: clamp(2.1rem, 5vw, 3.6rem); font-weight: 300; letter-spacing: -0.03em; color: var(--ink); }
+    .desc-row { display: flex; gap: 14px; }
+    .desc-bar { width: 1px; background: var(--line); flex-shrink: 0; }
+    .desc { margin: 0; font-size: 13px; color: var(--ink-body); font-weight: 400; line-height: 1.7; max-width: 60ch; }
+
+    /* ---- Panel-Sektionen (wie control.html) ---- */
+    .ow-panel { border: 1px solid var(--line); background: var(--panel); padding: 22px 24px; margin-bottom: 22px; }
 
     .section-label {
-      margin: 32px 0 12px; font-size: 10px; font-weight: 500; letter-spacing: 0.12em;
+      margin: 0 0 14px; font-size: 10px; font-weight: 500; letter-spacing: 0.2em;
       text-transform: uppercase; color: var(--ink-label); display: flex; align-items: center; gap: 8px;
       font-family: var(--mono);
     }
@@ -85,36 +117,58 @@
     }
     .bmp-img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
 
-    footer {
-      margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
+    footer.ow-footer {
+      margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--line);
       font-size: 10.5px; color: var(--ink-faint); font-family: var(--mono); line-height: 1.9;
     }
-    footer a { color: var(--ink-label); }
+    footer.ow-footer div::before { content: "> "; color: var(--ink-ghost); }
+    footer.ow-footer a { color: var(--ink-label); }
   </style>
 </head>
 
 <body>
   <main class="page">
-    <header>
-      <h1>R.U.D.I.</h1>
-      <p class="subtitle">Radar, Updates, Display &ndash; Infotafel</p>
-    </header>
+    <div class="topbar">
+      <div class="topbar-brand">
+        <span class="dot"></span>
+        <span class="name">R.U.D.I. Übersicht</span>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-item">Seiten: <b id="pageCount">&ndash;</b></span>
+      </div>
+    </div>
+
+    <section class="hero corners">
+      <span class="corner corner-tl"></span><span class="corner corner-tr"></span>
+      <span class="corner corner-bl"></span><span class="corner corner-br"></span>
+
+      <p class="eyebrow">Kanal-Verzeichnis</p>
+      <h1 class="ow-h1">R.U.D.I.<span class="cursor-blink" style="color:var(--ink-ghost);">_</span></h1>
+      <div class="desc-row">
+        <div class="desc-bar"></div>
+        <p class="desc">Radar, Updates, Display &ndash; Infotafel. Live-Verzeichnis aller registrierten Seiten, direkt aus der Channel-Registry im rudi-Worker.</p>
+      </div>
+    </section>
 
     <!-- Wird per JS aus der Channel-Registry im rudi-Worker befüllt --
          neue Seiten über control.html registrieren, tauchen automatisch
          hier auf, kein Bearbeiten dieser Datei mehr nötig. -->
     <div id="channelSections">
-      <p class="section-label">L&auml;dt&hellip;</p>
+      <section class="ow-panel"><p class="section-label">L&auml;dt&hellip;</p></section>
     </div>
 
     <!-- ============ Aktuell auf dem Display ============ -->
-    <p class="section-label">Aktuell auf dem Display <span class="repo-tag">screen.bmp</span></p>
-    <a class="bmp-card" href="screen.bmp" target="_blank" rel="noopener">
-      <img class="bmp-img" id="bmpImg" src="screen.bmp" alt="Aktuelles E-Ink-Display-Bild" />
-    </a>
+    <section class="ow-panel">
+      <p class="section-label">Aktuell auf dem Display <span class="repo-tag">screen.bmp</span></p>
+      <a class="bmp-card" href="screen.bmp" target="_blank" rel="noopener">
+        <img class="bmp-img" id="bmpImg" src="screen.bmp" alt="Aktuelles E-Ink-Display-Bild" />
+      </a>
+    </section>
 
-    <footer>
-      Karten mit externem Link (nicht-R.U.D.I.-Kategorien) &ouml;ffnen in neuem Tab und laufen im jeweils urspr&uuml;nglichen Repo &ndash; hier nur per iframe live eingebettet, kein Datei-Duplikat. Neue Seiten &uuml;ber <a href="control.html">control.html</a> registrieren, sie tauchen dann automatisch hier auf. F&uuml;r den E-Ink-Screenshot-Workflow z&auml;hlt weiterhin die Routing-Logik im rudi-Worker, nicht diese &Uuml;bersichtsseite.
+    <footer class="ow-footer">
+      <div>Karten mit externem Link (nicht-R.U.D.I.-Kategorien) &ouml;ffnen in neuem Tab und laufen im jeweils urspr&uuml;nglichen Repo &ndash; hier nur per iframe live eingebettet, kein Datei-Duplikat.</div>
+      <div>Neue Seiten &uuml;ber <a href="control.html">control.html</a> registrieren, sie tauchen dann automatisch hier auf.</div>
+      <div>F&uuml;r den E-Ink-Screenshot-Workflow z&auml;hlt weiterhin die Routing-Logik im rudi-Worker, nicht diese &Uuml;bersichtsseite.</div>
     </footer>
   </main>
 
@@ -161,11 +215,16 @@
         });
 
         container.innerHTML = Array.from(groups.entries()).map(([cat, items]) => `
-          <p class="section-label">${cat} <span class="repo-tag">${items.length} Seite${items.length === 1 ? "" : "n"}</span></p>
-          <div class="grid">${items.map(cardHtml).join("")}</div>
+          <section class="ow-panel">
+            <p class="section-label">${cat} <span class="repo-tag">${items.length} Seite${items.length === 1 ? "" : "n"}</span></p>
+            <div class="grid">${items.map(cardHtml).join("")}</div>
+          </section>
         `).join("");
+
+        const pageCount = document.getElementById("pageCount");
+        if (pageCount) pageCount.textContent = channels.length;
       } catch (error) {
-        container.innerHTML = `<p class="section-label">Registry nicht erreichbar</p><p style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-faint);">${error.message}</p>`;
+        container.innerHTML = `<section class="ow-panel"><p class="section-label">Registry nicht erreichbar</p><p style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-faint);">${error.message}</p></section>`;
       }
     }
 
