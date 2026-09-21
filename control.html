@@ -49,11 +49,11 @@
       background-size: 20px 20px;
       color: var(--ink-body);
       font-family: var(--sans);
-      font-weight: 300;
+      font-weight: 400;
     }
     .mono { font-family: var(--mono); }
     body { padding: 0 0 60px; }
-    .page { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+    .page { max-width: 1240px; margin: 0; padding: 0 20px; }
 
     @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
     .cursor-blink { animation: blink 1s step-start infinite; }
@@ -102,7 +102,17 @@
     h1.ow-h1 { margin: 0 0 14px; font-size: clamp(2.1rem, 5vw, 3.6rem); font-weight: 300; letter-spacing: -0.03em; color: var(--ink); }
     .desc-row { display: flex; gap: 14px; margin-bottom: 26px; }
     .desc-bar { width: 1px; background: var(--line); flex-shrink: 0; }
-    .desc { margin: 0; font-size: 13px; color: var(--ink-body); font-weight: 300; line-height: 1.7; max-width: 60ch; }
+    .desc { margin: 0; font-size: 13px; color: var(--ink-body); font-weight: 400; line-height: 1.7; max-width: 60ch; }
+
+    /* ---- System-Log (Terminal-Box, wie in den Sub-Seiten von thelobbynews.com/overwatch) ---- */
+    .term-box {
+      border: 1px solid var(--line); background: #000000; padding: 12px 14px;
+      font-family: var(--mono); font-size: 10px; line-height: 1.9; color: var(--ink-faint);
+      max-height: 128px; overflow-y: auto;
+    }
+    .term-box .line { white-space: pre-wrap; word-break: break-word; }
+    .term-box .line.ready { color: var(--emerald); }
+    .term-cursor { display: inline-block; width: 6px; height: 11px; background: var(--emerald); vertical-align: middle; margin-left: 2px; }
 
     .current-box { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 22px; }
     .current-box .lbl { font-family: var(--mono); font-size: 9px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-label); }
@@ -170,20 +180,20 @@
     .schedule-table th { font-size: 9px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-label); border-bottom: 1px solid var(--line); }
 
     .month-grid { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11.5px; min-width: 480px; }
-    .month-grid th, .month-grid td { padding: 8px 10px; border-bottom: 1px solid var(--line-soft); text-align: center; color: var(--ink-body); }
-    .month-grid th { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; text-align: center; color: var(--ink-label); border-bottom: 1px solid var(--line); }
-    .month-grid th:first-child, .month-grid td:first-child { text-align: left; font-weight: 500; color: var(--ink-dim); white-space: nowrap; }
+    .month-grid th, .month-grid td { padding: 8px 10px; border-bottom: 1px solid var(--line-soft); text-align: left; color: var(--ink-body); }
+    .month-grid th { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; text-align: left; color: var(--ink-label); border-bottom: 1px solid var(--line); }
+    .month-grid th:first-child, .month-grid td:first-child { font-weight: 500; color: var(--ink-dim); white-space: nowrap; }
     .month-grid tr:hover { background: rgba(255,255,255,0.03); }
     .month-grid input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--ink); }
 
     /* ---- Toast ---- */
     .toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+      position: fixed; bottom: 24px; left: 24px; transform: translateY(20px);
       background: #000; color: var(--ink); border: 1px solid var(--line); padding: 11px 20px;
       font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
       opacity: 0; transition: all 0.25s ease; pointer-events: none;
     }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.show { opacity: 1; transform: translateY(0); }
 
     /* ---- Display-Tabs ---- */
     .display-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -332,6 +342,11 @@
 
     <button id="saveScheduleBtn" class="cta-btn" style="margin-bottom:24px;">&gt; Zeitplan speichern</button>
 
+    <section class="ow-panel">
+      <p class="section-label">System-Log</p>
+      <div class="term-box" id="systemLog"></div>
+    </section>
+
     <section class="ow-panel corners" style="padding:0; overflow:hidden;">
       <span class="corner corner-tl"></span><span class="corner corner-tr"></span>
       <span class="corner corner-bl"></span><span class="corner corner-br"></span>
@@ -443,10 +458,31 @@
     const grid = document.getElementById("channelGrid");
     const toast = document.getElementById("toast");
 
+    function escapeHtml(str) {
+      return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    // System-Log: hält die letzten Aktionen sichtbar fest (statt nur
+    // kurz als Toast aufzublitzen) -- gleiche Terminal-Optik wie die
+    // Sub-Seiten von thelobbynews.com/overwatch.
+    const logLines = [];
+    const systemLog = document.getElementById("systemLog");
+    function pushLog(msg, ready = false) {
+      const time = new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      logLines.push({ text: `[${time}] ${msg}`, ready });
+      if (logLines.length > 8) logLines.shift();
+      if (systemLog) {
+        systemLog.innerHTML = logLines.map((l) => `<div class="line${l.ready ? " ready" : ""}">&gt; ${escapeHtml(l.text)}</div>`).join("")
+          + `<span class="term-cursor cursor-blink"></span>`;
+        systemLog.scrollTop = systemLog.scrollHeight;
+      }
+    }
+
     function showToast(msg) {
       toast.textContent = msg;
       toast.classList.add("show");
       setTimeout(() => toast.classList.remove("show"), 2200);
+      pushLog(msg);
     }
 
     let channels = [];
@@ -729,7 +765,14 @@
       }
     });
 
-    loadDisplays().then(loadCurrent).then(loadSchedule);
+    pushLog("Verbindung zum Worker wird aufgebaut...");
+    loadDisplays()
+      .then(() => pushLog(`${displays.length} Display${displays.length === 1 ? "" : "s"} gefunden`))
+      .then(loadCurrent)
+      .then(() => pushLog(`Status geladen: ${currentLabel.textContent}`))
+      .then(loadSchedule)
+      .then(() => pushLog("Zeitplan geladen -- SYSTEM_READY", true))
+      .catch((error) => pushLog(`Fehler beim Laden: ${error.message}`));
   </script>
 </body>
 </html>

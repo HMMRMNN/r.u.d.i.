@@ -194,11 +194,11 @@
   .dhv-day-desc { font-size: 12px; color: var(--ink-soft); margin: 4px 0 6px; line-height: 1.5; }
   .pg-grid { display: grid; grid-template-columns: 160px repeat(10, 1fr); gap: 4px; align-items: center; }
   .pg-spot-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px; }
-  .pg-day-head { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; color: var(--ink-soft); text-align: center; }
+  .pg-day-head { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; color: var(--ink-soft); text-align: left; }
   .pg-cell { position: relative; height: 48px; border-radius: 4px; background: #0E1410; overflow: hidden; display: flex; flex-direction: column-reverse; }
   .pg-cell-fly { width: 100%; }
   .pg-cell-xc { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--accent); }
-  .pg-cell-val { position: absolute; top: 2px; left: 0; right: 0; text-align: center; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8px; color: var(--ink-soft); }
+  .pg-cell-val { position: absolute; top: 2px; left: 3px; right: 0; text-align: left; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8px; color: var(--ink-soft); }
   .pg-legend { display: flex; gap: 16px; margin-top: 10px; font-size: 11px; color: var(--ink-soft); }
   .pg-legend span { display: inline-flex; align-items: center; gap: 6px; }
   .ride-card { padding: 14px 0; border-bottom: 1px solid var(--line); }
@@ -261,7 +261,7 @@
   .weather-mini span { display: block; font-family: "Roboto Mono", monospace; font-size: 9.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
   .weather-mini b { font-size: 15px; font-weight: 700; }
   .outlook-strip { display: flex; gap: 12px; margin-top: 0; flex-wrap: wrap; }
-  .outlook-day-card { flex: 1; min-width: 96px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 10px; text-align: center; }
+  .outlook-day-card { flex: 1; min-width: 96px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 10px; text-align: left; }
   .outlook-day-name { font-family: "Roboto Mono", monospace; font-size: 10px; color: var(--ink-soft); text-transform: uppercase; }
   .outlook-day-temp { font-size: 20px; font-weight: 700; margin-top: 8px; }
   .outlook-day-temp-min { font-size: 13px; color: var(--ink-soft); }
