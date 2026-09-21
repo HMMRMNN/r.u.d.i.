@@ -28,7 +28,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 1
+          # fetch-depth: 1 hat dazu geführt, dass der spätere "git commit
+          # --amend" den Elternteil des Commits verlor (ein flacher
+          # Checkout kennt lokal keinen Parent), wodurch main bei jedem
+          # Workflow-Lauf zu einem neuen, elternlosen Root-Commit wurde --
+          # das hat wiederholt jede offene PR-Historie zerschossen. Depth 5
+          # gibt genug Historie mit, damit amend den echten Parent behält.
+          fetch-depth: 5
 
       - name: Nachtmodus prüfen
         id: check
@@ -84,6 +90,14 @@ jobs:
               displays = [{"id": "display1", "name": "Hauptdisplay"}]
 
           WIDTH, HEIGHT = 800, 480
+          # Playwright rendert das Layout in 800x480 CSS-Pixeln, nimmt den
+          # Screenshot dank device_scale_factor aber in doppelter Auflösung
+          # (1600x960) auf. Erst beim Runterskalieren mit einem hochwertigen
+          # Filter entstehen aus Antialiasing-Kanten (Kreise, Rundungen,
+          # Verläufe) echte Graustufen-Übergänge -- der harte Schwarz/Weiß-
+          # Schwellwert danach sieht dadurch deutlich weniger blockig aus,
+          # ohne dass Text unscharf wird.
+          SUPERSAMPLE = 2
 
           def render_display(display_id):
               # Fragt den rudi-Worker, welche Seite für DIESES Display gerade
@@ -107,7 +121,10 @@ jobs:
 
               with sync_playwright() as p:
                   browser = p.chromium.launch()
-                  page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT})
+                  page = browser.new_page(
+                      viewport={"width": WIDTH, "height": HEIGHT},
+                      device_scale_factor=SUPERSAMPLE,
+                  )
                   page.goto(url, wait_until="networkidle", timeout=30000)
 
                   # Explizit auf fertig geladene Web-Fonts warten (Work Sans /
@@ -134,7 +151,11 @@ jobs:
                   page.screenshot(path=raw_path)
                   browser.close()
 
-              img = Image.open(raw_path).convert("L").resize((WIDTH, HEIGHT))
+              # Downscale von der 2x-Aufnahme auf die Zielauflösung --
+              # LANCZOS mittelt mehrere Quellpixel pro Zielpixel und liefert
+              # dadurch echte Zwischen-Grauwerte an Kanten, statt einfach
+              # jedes zweite Pixel wegzuwerfen.
+              img = Image.open(raw_path).convert("L").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
 
               # Kontrastverstärkung VOR dem Schwellwert: drückt hellgraue,
               # aber eigentlich sichtbar gemeinte Elemente (dünne Trennlinien,
