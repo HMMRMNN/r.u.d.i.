@@ -179,29 +179,31 @@
     font-size: 9px; font-weight: 700; letter-spacing: 0.03em; vertical-align: middle;
   }
 
-  /* ---- Strava "Year in Sport"-Palette, aus Screenshot-Analyse ---- */
-  .sw-orange { background: #FC4C02; }
-  .sw-pink { background: #FFB6E8; }
-  .sw-cream { background: #F2F0E6; }
-  .sw-olive { background: #33351C; }
-  .sw-navy { background: #0E2E44; }
-  .sw-yellow { background: #E8FF3D; }
+  /* ---- Bar-Farben: aus der bestehenden App-Palette statt eigener
+     Strava-artiger Farben, damit es zum Rest des Dashboards passt. ---- */
+  .sw-orange { background: transparent; }
+  .sw-pink { background: var(--violet); }
+  .sw-cream { background: transparent; }
+  .sw-olive { background: var(--panel); }
+  .sw-navy { background: var(--sky); }
+  .sw-yellow { background: var(--gold); }
 
   .wrapped-hero {
-    border-radius: 0; overflow: hidden; display: flex; flex-direction: column;
+    border: 1px solid var(--line); background: var(--panel); border-radius: 0;
+    overflow: hidden; display: flex; flex-direction: column;
   }
   .wrapped-hero-eyebrow {
-    padding: 10px 24px; font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
-    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; color: #1A1200;
+    padding: 20px 24px 0; font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500; color: var(--ink-soft);
   }
-  .wrapped-hero-body { padding: 8px 24px 26px; color: #14140A; }
-  .wrapped-hero-number { font-size: 96px; font-weight: 800; line-height: 0.9; letter-spacing: -0.03em; margin: 6px 0 0; }
-  .wrapped-hero-caption { font-size: 14px; margin-top: 10px; font-weight: 500; opacity: 0.85; }
+  .wrapped-hero-body { padding: 8px 24px 26px; color: var(--ink); }
+  .wrapped-hero-number { font-size: 96px; font-weight: 800; line-height: 0.9; letter-spacing: -0.03em; margin: 6px 0 0; color: var(--ink); }
+  .wrapped-hero-caption { font-size: 14px; margin-top: 10px; font-weight: 500; color: var(--ink-soft); }
 
   .wrapped-dotchart { display: flex; align-items: flex-end; gap: 10px; padding: 20px 24px 6px; }
   .wrapped-dotchart-col { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
-  .wrapped-dotchart-dot { border-radius: 50%; background: #14140A; }
-  .wrapped-dotchart-label { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; font-size: 9px; color: #14140A; opacity: 0.7; }
+  .wrapped-dotchart-dot { border-radius: 50%; background: var(--ink); }
+  .wrapped-dotchart-label { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; font-size: 9px; color: var(--ink-soft); }
 
   /* Balken, deren LÄNGE selbst den Wert zeigt -- keine gleich großen
      Kästen mit Zahl drauf, sondern die Fläche IST das Diagramm, wie
@@ -2438,7 +2440,7 @@
             <div class="sw-bar-row">
               <span class="sw-bar-label">Woche</span>
               <div class="sw-bar-track">
-                <div class="sw-bar-fill sw-yellow" style="width:${Math.max(14, Math.min(100, weekPct))}%; color:#14140A;">
+                <div class="sw-bar-fill sw-yellow" style="width:${Math.max(14, Math.min(100, weekPct))}%; color:#000000;">
                   <span class="sw-bar-value">${data.week?.km ?? 0}</span><span class="sw-bar-unit">km</span>
                 </div>
               </div>
@@ -2447,7 +2449,7 @@
             <div class="sw-bar-row">
               <span class="sw-bar-label">Monat</span>
               <div class="sw-bar-track">
-                <div class="sw-bar-fill sw-navy" style="width:${Math.max(18, Math.min(100, monthPct))}%; color:#E8F0F8;">
+                <div class="sw-bar-fill sw-navy" style="width:${Math.max(18, Math.min(100, monthPct))}%; color:#000000;">
                   <span class="sw-bar-value">${data.month?.km ?? 0}</span><span class="sw-bar-unit">km</span>
                 </div>
               </div>
@@ -2456,7 +2458,7 @@
             <div class="sw-bar-row">
               <span class="sw-bar-label">Jahresziel</span>
               <div class="sw-bar-track">
-                <div class="sw-bar-fill sw-pink" style="width:${Math.max(10, pct)}%; color:#14140A;">
+                <div class="sw-bar-fill sw-pink" style="width:${Math.max(10, pct)}%; color:#000000;">
                   <span class="sw-bar-value">${pct}</span><span class="sw-bar-unit">%</span>
                 </div>
               </div>
@@ -2478,7 +2480,7 @@
                 ${w.fitness != null ? `<div class="sw-bar-row">
                   <span class="sw-bar-label" style="width:70px;">Fitness</span>
                   <div class="sw-bar-track" style="height:34px;">
-                    <div class="sw-bar-fill sw-yellow" style="width:${Math.round((w.fitness / fcMax) * 100)}%; color:#14140A;">
+                    <div class="sw-bar-fill sw-yellow" style="width:${Math.round((w.fitness / fcMax) * 100)}%; color:#000000;">
                       <span class="sw-bar-value" style="font-size:15px;">${w.fitness}</span>
                     </div>
                   </div>
@@ -2486,7 +2488,7 @@
                 ${w.fatigue != null ? `<div class="sw-bar-row">
                   <span class="sw-bar-label" style="width:70px;">Ermüdung</span>
                   <div class="sw-bar-track" style="height:34px;">
-                    <div class="sw-bar-fill sw-navy" style="width:${Math.round((w.fatigue / fcMax) * 100)}%; color:#E8F0F8;">
+                    <div class="sw-bar-fill sw-navy" style="width:${Math.round((w.fatigue / fcMax) * 100)}%; color:#000000;">
                       <span class="sw-bar-value" style="font-size:15px;">${w.fatigue}</span>
                     </div>
                   </div>
