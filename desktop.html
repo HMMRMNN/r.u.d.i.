@@ -194,11 +194,11 @@
   .dhv-day-desc { font-size: 12px; color: var(--ink-soft); margin: 4px 0 6px; line-height: 1.5; }
   .pg-grid { display: grid; grid-template-columns: 160px repeat(10, 1fr); gap: 4px; align-items: center; }
   .pg-spot-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px; }
-  .pg-day-head { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; color: var(--ink-soft); text-align: center; }
+  .pg-day-head { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; color: var(--ink-soft); text-align: left; }
   .pg-cell { position: relative; height: 48px; border-radius: 4px; background: #0E1410; overflow: hidden; display: flex; flex-direction: column-reverse; }
   .pg-cell-fly { width: 100%; }
   .pg-cell-xc { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--accent); }
-  .pg-cell-val { position: absolute; top: 2px; left: 0; right: 0; text-align: center; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8px; color: var(--ink-soft); }
+  .pg-cell-val { position: absolute; top: 2px; left: 3px; right: 0; text-align: left; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8px; color: var(--ink-soft); }
   .pg-legend { display: flex; gap: 16px; margin-top: 10px; font-size: 11px; color: var(--ink-soft); }
   .pg-legend span { display: inline-flex; align-items: center; gap: 6px; }
   .ride-card { padding: 14px 0; border-bottom: 1px solid var(--line); }
@@ -261,7 +261,7 @@
   .weather-mini span { display: block; font-family: "Roboto Mono", monospace; font-size: 9.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
   .weather-mini b { font-size: 15px; font-weight: 700; }
   .outlook-strip { display: flex; gap: 12px; margin-top: 0; flex-wrap: wrap; }
-  .outlook-day-card { flex: 1; min-width: 96px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 10px; text-align: center; }
+  .outlook-day-card { flex: 1; min-width: 96px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 10px; text-align: left; }
   .outlook-day-name { font-family: "Roboto Mono", monospace; font-size: 10px; color: var(--ink-soft); text-transform: uppercase; }
   .outlook-day-temp { font-size: 20px; font-weight: 700; margin-top: 8px; }
   .outlook-day-temp-min { font-size: 13px; color: var(--ink-soft); }
@@ -288,6 +288,16 @@
   .pollen-bar-fill.medium { background: var(--gold); }
   .pollen-bar-fill.high { background: var(--brick); }
   .pollen-val { width: 46px; text-align: right; font-family: "Roboto Mono", monospace; font-size: 11px; }
+
+  .activity-list { margin: 0; padding: 0; list-style: none; }
+  .activity-list li { display: flex; gap: 10px; align-items: baseline; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+  .activity-list li:last-child { border-bottom: none; }
+  .activity-list li .num { font-family: "Roboto Mono", monospace; font-size: 10px; color: var(--ink-soft); width: 14px; flex-shrink: 0; }
+  .meal-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .meal { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #000000; }
+  .meal .name { font-size: 12.5px; font-weight: 700; line-height: 1.3; }
+  .meal .desc { font-size: 10.5px; margin-top: 5px; color: var(--ink-soft); line-height: 1.4; }
+  .clothing-box { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; display: flex; justify-content: space-between; gap: 10px; font-family: "Roboto Mono", monospace; font-size: 11px; flex-wrap: wrap; }
 
   /* Chiemsee chart */
   .chart-wrap svg { width: 100%; height: 140px; display: block; }
@@ -530,6 +540,17 @@
             <div class="empty-note">Lädt…</div>
           </div>
         </div>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; margin-top:18px; align-items:start;">
+          <div class="panel" id="weatherActivitiesPanel">
+            <p class="panel-label">Aktivitäten heute</p>
+            <div class="empty-note">Lädt…</div>
+          </div>
+          <div class="panel" id="weatherRecipesPanel">
+            <p class="panel-label">Rezeptideen</p>
+            <div class="empty-note">Lädt…</div>
+          </div>
+        </div>
       </section>
 
       <!-- ======================= CHIEMSEE ======================= -->
@@ -566,14 +587,20 @@
           <div class="panel stat-card"><p class="panel-label">Nullgradgrenze</p><div class="empty-note">Lädt…</div></div>
         </div>
 
+        <div class="grid" style="grid-template-columns: 1fr 1fr; margin-top:18px; align-items:start;">
+          <div class="panel" id="paraglidingFoehnPanel"><p class="panel-label">Föhn-Heuristik (unvalidiert)</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel" id="paraglidingWindTablePanel"><p class="panel-label">Wind im Tagesverlauf</p><div class="empty-note">Lädt…</div></div>
+        </div>
+
         <div id="dhvHeadlinerWrap" style="margin-top:18px;"></div>
 
         <div class="grid" style="grid-template-columns: 1fr; margin-top:18px;">
           <div class="panel" id="paraglidableChartPanel"><p class="panel-label">Paraglidable · 10-Tage-Fliegbarkeit (nächste Startplätze)</p><div class="empty-note">Lädt…</div></div>
         </div>
 
-        <div class="grid" style="grid-template-columns: 1fr; margin-top:18px;">
+        <div class="grid" style="grid-template-columns: 1fr 1fr; margin-top:18px; align-items:start;">
           <div class="panel" id="paraglidingStationsPanel"><p class="panel-label">Live-Windmessungen (Startplätze)</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel" id="paraglidingWeekendPanel"><p class="panel-label">Wochenend-Ausblick · Hochplatte</p><div class="empty-note">Lädt…</div></div>
         </div>
 
         <div class="grid" style="grid-template-columns: 1fr 1fr; margin-top:18px; align-items:start;">
@@ -591,16 +618,24 @@
       <!-- ======================= SCHNEE ======================= -->
       <section class="page" id="page-snow">
         <div class="page-head">
-          <p class="page-eyebrow mono">Open-Meteo · Lawinenwarndienst</p>
+          <p class="page-eyebrow mono">Open-Meteo · Lawinenwarndienst Bayern</p>
           <h1 class="page-title">Schneebericht</h1>
         </div>
-        <div class="grid overview-grid" id="snowStats" style="grid-template-columns: repeat(3, 1fr);">
-          <div class="panel stat-card"><p class="panel-label">Schneehöhe aktuell</p><div class="empty-note">Lädt…</div></div>
+        <div class="grid overview-grid" id="snowStats" style="grid-template-columns: repeat(4, 1fr);">
+          <div class="panel stat-card"><p class="panel-label">Schneehöhe Tal</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel stat-card"><p class="panel-label">Schneehöhe Berg</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel stat-card"><p class="panel-label">Neuschnee Berg 24h</p><div class="empty-note">Lädt…</div></div>
           <div class="panel stat-card"><p class="panel-label">Nullgradgrenze</p><div class="empty-note">Lädt…</div></div>
-          <div class="panel stat-card" id="snowAvalanchePanel"><p class="panel-label">Lawinenwarnstufe</p><div class="empty-note">Lädt…</div></div>
+        </div>
+        <div class="grid" style="grid-template-columns: 1fr 1fr; margin-top:18px;">
+          <div class="panel" id="snowAvalanchePanel"><p class="panel-label">Lawinenwarnstufe</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel" id="snowFoehnPanel"><p class="panel-label">Föhn &amp; Nassschnee</p><div class="empty-note">Lädt…</div></div>
         </div>
         <div class="grid" style="grid-template-columns: 1fr; margin-top:18px;">
-          <div class="panel" id="snowForecastPanel"><p class="panel-label">Schneevorhersage</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel" id="snowResortsPanel"><p class="panel-label">Skigebiete Chiemgau</p><div class="empty-note">Lädt…</div></div>
+        </div>
+        <div class="grid" style="grid-template-columns: 1fr; margin-top:18px;">
+          <div class="panel" id="snowForecastPanel"><p class="panel-label">Schneevorhersage · Tal Grassau</p><div class="empty-note">Lädt…</div></div>
         </div>
       </section>
 
@@ -1358,6 +1393,70 @@
       `;
     }
 
+    // Gleiche Inspirationsliste wie weather.html (E-Ink-Seite) -- kindgerechte
+    // Gerichte, überwiegend für den Thermomix geeignet. Bewusst kurz und ohne
+    // vollständiges Rezept (nur Ideen, keine Mengen/Stufen/Zeiten).
+    const RECIPE_IDEAS = [
+      { name: "Tomatensuppe", desc: "Tomaten, Zwiebel, etwas Sahne, fein püriert" },
+      { name: "Bolognese", desc: "Faschiertes, Tomaten, Gemüse fein gehackt, mit Nudeln" },
+      { name: "Kürbissuppe", desc: "Kürbis, Kartoffel, etwas Kokosmilch, cremig püriert" },
+      { name: "Brokkoli-Käse-Suppe", desc: "Brokkoli, Kartoffel, milder Käse, sämig" },
+      { name: "Käse-Spätzle", desc: "Spätzleteig, mit Käse untergehoben" },
+      { name: "Milchreis", desc: "Rundkornreis, Milch, leicht gesüßt, mit Zimt" },
+      { name: "Gemüse-Risotto", desc: "Reis, buntes Gemüse fein gewürfelt, cremig gegart" },
+      { name: "Linsen-Curry (mild)", desc: "Rote Linsen, Kokosmilch, ohne Schärfe" },
+      { name: "Hackbällchen in Tomatensauce", desc: "Kleine Bällchen, milde Sauce, dazu Kartoffelpüree" },
+      { name: "Ofengemüse-Sticks", desc: "Karotte, Zucchini, Süßkartoffel, weich im Ofen gegart" },
+      { name: "Gemüse-Frikadellen", desc: "Karotte, Zucchini, Haferflocken, in der Pfanne gebraten" },
+      { name: "Apfelmus", desc: "Äpfel weich gegart, fein püriert, ohne Zuckerzusatz" },
+      { name: "Grießbrei", desc: "Milch, Grieß, mild gesüßt, mit Fruchtmus" },
+      { name: "Blumenkohl-Käse-Auflauf", desc: "Blumenkohl gegart, milde Käsesauce, überbacken" },
+      { name: "Gemüse-Couscous", desc: "Couscous, fein gewürfeltes Gemüse, mild gewürzt" },
+      { name: "Pfannkuchen", desc: "Dünner Teig, in der Pfanne gebacken, mit Apfelmus" },
+      { name: "Vollkorn-Pizza mit Gemüse", desc: "Teig, mildem Belag, im Ofen überbacken" },
+      { name: "Süßkartoffel-Püree", desc: "Süßkartoffel, etwas Butter, cremig gestämpft" },
+      { name: "Zucchini-Puffer", desc: "Zucchini fein geraspelt, in der Pfanne goldbraun gebraten" },
+      { name: "Kartoffel-Möhren-Eintopf", desc: "Kartoffel, Karotte, mild gewürzt, stückig oder püriert" },
+      { name: "Hähnchen-Gemüse-Auflauf", desc: "Zartes Hähnchen, Brokkoli, wenig Käse überbacken" },
+      { name: "Blumenkohlsuppe", desc: "Blumenkohl, Kartoffel, etwas Muskat, fein püriert" },
+      { name: "Süßkartoffelsuppe", desc: "Süßkartoffel, Karotte, mild gewürzt" },
+      { name: "Spinat-Kartoffel-Suppe", desc: "Blattspinat, Kartoffel, etwas Sahne, fein püriert" },
+      { name: "Maissuppe", desc: "Mais, Kartoffel, etwas Sahne, leicht süßlich" },
+      { name: "Tomaten-Käse-Nudeln", desc: "Nudeln, milde Tomatensauce, geriebener Käse" },
+      { name: "Frühstücksmuffins herzhaft", desc: "Ei, Gemüse, wenig Käse, im Muffinblech gebacken" },
+      { name: "Hirsebrei", desc: "Hirse, Milch, mild gesüßt, mit Obst" },
+      { name: "Polenta mit Gemüse", desc: "Maisgrieß cremig gekocht, mit weichem Gemüse" },
+      { name: "Fischstäbchen selbstgemacht", desc: "Fisch, milde Panade, im Ofen statt frittiert" },
+      { name: "Kichererbsenbratlinge", desc: "Kichererbsen, Karotte, mild gewürzt, gebraten" },
+      { name: "Kartoffelpuffer", desc: "Kartoffel fein geraspelt, in der Pfanne goldbraun" },
+      { name: "Ofen-Gemüsepuffer", desc: "Buntes Gemüse, Haferflocken, im Ofen statt in Fett gebacken" },
+      { name: "Bananen-Hafer-Pfannkuchen", desc: "Nur Banane, Ei, Haferflocken, ohne Zuckerzusatz" },
+      { name: "Vollkorn-Brötchen", desc: "Einfacher Teig, als kleine Portionen gebacken" },
+      { name: "Birnen-Kompott", desc: "Birnen weich gegart, leicht gesüßt, mit Zimt" },
+      { name: "Vanillepudding", desc: "Milch, Vanille, hausgemacht statt Fertigpulver" },
+      { name: "Hausgemachte Tomatensauce", desc: "Tomaten, Zwiebel, Karotte, fein püriert, als Basis" },
+      { name: "Gemüse-Muffins süß", desc: "Karotte oder Zucchini im Teig versteckt, mild gesüßt" },
+      { name: "Mini-Gemüse-Quiche", desc: "Mürbteig, mit mildem Gemüse-Belag, im Ofen gebacken" },
+    ];
+
+    function dayOfYear(date) {
+      const start = new Date(date.getFullYear(), 0, 0);
+      return Math.floor((date - start) / 86400000);
+    }
+
+    function deriveActivities(tempMax, precipSum, weathercode) {
+      const isRainy = precipSum > 1 || [51,53,55,61,63,65,80,81,82,95,96,99].includes(weathercode);
+      const isSnowy = [71,73,75].includes(weathercode) || tempMax < 1;
+      const isHot = tempMax >= 24;
+      const isNice = !isRainy && tempMax >= 12;
+
+      if (isSnowy) return ["Schlitten fahren", "Schneemann bauen", "Kakao-Pause danach"];
+      if (isRainy) return ["Indoor-Spielplatz", "Backen zusammen", "Bastelnachmittag"];
+      if (isHot) return ["Freibad / Planschbecken", "Wasserspiele im Garten", "Schatten-Spielplatz vormittags"];
+      if (isNice) return ["Spielplatz-Besuch", "Spaziergang / kleine Wanderung", "Fahrrad/Laufrad üben"];
+      return ["Kurzer Spaziergang zwischendurch", "Spielplatz, wenn's trocken bleibt", "Bastel-/Spielenachmittag"];
+    }
+
     async function loadWeather() {
       const now = new Date();
       try {
@@ -1418,11 +1517,39 @@
           <p class="panel-label">Sonne &amp; Tageslänge</p>
           ${renderSunPanel(daily, now)}
         `;
+
+        // ---- Familie heute: Aktivitäten, Rezeptideen, Kleidung (wie weather.html) ----
+        const tMax0 = daily.temperature_2m_max[0], precipSum0 = daily.precipitation_sum[0], code0 = daily.weathercode[0];
+        const activities = deriveActivities(tMax0, precipSum0, code0);
+        const doy = dayOfYear(now);
+        const n = RECIPE_IDEAS.length;
+        const recipes = [RECIPE_IDEAS[doy % n], RECIPE_IDEAS[(doy + Math.floor(n / 3)) % n], RECIPE_IDEAS[(doy + Math.floor((2 * n) / 3)) % n]];
+        const needsJacket = tMax0 < 15 || precipSum0 > 0.5;
+        const needsSunscreen = daily.uv_index_max[0] >= 4;
+
+        document.getElementById("weatherActivitiesPanel").innerHTML = `
+          <p class="panel-label">Aktivitäten heute</p>
+          <ul class="activity-list">
+            ${activities.map((a, i) => `<li><span class="num">${i + 1}</span><span>${escapeHtml(a)}</span></li>`).join("")}
+          </ul>
+          <div class="clothing-box">
+            <span>${needsJacket ? "🧥 Jacke mitnehmen" : "Leicht reicht"}</span>
+            <span>${needsSunscreen ? "☀️ Sonnencreme nötig" : "Kein starker Schutz nötig"}</span>
+          </div>
+        `;
+        document.getElementById("weatherRecipesPanel").innerHTML = `
+          <p class="panel-label">Rezeptideen</p>
+          <div class="meal-card">
+            ${recipes.map((r) => `<div class="meal"><div class="name">${escapeHtml(r.name)}</div><div class="desc">${r.desc}</div></div>`).join("")}
+          </div>
+        `;
       } catch (error) {
         console.error(error);
         document.getElementById("weatherHero").innerHTML = `<div class="empty-note">Wetterdaten gerade nicht verfügbar.</div>`;
         document.getElementById("weatherHourlyPanel").innerHTML = `<p class="panel-label">Verlauf · nächste 24 Stunden</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
         document.getElementById("weatherSunPanel").innerHTML = `<p class="panel-label">Sonne &amp; Tageslänge</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
+        document.getElementById("weatherActivitiesPanel").innerHTML = `<p class="panel-label">Aktivitäten heute</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
+        document.getElementById("weatherRecipesPanel").innerHTML = `<p class="panel-label">Rezeptideen</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
       }
 
       try {
@@ -1579,9 +1706,10 @@
           const entry = (data[d] || []).find((s) => s.name === spotName);
           const fly = entry ? entry.forecast.fly : 0;
           const xc = entry ? entry.forecast.XC : 0;
+          const takeoff = entry ? entry.forecast.takeoff : null;
           const flyPct = Math.round(fly * 100);
           return `
-            <div class="pg-cell" title="${escapeHtml(spotName)}: ${flyPct}% fliegbar, ${Math.round(xc*100)}% XC">
+            <div class="pg-cell" title="${escapeHtml(spotName)}: ${flyPct}% fliegbar, ${Math.round(xc*100)}% XC${takeoff !== null ? `, ${Math.round(takeoff*100)}% Start` : ""}">
               <div class="pg-cell-fly" style="height:${flyPct}%; background:${flyColor(fly)};"></div>
               ${xc > 0.05 ? `<div class="pg-cell-xc" style="height:${Math.round(xc*100)}%; position:absolute; bottom:0; left:2px; right:2px; background:rgba(221,255,44,0.5); width:auto;"></div>` : ""}
               <span class="pg-cell-val">${flyPct}</span>
@@ -1605,16 +1733,65 @@
       `;
     }
 
+    // Süd-Referenz für den Föhn-Indikator (grob nach dem Prinzip des
+    // offiziellen Südtiroler Föhndiagramms, Bozen vs. Innsbruck -- hier
+    // vereinfacht: Bozen als Südseite, Grassau als Nordseite). Gleiche
+    // Heuristik wie paragliding.html (E-Ink-Seite).
+    const FOEHN_SOUTH = { lat: 46.4983, lon: 11.3548, name: "Bozen" };
+
+    function deriveFoehnIndicator(hourly, foehnData) {
+      if (!foehnData || !foehnData.hourly) return { label: "K.A.", hint: "Süd-Referenzdaten nicht verfügbar" };
+      const nowIso = new Date().toISOString().slice(0, 13);
+      let idxNorth = hourly.time.findIndex((t) => t.startsWith(nowIso));
+      let idxSouth = foehnData.hourly.time.findIndex((t) => t.startsWith(nowIso));
+      if (idxNorth < 0) idxNorth = 12;
+      if (idxSouth < 0) idxSouth = 12;
+      const pNorth = hourly.pressure_msl[idxNorth];
+      const pSouth = foehnData.hourly.pressure_msl[idxSouth];
+      if (pNorth === undefined || pSouth === undefined) return { label: "K.A.", hint: "Druckdaten unvollständig" };
+      const diff = pSouth - pNorth;
+      let label;
+      if (diff >= 6) label = "Deutet auf Föhn";
+      else if (diff >= 3) label = "Nicht auszuschließen";
+      else if (diff <= -3) label = "Eher Nordstau";
+      else label = "Kein Hinweis";
+      return { label, hint: `Δp ${diff.toFixed(1)} hPa (Bozen ./. Grassau)` };
+    }
+
+    function renderParaglidingWeekend(pgData) {
+      if (!pgData) return `<div class="empty-note">Gerade nicht verfügbar.</div>`;
+      const dates = Object.keys(pgData).sort().filter((dateStr) => {
+        const day = new Date(dateStr + "T12:00:00").getDay();
+        return day === 0 || day === 6;
+      }).slice(0, 2);
+      const rows = dates.map((dateStr) => {
+        const spots = pgData[dateStr];
+        const hochplatte = spots.find((s) => s.name.toLowerCase().includes("hochplatte"));
+        if (!hochplatte) return null;
+        const d = new Date(dateStr + "T12:00:00");
+        const dayLabel = d.toLocaleDateString("de-DE", { weekday: "long" });
+        const dateLabel = d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+        return { dayLabel, dateLabel, fly: Math.round(hochplatte.forecast.fly * 100), xc: Math.round(hochplatte.forecast.XC * 100) };
+      }).filter(Boolean);
+      if (!rows.length) return `<div class="empty-note">Keine Hochplatte-Daten fürs Wochenende.</div>`;
+      return `
+        <table class="flight-table"><thead><tr><th>Tag</th><th style="text-align:right">Fly</th><th style="text-align:right">XC</th></tr></thead>
+        <tbody>${rows.map((r) => `<tr><td>${r.dayLabel} <span class="stat-meta" style="display:inline;">${r.dateLabel}</span></td><td class="num-cell">${r.fly}%</td><td class="num-cell">${r.xc}%</td></tr>`).join("")}</tbody></table>
+      `;
+    }
+
     async function loadParagliding() {
       const statsEl = document.getElementById("paraglidingStats");
       const cards = {};
+      let pgDataShared = null;
 
       // ---- Kennzahlen: Ampel, Thermikhöhe, Wind, Bewölkung nach Höhe ----
       try {
         const url = `${WEATHER_API}?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}` +
-          `&hourly=boundary_layer_height,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_speed_850hPa,wind_direction_850hPa,freezing_level_height` +
+          `&hourly=boundary_layer_height,cloud_cover_low,cloud_cover_mid,cloud_cover_high,cloud_cover,wind_speed_10m,wind_speed_80m,wind_direction_10m,wind_speed_850hPa,wind_direction_850hPa,freezing_level_height,pressure_msl` +
           `&daily=windspeed_10m_max,precipitation_sum,cloudcover_mean&timezone=Europe%2FBerlin&forecast_days=1`;
-        const data = await fetchJson(url);
+        const foehnUrl = `${WEATHER_API}?latitude=${FOEHN_SOUTH.lat}&longitude=${FOEHN_SOUTH.lon}&hourly=pressure_msl&timezone=Europe%2FBerlin&forecast_days=1`;
+        const [data, foehnData] = await Promise.all([fetchJson(url), fetchJson(foehnUrl).catch(() => null)]);
         const windMax = data.daily.windspeed_10m_max[0], precip = data.daily.precipitation_sum[0];
         const good = windMax < 20 && precip < 1;
 
@@ -1657,15 +1834,49 @@
 
         const stampEl = document.getElementById("paraglidingStamp");
         if (stampEl) stampEl.textContent = `Stand: ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })} Uhr`;
+
+        // ---- Föhn-Heuristik ----
+        const foehn = deriveFoehnIndicator(data.hourly, foehnData);
+        document.getElementById("paraglidingFoehnPanel").innerHTML = `
+          <p class="panel-label">Föhn-Heuristik (unvalidiert)</p>
+          <div class="stat-value" style="font-size:20px;">${escapeHtml(foehn.label)}</div>
+          <p class="stat-meta">${escapeHtml(foehn.hint)}</p>
+        `;
+
+        // ---- Wind im Tagesverlauf (9/12/15/18 Uhr) ----
+        const todayStr = data.hourly.time[currentHourIdx]?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+        const todayHours = data.hourly.time.map((t, i) => ({ t, i })).filter(({ t }) => t.startsWith(todayStr));
+        const flyingSlots = [9, 12, 15, 18].map((hour) => {
+          const found = todayHours.find(({ t }) => Number(t.slice(11, 13)) === hour);
+          if (!found) return null;
+          const i = found.i;
+          return {
+            hour,
+            wind10: Math.round(data.hourly.wind_speed_10m[i]),
+            wind80: Math.round(data.hourly.wind_speed_80m[i]),
+            dir: compassLabel(data.hourly.wind_direction_10m[i]),
+            cloud: Math.round(data.hourly.cloud_cover[i]),
+          };
+        }).filter(Boolean);
+        document.getElementById("paraglidingWindTablePanel").innerHTML = `
+          <p class="panel-label">Wind im Tagesverlauf</p>
+          ${flyingSlots.length ? `
+            <table class="flight-table"><thead><tr><th>Zeit</th><th style="text-align:right">Wind 10 m</th><th style="text-align:right">Wind 80 m</th><th style="text-align:right">Bewölkung</th></tr></thead>
+            <tbody>${flyingSlots.map((s) => `<tr><td>${s.hour}:00</td><td class="num-cell">${s.wind10} km/h ${s.dir}</td><td class="num-cell">${s.wind80} km/h</td><td class="num-cell">${s.cloud}%</td></tr>`).join("")}</tbody></table>
+          ` : `<div class="empty-note">Keine Daten für heute.</div>`}
+        `;
       } catch (error) {
         console.error(error);
+        document.getElementById("paraglidingFoehnPanel").innerHTML = `<p class="panel-label">Föhn-Heuristik (unvalidiert)</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
+        document.getElementById("paraglidingWindTablePanel").innerHTML = `<p class="panel-label">Wind im Tagesverlauf</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
       }
       statsEl.innerHTML = [cards.rating, cards.thermal, cards.wind, cards.cloud, cards.windAloft, cards.freezing]
         .map((c) => c || `<div class="panel stat-card"><p class="panel-label">—</p><div class="empty-note">Gerade nicht verfügbar</div></div>`).join("");
 
-      // ---- Paraglidable 10-Tage-Gitter ----
+      // ---- Paraglidable 10-Tage-Gitter (Daten auch für Wochenend-Ausblick genutzt) ----
       try {
         const data = await fetchJson(`${RUDI_WORKER}/paraglidable`, { headers: { Accept: "application/json" } });
+        pgDataShared = data;
         document.getElementById("paraglidableChartPanel").innerHTML = `
           <p class="panel-label">Paraglidable · 10-Tage-Fliegbarkeit (nächste Startplätze)</p>
           ${renderParaglidableChart(data)}
@@ -1674,6 +1885,11 @@
         console.error(error);
         document.getElementById("paraglidableChartPanel").innerHTML = `<p class="panel-label">Paraglidable · 10-Tage-Fliegbarkeit</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
       }
+
+      document.getElementById("paraglidingWeekendPanel").innerHTML = `
+        <p class="panel-label">Wochenend-Ausblick · Hochplatte</p>
+        ${renderParaglidingWeekend(pgDataShared)}
+      `;
 
       // ---- Live-Windstationen ----
       try {
@@ -1761,56 +1977,139 @@
       1: "Gering", 2: "Mäßig", 3: "Erheblich", 4: "Groß", 5: "Sehr groß",
     };
 
+    // Gleiche Skigebiete/Koordinaten wie snow.html (E-Ink-Seite) --
+    // Modellschätzung an ungefähren Gipfel-/Bergstationskoordinaten,
+    // keine offizielle Pistenmeldung. avalancheRegion "west" = verifiziert
+    // (Achental), "unklar" = geografisch plausibel Ost, aber ohne
+    // verifizierte Grenzkarte zwischen den LWD-Bayern-Teilregionen.
+    const SNOW_VALLEY = { name: "Grassau (Tal)", lat: 47.7756, lon: 12.4550, elevation: 540 };
+    const SNOW_RESORTS = [
+      { name: "Hochfelln", town: "Bergen", lat: 47.7631, lon: 12.5606, elevation: 1674, avalancheRegion: "west" },
+      { name: "Kampenwand", town: "Aschau", lat: 47.7461, lon: 12.3567, elevation: 1669, avalancheRegion: "west" },
+      { name: "Winklmoos-Steinplatte", town: "Reit i. Winkl", lat: 47.6690, lon: 12.4870, elevation: 1800, avalancheRegion: "unklar" },
+      { name: "Unternberg", town: "Ruhpolding", lat: 47.7333, lon: 12.6333, elevation: 1450, avalancheRegion: "unklar" },
+    ];
+    const SNOW_ALL_LOCATIONS = [SNOW_VALLEY, ...SNOW_RESORTS];
+
+    function extractSnowPoint(d) {
+      const hourly = d.hourly;
+      const nowIso = new Date().toISOString().slice(0, 13);
+      let idx = hourly.time.findIndex((t) => t.startsWith(nowIso));
+      if (idx < 0) idx = 12;
+      return {
+        snowDepthCm: Math.round((hourly.snow_depth[idx] || 0) * 100),
+        newSnow24hCm: Math.round(d.daily.snowfall_sum[0] || 0),
+        freezingLevel: Math.round(hourly.freezing_level_height[idx] || 0),
+        wind: Math.round(hourly.windspeed_10m[idx] || 0),
+        windDir: Math.round(hourly.winddirection_10m[idx] || 0),
+        temp: Math.round(hourly.temperature_2m[idx]),
+      };
+    }
+
     async function loadSnow() {
       const statsEl = document.getElementById("snowStats");
       const cards = {};
+      let valleyData = null, resortData = null;
+
       try {
-        const url = `${WEATHER_API}?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}` +
-          `&hourly=snow_depth,freezing_level_height` +
-          `&daily=snowfall_sum,temperature_2m_min,temperature_2m_max,windspeed_10m_max&timezone=Europe%2FBerlin&forecast_days=6`;
-        const data = await fetchJson(url);
+        const lats = SNOW_ALL_LOCATIONS.map((r) => r.lat).join(",");
+        const lons = SNOW_ALL_LOCATIONS.map((r) => r.lon).join(",");
+        const params = new URLSearchParams({
+          latitude: lats, longitude: lons,
+          hourly: ["snow_depth", "snowfall", "temperature_2m", "freezing_level_height", "windspeed_10m", "winddirection_10m"].join(","),
+          daily: ["temperature_2m_max", "temperature_2m_min", "snowfall_sum", "windspeed_10m_max", "sunrise", "sunset"].join(","),
+          timezone: "Europe/Berlin", forecast_days: "6",
+        });
+        const dataArray = await fetchJson(`${WEATHER_API}?${params.toString()}`);
 
-        const now = new Date();
-        const nowIsoHour = now.toISOString().slice(0, 13);
-        let hourIdx = data.hourly.time.findIndex((t) => t.startsWith(nowIsoHour));
-        if (hourIdx < 0) hourIdx = 0;
-        const snowDepthCm = Math.round((data.hourly.snow_depth[hourIdx] || 0) * 100);
-        const freezingLevel = data.hourly.freezing_level_height[hourIdx];
+        valleyData = extractSnowPoint(dataArray[0]);
+        resortData = SNOW_RESORTS.map((resort, i) => ({ ...resort, ...extractSnowPoint(dataArray[i + 1]) }));
+        const mainResort = resortData[0]; // Hochfelln, nächstgelegen
 
-        cards.depth = `<div class="panel stat-card"><p class="panel-label">Schneehöhe aktuell</p>
-          <div class="stat-value">${snowDepthCm}<span class="stat-unit">cm</span></div>
-          <p class="stat-meta">Grassau, Talniveau</p></div>`;
+        cards.depth = `<div class="panel stat-card"><p class="panel-label">Schneehöhe Tal</p>
+          <div class="stat-value">${valleyData.snowDepthCm}<span class="stat-unit">cm</span></div>
+          <p class="stat-meta">Grassau, ${SNOW_VALLEY.elevation} m</p></div>`;
+        cards.depthMountain = `<div class="panel stat-card"><p class="panel-label">Schneehöhe Berg</p>
+          <div class="stat-value">${mainResort.snowDepthCm}<span class="stat-unit">cm</span></div>
+          <p class="stat-meta">${escapeHtml(mainResort.name)}, ${mainResort.elevation} m</p></div>`;
+        cards.newSnow = `<div class="panel stat-card"><p class="panel-label">Neuschnee Berg 24h</p>
+          <div class="stat-value">+${mainResort.newSnow24hCm}<span class="stat-unit">cm</span></div>
+          <p class="stat-meta">${escapeHtml(mainResort.name)}</p></div>`;
         cards.freezing = `<div class="panel stat-card"><p class="panel-label">Nullgradgrenze</p>
-          <div class="stat-value">${Number.isFinite(freezingLevel) ? Math.round(freezingLevel).toLocaleString("de-DE") : "–"}<span class="stat-unit">m</span></div>
+          <div class="stat-value">${mainResort.freezingLevel.toLocaleString("de-DE")}<span class="stat-unit">m</span></div>
           <p class="stat-meta">Höhe über Meer</p></div>`;
 
+        // ---- Föhn/Nassschnee-Heuristik: Frostgrenze nahe/über Gipfelhöhe ----
+        const freezingBelowAllResorts = resortData.every((r) => r.freezingLevel < r.elevation - 100);
+        const foehnLabel = !freezingBelowAllResorts ? "Nicht auszuschließen" : "Kein Hinweis";
+        const foehnHint = !freezingBelowAllResorts
+          ? "Frostgrenze nahe/über Gipfelhöhe (Modellwert)"
+          : "Frostgrenze deutlich unter Gipfelhöhe (Modellwert)";
+        document.getElementById("snowFoehnPanel").innerHTML = `
+          <p class="panel-label">Föhn &amp; Nassschnee</p>
+          <div class="stat-value" style="font-size:20px;">${escapeHtml(foehnLabel)}</div>
+          <p class="stat-meta">${escapeHtml(foehnHint)}</p>
+        `;
+
+        // ---- Skigebiete-Tabelle + Gesamt-Rating ----
+        const avgSnow = resortData.reduce((s, r) => s + r.snowDepthCm, 0) / resortData.length;
+        const rating = avgSnow >= 40 ? { cls: "", label: "Gut" } : avgSnow >= 15 ? { cls: "medium", label: "Mäßig" } : { cls: "low", label: "Schlecht" };
+        const sunrise = new Date(dataArray[0].daily.sunrise[0]).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+        const sunset = new Date(dataArray[0].daily.sunset[0]).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+        const hasUnclearResorts = resortData.some((r) => r.avalancheRegion === "unklar");
+
+        document.getElementById("snowResortsPanel").innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+            <p class="panel-label" style="margin:0;">Skigebiete Chiemgau</p>
+            <div style="display:flex; align-items:center; gap:16px;">
+              <span class="stat-meta">Sonne ${sunrise} – ${sunset}</span>
+              <div class="rating-badge" style="margin:0;"><span class="rating-dot ${rating.cls}"></span><strong>${rating.label}</strong></div>
+            </div>
+          </div>
+          <table class="flight-table">
+            <thead><tr><th>Gebiet</th><th style="text-align:right">Gipfel</th><th style="text-align:right">Schnee</th><th style="text-align:right">Neu</th><th style="text-align:right">Wind</th></tr></thead>
+            <tbody>${resortData.map((r) => `<tr>
+              <td>${escapeHtml(r.name)}${r.avalancheRegion === "unklar" ? " *" : ""}</td>
+              <td class="num-cell">${r.elevation} m</td>
+              <td class="num-cell">${r.snowDepthCm} cm</td>
+              <td class="num-cell">+${r.newSnow24hCm} cm</td>
+              <td class="num-cell">${r.wind} km/h ${compassLabel(r.windDir)}</td>
+            </tr>`).join("")}</tbody>
+          </table>
+          ${hasUnclearResorts ? `<p class="stat-meta" style="margin-top:12px; line-height:1.5;">* Winklmoos-Steinplatte &amp; Unternberg: Zuordnung zur Lawinenregion (West/Ost) nicht verifiziert – die Warnstufe unten gilt nachweislich <strong>nicht</strong> für diese beiden Gebiete. Vor jeder Tour dort separat den vollständigen Lagebericht auf lawinenwarndienst.bayern.de prüfen. Schneehöhe, Wind &amp; Neuschnee sind Wettermodell-Schätzungen (Open-Meteo) an geschätzten Gipfelkoordinaten, keine offizielle Pistenmeldung.</p>` : ""}
+        `;
+
         document.getElementById("snowForecastPanel").innerHTML = `
-          <p class="panel-label">Schneevorhersage</p>
+          <p class="panel-label">Schneevorhersage · Tal Grassau</p>
           <table class="flight-table"><thead><tr><th>Tag</th><th style="text-align:right">Neuschnee</th><th style="text-align:right">Temp. min/max</th><th style="text-align:right">Wind max.</th></tr></thead>
-          <tbody>${data.daily.time.map((d,i) => `<tr>
+          <tbody>${dataArray[0].daily.time.map((d,i) => `<tr>
             <td>${new Date(d).toLocaleDateString("de-DE",{weekday:"short"})}</td>
-            <td class="num-cell">${data.daily.snowfall_sum[i]} cm</td>
-            <td class="num-cell">${Math.round(data.daily.temperature_2m_min[i])}° / ${Math.round(data.daily.temperature_2m_max[i])}°</td>
-            <td class="num-cell">${Math.round(data.daily.windspeed_10m_max[i])} km/h</td>
+            <td class="num-cell">${dataArray[0].daily.snowfall_sum[i]} cm</td>
+            <td class="num-cell">${Math.round(dataArray[0].daily.temperature_2m_min[i])}° / ${Math.round(dataArray[0].daily.temperature_2m_max[i])}°</td>
+            <td class="num-cell">${Math.round(dataArray[0].daily.windspeed_10m_max[i])} km/h</td>
           </tr>`).join("")}</tbody></table>
         `;
       } catch (error) {
-        document.getElementById("snowForecastPanel").innerHTML = `<p class="panel-label">Schneevorhersage</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
+        console.error(error);
+        document.getElementById("snowFoehnPanel").innerHTML = `<p class="panel-label">Föhn &amp; Nassschnee</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
+        document.getElementById("snowResortsPanel").innerHTML = `<p class="panel-label">Skigebiete Chiemgau</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
+        document.getElementById("snowForecastPanel").innerHTML = `<p class="panel-label">Schneevorhersage · Tal Grassau</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
       }
 
       try {
         const data = await fetchJson(`${RUDI_WORKER}/avalanche`, { headers: { Accept: "application/json" } });
         if (!data.available || !data.dangerLevel) throw new Error("nicht verfügbar");
         const desc = AVALANCHE_LEVELS[data.dangerLevel] || "";
-        cards.avalanche = `<p class="panel-label">Lawinenwarnstufe</p>
+        cards.avalanche = `<p class="panel-label">Lawinenwarnstufe (Chiemgau West)</p>
           <div class="avalanche-badge avalanche-${data.dangerLevel}">Stufe ${data.dangerLevel}<span class="lvl-desc">${escapeHtml(desc)}</span></div>
-          ${data.region ? `<p class="stat-meta" style="margin-top:10px;">${escapeHtml(data.region)}</p>` : ""}`;
+          <p class="stat-meta" style="margin-top:10px;">${data.region ? escapeHtml(data.region) + " · " : ""}Gilt nur für Hochfelln/Kampenwand (Region West, verifiziert)</p>`;
       } catch (error) {
-        cards.avalanche = `<p class="panel-label">Lawinenwarnstufe</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
+        cards.avalanche = `<p class="panel-label">Lawinenwarnstufe</p><div class="empty-note">Gerade nicht verfügbar (evtl. außerhalb der Saison) · siehe lawinenwarndienst.bayern.de</div>`;
       }
+      document.getElementById("snowAvalanchePanel").innerHTML = cards.avalanche;
 
-      statsEl.innerHTML = [cards.depth, cards.freezing].map((c) => c || `<div class="panel stat-card"><p class="panel-label">—</p><div class="empty-note">Gerade nicht verfügbar</div></div>`).join("")
-        + `<div class="panel stat-card">${cards.avalanche}</div>`;
+      statsEl.innerHTML = [cards.depth, cards.depthMountain, cards.newSnow, cards.freezing]
+        .map((c) => c || `<div class="panel stat-card"><p class="panel-label">—</p><div class="empty-note">Gerade nicht verfügbar</div></div>`).join("");
     }
 
     // ---------------------------------------------------------------
