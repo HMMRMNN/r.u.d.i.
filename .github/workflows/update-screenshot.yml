@@ -125,7 +125,14 @@ jobs:
                       viewport={"width": WIDTH, "height": HEIGHT},
                       device_scale_factor=SUPERSAMPLE,
                   )
-                  page.goto(url, wait_until="networkidle", timeout=30000)
+                  # "networkidle" ist hier ungeeignet: Seiten wie traffic.html
+                  # laden pro Flugzeug ein Foto von einer externen Fotoquelle
+                  # (mit Silhouette-Fallback) -- wenn eine davon lahmt, wird die
+                  # Seite nie "idle" und der Goto lief wiederholt in den
+                  # 30s-Timeout, obwohl die eigentlichen Daten längst da waren.
+                  # domcontentloaded + der explizite Ready-Check unten (auf die
+                  # Flugdaten, nicht auf Fotos) reicht und ist robust.
+                  page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
                   # Explizit auf fertig geladene Web-Fonts warten (Work Sans /
                   # Roboto Mono via Google Fonts) -- "networkidle" allein
@@ -176,7 +183,14 @@ jobs:
               os.remove(raw_path)
 
           for d in displays:
-              render_display(d["id"])
+              # Ein einzelnes fehlerhaftes Display (z.B. ein einmaliger
+              # Playwright-Timeout) soll nicht dazu führen, dass alle
+              # anderen, funktionierenden Displays diesen Lauf ebenfalls
+              # verpassen.
+              try:
+                  render_display(d["id"])
+              except Exception as e:
+                  print(f"[{d['id']}] Screenshot fehlgeschlagen, übersprungen: {e}")
           EOF
 
       - name: Bilder committen (nie amend/force -- das hat wiederholt gemergte PRs zerstört)
