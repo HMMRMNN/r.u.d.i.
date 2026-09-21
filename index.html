@@ -3,67 +3,93 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#000000" />
   <title>R.U.D.I. – Übersicht</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet"
   />
 
   <style>
-    :root { --black:#000000; --white:#ffffff; --gray:#777777; }
+    /* Gleiches Design-System wie control.html/desktop.html (Overwatch-Look). */
+    :root {
+      --bg: #000000;
+      --panel: #0a0a0b;
+      --line: #27272a;      /* zinc-800 */
+      --line-soft: #18181b; /* zinc-900 */
+      --ink: #ffffff;
+      --ink-dim: #d4d4d8;   /* zinc-300 */
+      --ink-body: #a1a1aa;  /* zinc-400 */
+      --ink-label: #71717a; /* zinc-500 */
+      --ink-faint: #52525b; /* zinc-600 */
+      --ink-ghost: #3f3f46; /* zinc-700 */
+      --emerald: #10b981;
+      --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+      --sans: "Inter", -apple-system, "Segoe UI", Arial, sans-serif;
+      color-scheme: dark;
+    }
     * { box-sizing: border-box; }
 
-    html, body { margin:0; min-height:100%; background:var(--white); color:var(--black); font-family: "Work Sans", Arial, Helvetica, sans-serif; }
-    body { padding: 32px 20px 60px; }
-    .page { max-width: 900px; margin: 0 auto; }
+    html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink-body); font-family: var(--sans); }
+    body {
+      padding: 32px 20px 60px;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .page { max-width: 1240px; margin: 0; }
 
-    header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 3px solid var(--black); }
-    h1 { margin: 0 0 4px; font-size: 26px; font-weight: 900; letter-spacing: -0.02em; }
-    .subtitle { margin: 0; color: var(--gray); font-size: 13px; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+    h1 { margin: 0 0 4px; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+    .subtitle { margin: 0; color: var(--ink-label); font-size: 13px; font-family: var(--mono); }
 
     .section-label {
-      margin: 32px 0 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--gray); display: flex; align-items: center; gap: 8px;
+      margin: 32px 0 12px; font-size: 10px; font-weight: 500; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--ink-label); display: flex; align-items: center; gap: 8px;
+      font-family: var(--mono);
     }
     .section-label .repo-tag {
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; font-weight: 400;
-      padding: 1px 6px; border: 1px solid var(--gray); border-radius: 3px; text-transform: none; letter-spacing: 0;
+      font-family: var(--mono); font-size: 9px; font-weight: 400;
+      padding: 1px 6px; border: 1px solid var(--ink-ghost); text-transform: none; letter-spacing: 0;
+      color: var(--ink-faint);
     }
 
     .grid { display: grid; grid-template-columns: repeat(auto-fit, 268px); gap: 16px; }
-    .card { display: block; border: 1px solid var(--black); border-radius: 4px; overflow: hidden; color: var(--black); text-decoration: none; background: var(--white); width: 268px; }
-    .card:hover { background: #f7f7f7; }
+    .card { display: block; border: 1px solid var(--line); overflow: hidden; color: var(--ink-body); text-decoration: none; background: var(--panel); width: 268px; transition: border-color .15s, background-color .15s; }
+    .card:hover { border-color: var(--ink-ghost); background: rgba(255,255,255,0.03); }
 
-    .thumb-wrap { position: relative; width: 266px; height: 160px; overflow: hidden; border-bottom: 1px solid var(--black); background: #f2f2f2; pointer-events: none; }
+    .thumb-wrap { position: relative; width: 266px; height: 160px; overflow: hidden; border-bottom: 1px solid var(--line); background: #000000; pointer-events: none; }
     .thumb-wrap iframe { position: absolute; top: 0; left: 0; width: 800px; height: 480px; border: 0; transform: scale(0.3325); transform-origin: top left; }
     /* Für die interaktive M.A.R.V.I.N.-App (kein 800x480-Format, volle Seite) */
     .thumb-wrap.app iframe { width: 1400px; height: 840px; transform: scale(0.19); }
 
     .thumb.placeholder {
       display: flex; align-items: center; justify-content: center; height: 160px;
-      color: var(--gray); font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px;
-      text-align: center; padding: 12px; border-bottom: 1px solid var(--black);
+      color: var(--ink-faint); font-family: var(--mono); font-size: 11px;
+      text-align: center; padding: 12px; border-bottom: 1px solid var(--line);
     }
 
     .card-body { padding: 10px 14px 12px; }
-    .card-body .name { font-size: 15px; font-weight: 700; }
-    .card-body .desc { margin-top: 3px; font-size: 11px; color: var(--gray); font-family: "Roboto Mono", ui-monospace, Menlo, monospace; word-break: break-all; }
+    .card-body .name { font-size: 15px; font-weight: 500; color: var(--ink-dim); }
+    .card-body .desc { margin-top: 3px; font-size: 11px; color: var(--ink-faint); font-family: var(--mono); word-break: break-all; }
 
-    .status { display: inline-block; margin-top: 6px; padding: 2px 6px; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 3px; }
-    .status.live { background: #000; color: #fff; }
-    .status.planned { background: #eee; color: var(--gray); }
+    .status { display: inline-block; margin-top: 6px; padding: 2px 6px; font-size: 9px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; font-family: var(--mono); border: 1px solid transparent; }
+    .status.live { background: var(--ink); color: #000; }
+    .status.planned { background: transparent; color: var(--ink-faint); border-color: var(--ink-ghost); }
 
     .bmp-card {
-      display: block; border: 2px solid var(--black); border-radius: 4px; overflow: hidden;
-      max-width: 800px; background: #fafafa; text-decoration: none;
+      display: block; border: 1px solid var(--line); overflow: hidden;
+      max-width: 800px; background: var(--panel); text-decoration: none;
     }
     .bmp-img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
 
-    footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid #ccc; font-size: 11px; color: var(--gray); font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
+    footer {
+      margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
+      font-size: 10.5px; color: var(--ink-faint); font-family: var(--mono); line-height: 1.9;
+    }
+    footer a { color: var(--ink-label); }
   </style>
 </head>
 
@@ -139,7 +165,7 @@
           <div class="grid">${items.map(cardHtml).join("")}</div>
         `).join("");
       } catch (error) {
-        container.innerHTML = `<p class="section-label">Registry nicht erreichbar</p><p style="font-family:'Roboto Mono',monospace; font-size:11px; color:var(--gray);">${error.message}</p>`;
+        container.innerHTML = `<p class="section-label">Registry nicht erreichbar</p><p style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-faint);">${error.message}</p>`;
       }
     }
 
