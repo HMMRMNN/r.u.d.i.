@@ -103,10 +103,10 @@
       margin-bottom: 24px;
     }
     .eyebrow { font-family: var(--mono); font-size: 10px; color: var(--ink-label); text-transform: uppercase; letter-spacing: 0.3em; margin: 0 0 10px; }
-    h1.ow-h1 { margin: 0 0 14px; font-size: clamp(2.1rem, 5vw, 3.6rem); font-weight: 300; letter-spacing: -0.03em; color: var(--ink); }
+    h1.ow-h1 { margin: 0 0 14px; font-size: clamp(2.25rem, 5vw, 3.75rem); font-weight: 300; letter-spacing: -0.05em; color: var(--ink); }
     .desc-row { display: flex; gap: 14px; margin-bottom: 26px; }
     .desc-bar { width: 1px; background: var(--line); flex-shrink: 0; }
-    .desc { margin: 0; font-size: 13px; color: var(--ink-body); font-weight: 400; line-height: 1.7; max-width: 60ch; }
+    .desc { margin: 0; font-size: 13px; color: var(--ink-body); font-weight: 300; line-height: 1.7; max-width: 60ch; }
 
     /* ---- System-Log (Terminal-Box, wie in den Sub-Seiten von thelobbynews.com/overwatch) ---- */
     .term-box {
@@ -344,7 +344,11 @@
       </div>
     </section>
 
-    <button id="saveScheduleBtn" class="cta-btn" style="margin-bottom:24px;">&gt; Zeitplan speichern</button>
+    <button id="saveScheduleBtn" class="cta-btn corners" style="margin-bottom:24px;">
+      <span class="corner corner-tl"></span><span class="corner corner-tr"></span>
+      <span class="corner corner-bl"></span><span class="corner corner-br"></span>
+      &gt; Zeitplan speichern
+    </button>
 
     <section class="ow-panel">
       <p class="section-label">System-Log</p>
@@ -476,8 +480,13 @@
       logLines.push({ text: `[${time}] ${msg}`, ready });
       if (logLines.length > 8) logLines.shift();
       if (systemLog) {
-        systemLog.innerHTML = logLines.map((l) => `<div class="line${l.ready ? " ready" : ""}">&gt; ${escapeHtml(l.text)}</div>`).join("")
-          + `<span class="term-cursor cursor-blink"></span>`;
+        // Ältere Zeilen blasser, neuere kräftiger -- gleicher Einblend-Effekt
+        // wie im Terminal-Kasten der thelobbynews.com/overwatch-Vorlage.
+        systemLog.innerHTML = logLines.map((l, i) => {
+          if (l.ready) return `<div class="line ready">&gt; ${escapeHtml(l.text)}</div>`;
+          const fade = logLines.length > 1 ? 0.4 + (i / (logLines.length - 1)) * 0.45 : 0.8;
+          return `<div class="line" style="opacity:${fade.toFixed(2)}">&gt; ${escapeHtml(l.text)}</div>`;
+        }).join("") + `<span class="term-cursor cursor-blink"></span>`;
         systemLog.scrollTop = systemLog.scrollHeight;
       }
     }
