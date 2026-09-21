@@ -304,11 +304,23 @@
   /* Warnings */
   .warning-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 12px; background: var(--panel); }
   .warning-card.active { border-color: var(--brick); background: var(--brick-soft); }
-  .warning-event { font-size: 16px; font-weight: 800; margin: 0; }
+  .warning-card.severe { border-color: var(--coral); box-shadow: 0 0 0 1px var(--coral) inset; }
+  .warning-event { font-size: 16px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .warning-severity { font-family: "Roboto Mono", monospace; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: var(--brick); color: #fff; }
   .warning-headline { font-size: 13px; color: var(--ink-soft); margin: 6px 0 0; }
+  .warning-desc { font-size: 12.5px; color: var(--ink); margin: 8px 0 0; line-height: 1.5; }
   .warning-time { font-family: "Roboto Mono", monospace; font-size: 10px; margin: 8px 0 0; color: var(--ink-soft); }
   .calm-state { display: flex; align-items: center; gap: 14px; padding: 20px; }
   .calm-mark { font-size: 36px; color: var(--accent); }
+
+  /* Schnee */
+  .avalanche-badge { display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; font-weight: 800; font-size: 22px; }
+  .avalanche-badge .lvl-desc { font-size: 12px; font-weight: 500; font-family: "Work Sans", sans-serif; opacity: 0.85; }
+  .avalanche-1 { background: rgba(127,203,158,0.18); color: var(--forest); }
+  .avalanche-2 { background: rgba(255,200,87,0.18); color: var(--gold); }
+  .avalanche-3 { background: rgba(255,122,107,0.18); color: var(--coral); }
+  .avalanche-4 { background: rgba(226,104,92,0.22); color: var(--brick); }
+  .avalanche-5 { background: rgba(226,104,92,0.3); color: var(--brick); }
 
   /* Pizza / Training bars */
   .bignum-row { display: flex; gap: 24px; flex-wrap: wrap; }
@@ -318,6 +330,13 @@
   .bignum-label { font-family: "Roboto Mono", monospace; font-size: 10.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px; }
   .progress-wrap { height: 10px; background: #000000; border-radius: 5px; overflow: hidden; margin-top: 14px; }
   .progress-fill { height: 100%; background: var(--accent); }
+
+  .pizza-visual-row { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; margin-bottom: 22px; }
+  .pizza-pies { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .pizza-pies svg { display: block; }
+  .pizza-count-note { font-family: "Roboto Mono", monospace; font-size: 12px; color: var(--ink-soft); }
+  .pizza-progress-wrap { flex: 1; min-width: 220px; }
+  .pizza-progress-label { display: flex; justify-content: space-between; font-family: "Roboto Mono", monospace; font-size: 11px; color: var(--ink-soft); margin-bottom: 6px; }
 
   .footer-note { margin-top: 40px; font-family: "Roboto Mono", monospace; font-size: 11px; color: var(--ink-soft); border-top: 1px solid var(--line); padding-top: 16px; }
 </style>
@@ -369,10 +388,14 @@
         </div>
 
         <div class="grid overview-grid" id="overviewStats">
+          <div class="panel stat-card"><p class="panel-label">Wetter heute</p><div class="empty-note">Lädt…</div></div>
           <div class="panel stat-card"><p class="panel-label">Wassertemperatur</p><div class="empty-note">Lädt…</div></div>
           <div class="panel stat-card"><p class="panel-label">Wind Chiemsee</p><div class="empty-note">Lädt…</div></div>
           <div class="panel stat-card"><p class="panel-label">Wetterwarnung</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel stat-card"><p class="panel-label">Gleitschirm-Bedingungen</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel stat-card"><p class="panel-label">Lawinenwarnstufe</p><div class="empty-note">Lädt…</div></div>
           <div class="panel stat-card"><p class="panel-label">Nächster Anflug</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel stat-card"><p class="panel-label">Besondere Flugzeuge</p><div class="empty-note">Lädt…</div></div>
         </div>
       </section>
 
@@ -517,6 +540,9 @@
         </div>
         <div class="grid" style="grid-template-columns: 1fr 1fr;">
           <div class="panel" id="chiemseeWaterPanel"><p class="panel-label">Wassertemperatur</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel" id="chiemseeBathingPanel"><p class="panel-label">Bade-Bedingungen</p><div class="empty-note">Lädt…</div></div>
+        </div>
+        <div class="grid" style="grid-template-columns: 1fr; margin-top:18px;">
           <div class="panel" id="chiemseeWindPanel"><p class="panel-label">Wind</p><div class="empty-note">Lädt…</div></div>
         </div>
       </section>
@@ -536,6 +562,8 @@
           <div class="panel stat-card"><p class="panel-label">Thermikhöhe</p><div class="empty-note">Lädt…</div></div>
           <div class="panel stat-card"><p class="panel-label">Wind Grassau</p><div class="empty-note">Lädt…</div></div>
           <div class="panel stat-card"><p class="panel-label">Bewölkung</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel stat-card"><p class="panel-label">Wind in der Höhe</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel stat-card"><p class="panel-label">Nullgradgrenze</p><div class="empty-note">Lädt…</div></div>
         </div>
 
         <div id="dhvHeadlinerWrap" style="margin-top:18px;"></div>
@@ -566,9 +594,13 @@
           <p class="page-eyebrow mono">Open-Meteo · Lawinenwarndienst</p>
           <h1 class="page-title">Schneebericht</h1>
         </div>
-        <div class="grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="grid overview-grid" id="snowStats" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="panel stat-card"><p class="panel-label">Schneehöhe aktuell</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel stat-card"><p class="panel-label">Nullgradgrenze</p><div class="empty-note">Lädt…</div></div>
+          <div class="panel stat-card" id="snowAvalanchePanel"><p class="panel-label">Lawinenwarnstufe</p><div class="empty-note">Lädt…</div></div>
+        </div>
+        <div class="grid" style="grid-template-columns: 1fr; margin-top:18px;">
           <div class="panel" id="snowForecastPanel"><p class="panel-label">Schneevorhersage</p><div class="empty-note">Lädt…</div></div>
-          <div class="panel" id="snowAvalanchePanel"><p class="panel-label">Lawinenwarnstufe</p><div class="empty-note">Lädt…</div></div>
         </div>
       </section>
 
@@ -1444,19 +1476,34 @@
         <text x="${xFor(history.length-1)}" y="${lastY-7}" font-size="10" font-weight="700" fill="#F2F4F0" font-family="Roboto Mono, monospace" text-anchor="end">${last.meanC.toFixed(1)}°</text>
       </svg>`;
     }
+    function swimRating(waterC, airC, windKmh, precipMm) {
+      if (waterC >= 20 && airC >= 22 && windKmh < 20 && precipMm < 1) return { cls: "", label: "Gut zum Baden" };
+      if (waterC >= 17 && airC >= 17 && windKmh < 28) return { cls: "medium", label: "Bedingt geeignet" };
+      return { cls: "low", label: "Eher ungemütlich" };
+    }
+
     async function loadChiemsee() {
+      let waterC = null;
       try {
         const data = await fetchJson(`${RUDI_WORKER}/chiemsee/watertemp`, { headers: { Accept: "application/json" } });
+        waterC = data.temperatureC;
         let historyHtml = `<div class="empty-note">Verlauf lädt…</div>`;
+        let trendHtml = "";
         try {
           const hist = await fetchJson(`${RUDI_WORKER}/chiemsee/watertemp/history`, { headers: { Accept: "application/json" } });
           historyHtml = renderTempChart(hist.history);
+          const h = hist.history || [];
+          if (h.length >= 2) {
+            const delta = h[h.length - 1].meanC - h[h.length - 2].meanC;
+            const arrow = delta > 0.15 ? "↑" : delta < -0.15 ? "↓" : "→";
+            trendHtml = ` <span class="stat-meta">${arrow} ${delta >= 0 ? "+" : ""}${delta.toFixed(1)}° ggü. Vortag</span>`;
+          }
         } catch (e) { historyHtml = `<div class="empty-note">Verlauf gerade nicht verfügbar.</div>`; }
 
         document.getElementById("chiemseeWaterPanel").innerHTML = `
           <p class="panel-label">Wassertemperatur</p>
           <div class="stat-value" style="font-size:44px;">${data.temperatureC.toFixed(1)}<span class="stat-unit">°C</span></div>
-          <p class="stat-meta">Station ${escapeHtml(data.station)} · ${escapeHtml(data.measuredAt)}</p>
+          <p class="stat-meta">Station ${escapeHtml(data.station)} · ${escapeHtml(data.measuredAt)}${trendHtml}</p>
           <div class="chart-wrap" style="margin-top:14px;">${historyHtml}</div>
         `;
       } catch (error) {
@@ -1464,7 +1511,10 @@
       }
 
       try {
-        const url = `${WEATHER_API}?latitude=47.875&longitude=12.45&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m&daily=wind_speed_10m_max,wind_direction_10m_dominant&timezone=Europe%2FBerlin&wind_speed_unit=kmh&forecast_days=5`;
+        const url = `${WEATHER_API}?latitude=47.875&longitude=12.45` +
+          `&current=temperature_2m,weathercode,wind_speed_10m,wind_direction_10m,wind_gusts_10m` +
+          `&daily=wind_speed_10m_max,wind_direction_10m_dominant,uv_index_max,precipitation_sum,temperature_2m_max` +
+          `&timezone=Europe%2FBerlin&wind_speed_unit=kmh&forecast_days=5`;
         const data = await fetchJson(url);
         const speed = Math.round(data.current.wind_speed_10m), gust = Math.round(data.current.wind_gusts_10m), dir = data.current.wind_direction_10m;
         const maxDaily = Math.max(...data.daily.wind_speed_10m_max, 1);
@@ -1479,8 +1529,24 @@
           <p class="stat-meta">Aus ${compassLabel(dir)} · Böen bis ${gust} km/h</p>
           <div style="margin-top:16px; border-top:1px solid var(--line); padding-top:12px;">${rows}</div>
         `;
+
+        if (waterC !== null) {
+          const airC = data.current.temperature_2m;
+          const rating = swimRating(waterC, airC, speed, data.daily.precipitation_sum[0]);
+          document.getElementById("chiemseeBathingPanel").innerHTML = `
+            <p class="panel-label">Bade-Bedingungen</p>
+            <div class="rating-badge"><span class="rating-dot ${rating.cls}"></span><strong>${rating.label}</strong></div>
+            <div class="weather-mini-grid" style="grid-template-columns: repeat(2, 1fr); margin-top:16px;">
+              <div class="weather-mini"><span>Lufttemperatur</span><b>${Math.round(airC)}°</b></div>
+              <div class="weather-mini"><span>Wetter</span><b>${weatherLabel(data.current.weathercode)}</b></div>
+              <div class="weather-mini"><span>UV-Index heute</span><b>${data.daily.uv_index_max[0].toFixed(1)}</b></div>
+              <div class="weather-mini"><span>Regen heute</span><b>${data.daily.precipitation_sum[0].toFixed(1)} mm</b></div>
+            </div>
+          `;
+        }
       } catch (error) {
         document.getElementById("chiemseeWindPanel").innerHTML = `<p class="panel-label">Wind</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
+        document.getElementById("chiemseeBathingPanel").innerHTML = `<p class="panel-label">Bade-Bedingungen</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
       }
     }
 
@@ -1546,7 +1612,7 @@
       // ---- Kennzahlen: Ampel, Thermikhöhe, Wind, Bewölkung nach Höhe ----
       try {
         const url = `${WEATHER_API}?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}` +
-          `&hourly=boundary_layer_height,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m` +
+          `&hourly=boundary_layer_height,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_speed_850hPa,wind_direction_850hPa,freezing_level_height` +
           `&daily=windspeed_10m_max,precipitation_sum,cloudcover_mean&timezone=Europe%2FBerlin&forecast_days=1`;
         const data = await fetchJson(url);
         const windMax = data.daily.windspeed_10m_max[0], precip = data.daily.precipitation_sum[0];
@@ -1566,6 +1632,9 @@
         const cloudLow = data.hourly.cloud_cover_low[currentHourIdx];
         const cloudMid = data.hourly.cloud_cover_mid[currentHourIdx];
         const cloudHigh = data.hourly.cloud_cover_high[currentHourIdx];
+        const windAloft = data.hourly.wind_speed_850hPa?.[currentHourIdx];
+        const windAloftDir = data.hourly.wind_direction_850hPa?.[currentHourIdx];
+        const freezingLevel = data.hourly.freezing_level_height?.[currentHourIdx];
 
         cards.rating = `<div class="panel stat-card ${good ? "accent" : ""}"><p class="panel-label">Flugbedingungen</p>
           <div class="stat-value" style="font-size:22px;">${good ? "Fliegbar" : "Eingeschränkt"}</div>
@@ -1579,13 +1648,19 @@
         cards.cloud = `<div class="panel stat-card"><p class="panel-label">Bewölkung jetzt</p>
           <div class="stat-value" style="font-size:20px;">${Math.round(cloudLow)}/${Math.round(cloudMid)}/${Math.round(cloudHigh)}<span class="stat-unit">%</span></div>
           <p class="stat-meta">Tief / Mittel / Hoch</p></div>`;
+        cards.windAloft = `<div class="panel stat-card"><p class="panel-label">Wind in der Höhe</p>
+          <div class="stat-value">${Number.isFinite(windAloft) ? Math.round(windAloft) : "–"}<span class="stat-unit">km/h</span></div>
+          <p class="stat-meta">ca. 1.500 m${Number.isFinite(windAloftDir) ? ` · aus ${compassLabel(windAloftDir)}` : ""}</p></div>`;
+        cards.freezing = `<div class="panel stat-card"><p class="panel-label">Nullgradgrenze</p>
+          <div class="stat-value">${Number.isFinite(freezingLevel) ? Math.round(freezingLevel).toLocaleString("de-DE") : "–"}<span class="stat-unit">m</span></div>
+          <p class="stat-meta">Höhe über Meer</p></div>`;
 
         const stampEl = document.getElementById("paraglidingStamp");
         if (stampEl) stampEl.textContent = `Stand: ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })} Uhr`;
       } catch (error) {
         console.error(error);
       }
-      statsEl.innerHTML = [cards.rating, cards.thermal, cards.wind, cards.cloud]
+      statsEl.innerHTML = [cards.rating, cards.thermal, cards.wind, cards.cloud, cards.windAloft, cards.freezing]
         .map((c) => c || `<div class="panel stat-card"><p class="panel-label">—</p><div class="empty-note">Gerade nicht verfügbar</div></div>`).join("");
 
       // ---- Paraglidable 10-Tage-Gitter ----
@@ -1682,33 +1757,73 @@
     // ---------------------------------------------------------------
     // Schnee
     // ---------------------------------------------------------------
+    const AVALANCHE_LEVELS = {
+      1: "Gering", 2: "Mäßig", 3: "Erheblich", 4: "Groß", 5: "Sehr groß",
+    };
+
     async function loadSnow() {
+      const statsEl = document.getElementById("snowStats");
+      const cards = {};
       try {
-        const url = `${WEATHER_API}?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}&daily=snowfall_sum,temperature_2m_min&timezone=Europe%2FBerlin&forecast_days=6`;
+        const url = `${WEATHER_API}?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}` +
+          `&hourly=snow_depth,freezing_level_height` +
+          `&daily=snowfall_sum,temperature_2m_min,temperature_2m_max,windspeed_10m_max&timezone=Europe%2FBerlin&forecast_days=6`;
         const data = await fetchJson(url);
+
+        const now = new Date();
+        const nowIsoHour = now.toISOString().slice(0, 13);
+        let hourIdx = data.hourly.time.findIndex((t) => t.startsWith(nowIsoHour));
+        if (hourIdx < 0) hourIdx = 0;
+        const snowDepthCm = Math.round((data.hourly.snow_depth[hourIdx] || 0) * 100);
+        const freezingLevel = data.hourly.freezing_level_height[hourIdx];
+
+        cards.depth = `<div class="panel stat-card"><p class="panel-label">Schneehöhe aktuell</p>
+          <div class="stat-value">${snowDepthCm}<span class="stat-unit">cm</span></div>
+          <p class="stat-meta">Grassau, Talniveau</p></div>`;
+        cards.freezing = `<div class="panel stat-card"><p class="panel-label">Nullgradgrenze</p>
+          <div class="stat-value">${Number.isFinite(freezingLevel) ? Math.round(freezingLevel).toLocaleString("de-DE") : "–"}<span class="stat-unit">m</span></div>
+          <p class="stat-meta">Höhe über Meer</p></div>`;
+
         document.getElementById("snowForecastPanel").innerHTML = `
           <p class="panel-label">Schneevorhersage</p>
-          <table class="flight-table"><thead><tr><th>Tag</th><th style="text-align:right">Neuschnee</th><th style="text-align:right">Min-Temp.</th></tr></thead>
-          <tbody>${data.daily.time.map((d,i) => `<tr><td>${new Date(d).toLocaleDateString("de-DE",{weekday:"short"})}</td><td class="num-cell">${data.daily.snowfall_sum[i]} cm</td><td class="num-cell">${Math.round(data.daily.temperature_2m_min[i])}°</td></tr>`).join("")}</tbody></table>
+          <table class="flight-table"><thead><tr><th>Tag</th><th style="text-align:right">Neuschnee</th><th style="text-align:right">Temp. min/max</th><th style="text-align:right">Wind max.</th></tr></thead>
+          <tbody>${data.daily.time.map((d,i) => `<tr>
+            <td>${new Date(d).toLocaleDateString("de-DE",{weekday:"short"})}</td>
+            <td class="num-cell">${data.daily.snowfall_sum[i]} cm</td>
+            <td class="num-cell">${Math.round(data.daily.temperature_2m_min[i])}° / ${Math.round(data.daily.temperature_2m_max[i])}°</td>
+            <td class="num-cell">${Math.round(data.daily.windspeed_10m_max[i])} km/h</td>
+          </tr>`).join("")}</tbody></table>
         `;
       } catch (error) {
         document.getElementById("snowForecastPanel").innerHTML = `<p class="panel-label">Schneevorhersage</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
       }
+
       try {
         const data = await fetchJson(`${RUDI_WORKER}/avalanche`, { headers: { Accept: "application/json" } });
         if (!data.available || !data.dangerLevel) throw new Error("nicht verfügbar");
-        document.getElementById("snowAvalanchePanel").innerHTML = `
-          <p class="panel-label">Lawinenwarnstufe</p>
-          <div class="stat-value" style="font-size:44px;">Stufe ${data.dangerLevel}</div>
-        `;
+        const desc = AVALANCHE_LEVELS[data.dangerLevel] || "";
+        cards.avalanche = `<p class="panel-label">Lawinenwarnstufe</p>
+          <div class="avalanche-badge avalanche-${data.dangerLevel}">Stufe ${data.dangerLevel}<span class="lvl-desc">${escapeHtml(desc)}</span></div>
+          ${data.region ? `<p class="stat-meta" style="margin-top:10px;">${escapeHtml(data.region)}</p>` : ""}`;
       } catch (error) {
-        document.getElementById("snowAvalanchePanel").innerHTML = `<p class="panel-label">Lawinenwarnstufe</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
+        cards.avalanche = `<p class="panel-label">Lawinenwarnstufe</p><div class="empty-note">Gerade nicht verfügbar.</div>`;
       }
+
+      statsEl.innerHTML = [cards.depth, cards.freezing].map((c) => c || `<div class="panel stat-card"><p class="panel-label">—</p><div class="empty-note">Gerade nicht verfügbar</div></div>`).join("")
+        + `<div class="panel stat-card">${cards.avalanche}</div>`;
     }
 
     // ---------------------------------------------------------------
     // Wetterwarnung
     // ---------------------------------------------------------------
+    const SEVERITY_LABELS = { minor: "Gering", moderate: "Mäßig", severe: "Schwer", extreme: "Extrem" };
+    function formatWarningTime(value) {
+      if (!value) return null;
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return String(value);
+      return d.toLocaleString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+    }
+
     async function loadWarnings() {
       const el = document.getElementById("warningsContent");
       try {
@@ -1717,12 +1832,25 @@
           el.innerHTML = `<div class="panel calm-state"><span class="calm-mark">✓</span><div><strong>Keine Warnungen</strong><p class="stat-meta">Landkreis Traunstein</p></div></div>`;
           return;
         }
-        el.innerHTML = data.warnings.map((w) => `
-          <div class="warning-card active">
-            <p class="warning-event">${escapeHtml(w.event || "Warnung")}</p>
+        el.innerHTML = data.warnings.map((w) => {
+          const severityRaw = extractFirst(w.severity, w.level, w.stufe);
+          const severity = severityRaw ? (SEVERITY_LABELS[severityRaw.toLowerCase()] || severityRaw) : null;
+          const isSevere = severityRaw && ["severe", "extreme"].includes(String(severityRaw).toLowerCase());
+          const start = formatWarningTime(extractFirst(w.start, w.onset, w.from));
+          const end = formatWarningTime(extractFirst(w.end, w.expires, w.until, w.to));
+          const description = extractFirst(w.description, w.beschreibung, w.text);
+          const instruction = extractFirst(w.instruction, w.verhalten);
+          const area = extractFirst(w.areaDesc, w.region, w.area);
+          return `
+          <div class="warning-card active${isSevere ? " severe" : ""}">
+            <p class="warning-event">${escapeHtml(w.event || "Warnung")}${severity ? `<span class="warning-severity">${escapeHtml(severity)}</span>` : ""}</p>
             <p class="warning-headline">${escapeHtml(w.headline || "")}</p>
+            ${description ? `<p class="warning-desc">${escapeHtml(description)}</p>` : ""}
+            ${instruction ? `<p class="warning-desc"><strong>Verhalten:</strong> ${escapeHtml(instruction)}</p>` : ""}
+            ${(start || end || area) ? `<p class="warning-time">${[area, start && end ? `${start} – ${end}` : (start || end)].filter(Boolean).join(" · ")}</p>` : ""}
           </div>
-        `).join("");
+        `;
+        }).join("");
       } catch (error) {
         el.innerHTML = `<div class="panel empty-note">Daten gerade nicht verfügbar.</div>`;
       }
@@ -1731,17 +1859,71 @@
     // ---------------------------------------------------------------
     // Pizza
     // ---------------------------------------------------------------
+    function polarPoint(cx, cy, r, angleDeg) {
+      const a = (angleDeg * Math.PI) / 180;
+      return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+    }
+    function pizzaSlicePath(cx, cy, r, startDeg, endDeg) {
+      const p0 = polarPoint(cx, cy, r, startDeg), p1 = polarPoint(cx, cy, r, endDeg);
+      return `M${cx},${cy} L${p0.x.toFixed(1)},${p0.y.toFixed(1)} A${r},${r} 0 0,1 ${p1.x.toFixed(1)},${p1.y.toFixed(1)} Z`;
+    }
+    // Eine Pizza als SVG: 8 Stücke, gefüllte Stücke (gegessen/verbrannt)
+    // in Käse-Gelb mit ein paar Peperoni-Punkten, offene Stücke nur als
+    // Umriss -- macht die reine Zahl ("Slices") auf einen Blick erfassbar.
+    function renderPizzaSvg(filledSlices, size = 108) {
+      const cx = size / 2, cy = size / 2, r = size / 2 - 6;
+      const sliceDeg = 360 / 8;
+      let svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">`;
+      svg += `<circle cx="${cx}" cy="${cy}" r="${r + 3}" fill="none" stroke="#D9A441" stroke-width="3"/>`;
+      for (let i = 0; i < 8; i++) {
+        const start = i * sliceDeg - 90, end = start + sliceDeg;
+        const filled = i < filledSlices;
+        svg += `<path d="${pizzaSlicePath(cx, cy, r, start, end)}" fill="${filled ? "#F2C14E" : "#151515"}" stroke="#2A2C29" stroke-width="1.5"/>`;
+        if (filled) {
+          const mid = start + sliceDeg / 2;
+          const p1 = polarPoint(cx, cy, r * 0.45, mid - 6), p2 = polarPoint(cx, cy, r * 0.7, mid + 8);
+          svg += `<circle cx="${p1.x.toFixed(1)}" cy="${p1.y.toFixed(1)}" r="4" fill="#C1442D"/>`;
+          svg += `<circle cx="${p2.x.toFixed(1)}" cy="${p2.y.toFixed(1)}" r="3.5" fill="#C1442D"/>`;
+        }
+      }
+      svg += `</svg>`;
+      return svg;
+    }
+
     async function loadPizza() {
       const el = document.getElementById("pizzaPanel");
       try {
         const data = await fetchJson(`${RUDI_WORKER}/pizza`, { headers: { Accept: "application/json" } });
         if (!data.kcal) { el.innerHTML = `<div class="empty-note">${escapeHtml(data.reason || "Keine Daten")}</div>`; return; }
         const slices = data.slices || 0;
-        const kcalPerSlice = data.kcalProStueck || 285;
+        const wholePizzas = Math.floor(slices / 8);
+        const remainder = slices % 8;
+        const maxShown = 6;
+        const pizzasToDraw = Math.min(wholePizzas, maxShown);
+        const extraWhole = wholePizzas - pizzasToDraw;
+
+        let pizzasHtml = "";
+        for (let i = 0; i < pizzasToDraw; i++) pizzasHtml += renderPizzaSvg(8);
+        if (remainder > 0 && pizzasToDraw < maxShown) pizzasHtml += renderPizzaSvg(remainder);
+        if (!pizzasHtml) pizzasHtml = renderPizzaSvg(0);
+
+        const noteParts = [];
+        if (extraWhole > 0) noteParts.push(`+${extraWhole} weitere ganze Pizza${extraWhole === 1 ? "" : "n"}`);
+        if (remainder > 0 && pizzasToDraw >= maxShown) noteParts.push(`+${remainder} Stück`);
+
         el.innerHTML = `
+          <div class="pizza-visual-row">
+            <div class="pizza-pies">${pizzasHtml}</div>
+            <div class="pizza-progress-wrap">
+              <div class="pizza-progress-label"><span>Fortschritt zur nächsten ganzen Pizza</span><span>${remainder}/8 Stück</span></div>
+              <div class="progress-wrap"><div class="progress-fill" style="width:${Math.round((remainder / 8) * 100)}%;"></div></div>
+              ${noteParts.length ? `<p class="pizza-count-note" style="margin-top:10px;">${escapeHtml(noteParts.join(" · "))}</p>` : ""}
+            </div>
+          </div>
           <div class="bignum-row">
             <div class="bignum"><p class="bignum-label">Verbrannt</p><div class="bignum-value">${data.kcal.toLocaleString("de-DE")}<span class="bignum-unit"> kcal</span></div></div>
             <div class="bignum"><p class="bignum-label">Pizzastücke</p><div class="bignum-value">${slices}<span class="bignum-unit"> Stück</span></div></div>
+            <div class="bignum"><p class="bignum-label">Ganze Pizzen</p><div class="bignum-value">${wholePizzas}<span class="bignum-unit"> Stk.</span></div></div>
             <div class="bignum"><p class="bignum-label">Strecke</p><div class="bignum-value">${data.km ?? "–"}<span class="bignum-unit"> km</span></div></div>
           </div>
         `;
@@ -1976,29 +2158,99 @@
       });
       const statsEl = document.getElementById("overviewStats");
       const cards = {};
+      let waterC = null, goodParagliding = null, avalancheLevel = null, warningCount = null;
+
+      try {
+        const d = await fetchJson(`${WEATHER_API}?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}&current=temperature_2m,weathercode&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FBerlin&forecast_days=1`);
+        cards.weather = `<div class="panel stat-card"><p class="panel-label">Wetter heute</p>
+          <div class="stat-value">${Math.round(d.current.temperature_2m)}°</div>
+          <p class="stat-meta">${escapeHtml(weatherLabel(d.current.weathercode))} · ${Math.round(d.daily.temperature_2m_min[0])}°/${Math.round(d.daily.temperature_2m_max[0])}° · Regen ${Math.round(d.daily.precipitation_probability_max[0])}%</p></div>`;
+      } catch (e) {}
+
       try {
         const d = await fetchJson(`${RUDI_WORKER}/chiemsee/watertemp`);
+        waterC = d.temperatureC;
         cards.water = `<div class="panel stat-card accent"><p class="panel-label">Wassertemperatur</p><div class="stat-value">${d.temperatureC.toFixed(1)}<span class="stat-unit">°C</span></div><p class="stat-meta">Chiemsee, Station Stock</p></div>`;
       } catch (e) {}
       try {
         const d = await fetchJson(`${WEATHER_API}?latitude=47.875&longitude=12.45&current=wind_speed_10m,wind_direction_10m&timezone=Europe%2FBerlin&wind_speed_unit=kmh`);
-        cards.wind = `<div class="panel stat-card"><p class="panel-label">Wind Chiemsee</p><div class="stat-value">${Math.round(d.current.wind_speed_10m)}<span class="stat-unit">km/h</span></div><p class="stat-meta">Jetzt gerade</p></div>`;
+        cards.wind = `<div class="panel stat-card"><p class="panel-label">Wind Chiemsee</p><div class="stat-value">${Math.round(d.current.wind_speed_10m)}<span class="stat-unit">km/h</span></div><p class="stat-meta">Aus ${compassLabel(d.current.wind_direction_10m)}</p></div>`;
       } catch (e) {}
       try {
         const d = await fetchJson(`${RUDI_WORKER}/warnings/traunstein`);
-        const count = d.count ?? 0;
-        cards.warning = count > 0
-          ? `<div class="panel stat-card"><p class="panel-label">Wetterwarnung</p><div class="stat-value" style="color:var(--brick)">${count}</div><p class="stat-meta">Aktive Warnung(en)</p></div>`
+        warningCount = d.count ?? 0;
+        cards.warning = warningCount > 0
+          ? `<div class="panel stat-card"><p class="panel-label">Wetterwarnung</p><div class="stat-value" style="color:var(--brick)">${warningCount}</div><p class="stat-meta">Aktive Warnung(en)</p></div>`
           : `<div class="panel stat-card accent"><p class="panel-label">Wetterwarnung</p><div class="stat-value">✓</div><p class="stat-meta">Keine aktiven Warnungen</p></div>`;
       } catch (e) {}
-      cards.approach = `<div class="panel stat-card"><p class="panel-label">Flugradar</p><div class="empty-note">Details im Flugradar-Bereich</div></div>`;
-      statsEl.innerHTML = [cards.water, cards.wind, cards.warning, cards.approach]
+
+      try {
+        const d = await fetchJson(`${WEATHER_API}?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}&daily=windspeed_10m_max,precipitation_sum&timezone=Europe%2FBerlin&forecast_days=1`);
+        const windMax = d.daily.windspeed_10m_max[0], precip = d.daily.precipitation_sum[0];
+        goodParagliding = windMax < 20 && precip < 1;
+        cards.paragliding = `<div class="panel stat-card ${goodParagliding ? "accent" : ""}"><p class="panel-label">Gleitschirm-Bedingungen</p><div class="stat-value" style="font-size:22px;">${goodParagliding ? "Fliegbar" : "Eingeschränkt"}</div><p class="stat-meta">Wind bis ${Math.round(windMax)} km/h</p></div>`;
+      } catch (e) {}
+
+      try {
+        const d = await fetchJson(`${RUDI_WORKER}/avalanche`);
+        if (!d.available || !d.dangerLevel) throw new Error("nicht verfügbar");
+        avalancheLevel = d.dangerLevel;
+        cards.avalanche = `<div class="panel stat-card"><p class="panel-label">Lawinenwarnstufe</p>
+          <div class="avalanche-badge avalanche-${d.dangerLevel}" style="font-size:16px; padding:6px 12px;">Stufe ${d.dangerLevel}<span class="lvl-desc">${escapeHtml(AVALANCHE_LEVELS[d.dangerLevel] || "")}</span></div></div>`;
+      } catch (e) {
+        cards.avalanche = `<div class="panel stat-card"><p class="panel-label">Lawinenwarnstufe</p><div class="empty-note">Außerhalb der Saison / n. verfügbar</div></div>`;
+      }
+
+      // ---- Live-Flugverkehr: nächster Anflug + besondere Flugzeuge in der Luft ----
+      // (Live-Momentaufnahme, kein Tages-Log -- ein historisches "was war
+      // heute alles in der Luft" bräuchte serverseitiges Tracking über
+      // den Tag, das der Worker aktuell nicht anbietet.)
+      try {
+        const response = await fetch(`${API_BASE}/aircraft`, { headers: { Accept: "application/json" }, cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        const center = CENTERS.grassau;
+        const nearby = (Array.isArray(payload.ac) ? payload.ac : [])
+          .map(normalizeAircraft).filter(Boolean).filter((a) => a.altitude !== 0 && a.callsign)
+          .map((a) => ({ ...a, distKm: haversineKm(center, a) })).filter((a) => a.distKm <= 150);
+
+        const approachCandidates = nearby.filter((a) => a.speed !== null && a.track !== null && (a.altitude === null || a.altitude <= 3000 / 0.3048));
+        const approaches = approachCandidates.map((a) => ({ ...a, approach: findClosestApproach(a, center) }))
+          .filter((a) => a.approach.distanceKm <= 60).sort((a, b) => a.approach.minutesAhead - b.approach.minutesAhead);
+        if (approaches.length) {
+          const next = approaches[0];
+          const idLine = next.callsign || next.registration || "—";
+          cards.approach = `<div class="panel stat-card"><p class="panel-label">Nächster Anflug</p>
+            <div class="stat-value" style="font-size:20px;">${escapeHtml(idLine)}</div>
+            <p class="stat-meta">in ${next.approach.minutesAhead} min · ${compassLabel(bearingDeg(center, next))} · ${Math.round(next.approach.distanceKm)} km</p></div>`;
+        } else {
+          cards.approach = `<div class="panel stat-card"><p class="panel-label">Nächster Anflug</p><div class="empty-note">Aktuell kein Anflug in Sicht</div></div>`;
+        }
+
+        const special = nearby.filter((a) => a.isSpecial || a.isMilitary).sort((a, b) => a.distKm - b.distKm);
+        if (special.length) {
+          const closest = special[0];
+          const idLine = closest.callsign || closest.registration || "—";
+          cards.special = `<div class="panel stat-card accent"><p class="panel-label">Besondere Flugzeuge</p>
+            <div class="stat-value">${special.length}</div>
+            <p class="stat-meta">Nächstes: ${escapeHtml(idLine)} · ${Math.round(closest.distKm)} km</p></div>`;
+        } else {
+          cards.special = `<div class="panel stat-card"><p class="panel-label">Besondere Flugzeuge</p><div class="stat-value">0</div><p class="stat-meta">Nichts Besonderes gerade in der Luft</p></div>`;
+        }
+      } catch (e) {
+        cards.approach = `<div class="panel stat-card"><p class="panel-label">Nächster Anflug</p><div class="empty-note">Gerade nicht verfügbar</div></div>`;
+        cards.special = `<div class="panel stat-card"><p class="panel-label">Besondere Flugzeuge</p><div class="empty-note">Gerade nicht verfügbar</div></div>`;
+      }
+
+      statsEl.innerHTML = [cards.weather, cards.water, cards.wind, cards.warning, cards.paragliding, cards.avalanche, cards.approach, cards.special]
         .map((c) => c || `<div class="panel stat-card"><p class="panel-label">—</p><div class="empty-note">Gerade nicht verfügbar</div></div>`).join("");
 
       const parts = [];
-      if (cards.water) parts.push("der Chiemsee ist auf Badetemperatur");
-      if (cards.warning && cards.warning.includes("✓")) parts.push("keine Wetterwarnungen");
-      document.getElementById("briefingLine").innerHTML = parts.length ? `Heute: <strong>${parts.join(", ")}</strong>.` : `Aktuelle Lage wird geladen…`;
+      if (waterC !== null) parts.push(`Chiemsee ${waterC.toFixed(1)}°C`);
+      if (goodParagliding !== null) parts.push(goodParagliding ? "Gleitschirm fliegbar" : "Gleitschirm eingeschränkt");
+      if (avalancheLevel !== null) parts.push(`Lawinenstufe ${avalancheLevel}`);
+      parts.push(warningCount ? `${warningCount} Wetterwarnung${warningCount === 1 ? "" : "en"}` : "keine Wetterwarnungen");
+      document.getElementById("briefingLine").innerHTML = parts.length ? `Heute: <strong>${parts.join(" · ")}</strong>.` : `Aktuelle Lage wird geladen…`;
     }
 
     // ---------------------------------------------------------------
