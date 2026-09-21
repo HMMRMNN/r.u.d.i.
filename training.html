@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#000000" />
   <title>Training</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,7 +14,7 @@
   />
 
   <style>
-    :root { --black:#000000; --white:#ffffff; }
+    :root { --black:#ffffff; --white:#000000; }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
@@ -90,7 +90,7 @@
     .panel .p-head { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
     .kv { display: flex; justify-content: space-between; align-items: baseline;
           font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px;
-          padding: 3px 0; border-bottom: 1px solid #000; }
+          padding: 3px 0; border-bottom: 1px solid #fff; }
     .kv:last-child { border-bottom: none; }
     .kv .k { }
     .kv .v { font-weight: 700; font-size: 12px; }
@@ -101,7 +101,7 @@
 
     /* ---- Letzte Fahrten ---- */
     .rides { margin: 0; padding: 0; list-style: none; }
-    .rides li { padding: 4px 0; border-bottom: 1px dashed #000; }
+    .rides li { padding: 4px 0; border-bottom: 1px dashed #fff; }
     .rides li:last-child { border-bottom: none; }
     /* Zahlen stehen vorn, nicht der Name: die Aktivitaeten heissen
        beim Import fast immer gleich ("Cycling") und tragen damit
@@ -212,7 +212,7 @@
         .map((v, i) => `${(i * step).toFixed(1)},${(height - ((v - min) / span) * height).toFixed(1)}`)
         .join(" ");
       return `<svg class="spark" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-        <polyline points="${points}" fill="none" stroke="#000" stroke-width="1.5" />
+        <polyline points="${points}" fill="none" stroke="#fff" stroke-width="1.5" />
       </svg>`;
     }
 
@@ -280,11 +280,11 @@
       // Graustufen -- Fuellungen in Grau wuerden beim 1-Bit-Threshold
       // entweder ganz verschwinden oder zu Vollschwarz kippen.
       const pizzaIcon = `<svg width="26" height="26" viewBox="0 0 26 26">
-          <path d="M13 3 L23 21 Q13 25 3 21 Z" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>
-          <path d="M4.6 17.6 Q13 21.2 21.4 17.6" fill="none" stroke="#000" stroke-width="1.3"/>
-          <circle cx="11" cy="11" r="1.5" fill="#000"/>
-          <circle cx="16" cy="15" r="1.5" fill="#000"/>
-          <circle cx="9.5" cy="16" r="1.3" fill="#000"/>
+          <path d="M13 3 L23 21 Q13 25 3 21 Z" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M4.6 17.6 Q13 21.2 21.4 17.6" fill="none" stroke="#fff" stroke-width="1.3"/>
+          <circle cx="11" cy="11" r="1.5" fill="#fff"/>
+          <circle cx="16" cy="15" r="1.5" fill="#fff"/>
+          <circle cx="9.5" cy="16" r="1.3" fill="#fff"/>
         </svg>`;
 
       const pizzaBox = yearKcal > 0
