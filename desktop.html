@@ -132,6 +132,12 @@
   .flight-meta { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
   .flight-side-panel { display: flex; flex-direction: column; height: 640px; }
   .flight-star { color: var(--accent); font-size: 15px; }
+  .flight-idx-cell { font-family: "Roboto Mono", monospace; font-size: 11px; color: var(--ink-soft); font-weight: 700; width: 22px; }
+  .squawk-badge {
+    display: inline-block; margin-left: 7px; padding: 1px 6px; border-radius: 4px;
+    background: var(--brick); color: #fff; font-family: "Roboto Mono", monospace;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.03em; vertical-align: middle;
+  }
 
   /* ---- Strava "Year in Sport"-Palette, aus Screenshot-Analyse ---- */
   .sw-orange { background: #FC4C02; }
@@ -232,11 +238,17 @@
     border-radius: 6px; width: 26px; height: 26px; cursor: pointer; font-size: 14px; line-height: 1; flex-shrink: 0;
   }
   .flight-detail-close:hover { border-color: var(--accent); color: var(--accent); }
-  .military-card { display: flex; flex-direction: column; }
+  .military-card { position: relative; display: flex; flex-direction: column; }
   .military-photo {
     width: 100%; aspect-ratio: 16/10; border-radius: 8px; overflow: hidden;
     background: #000; border: 1px solid var(--line);
     display: flex; align-items: center; justify-content: center;
+  }
+  .mil-index-badge {
+    position: absolute; top: 8px; left: 8px; z-index: 1;
+    background: rgba(0,0,0,0.75); border: 1px solid var(--line); color: var(--ink);
+    font-family: "Roboto Mono", monospace; font-size: 11px; font-weight: 700;
+    padding: 2px 7px; border-radius: 12px;
   }
   .num-cell { font-family: "Roboto Mono", monospace; font-size: 13px; text-align: right; white-space: nowrap; }
 
@@ -384,7 +396,7 @@
             <div class="radar-legend">
               <span><span class="legend-swatch" style="background:var(--sky)"></span>Linienflug</span>
               <span><span class="legend-swatch" style="background:var(--accent)"></span>Besonders</span>
-              <span><span class="legend-swatch" style="background:var(--ink-soft)"></span>Sonstige</span>
+              <span><span class="legend-swatch" style="background:var(--brick)"></span>Militär / Notfall-Squawk</span>
             </div>
           </div>
           <div class="panel flight-side-panel">
@@ -392,8 +404,8 @@
             <p class="panel-label">Alle Flugzeuge im Umkreis</p>
             <div class="flight-table-wrap">
               <table class="flight-table">
-                <thead><tr><th></th><th>Kennung / Typ</th><th>Ziel</th><th style="text-align:right">Höhe</th><th style="text-align:right">Geschw.</th><th style="text-align:right">Vertikal</th><th style="text-align:right">Entfernung</th><th></th></tr></thead>
-                <tbody id="flightTableBody"><tr><td colspan="8" class="empty-note">Lädt…</td></tr></tbody>
+                <thead><tr><th>#</th><th></th><th>Kennung / Typ</th><th>Route</th><th style="text-align:right">Höhe</th><th style="text-align:right">Geschw.</th><th style="text-align:right">Vertikal</th><th style="text-align:right">Peilung &amp; Entfernung</th><th></th></tr></thead>
+                <tbody id="flightTableBody"><tr><td colspan="9" class="empty-note">Lädt…</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -409,8 +421,22 @@
           </div>
           <span class="mono" id="militaryStamp" style="font-size:11px; color:var(--ink-soft);">Stand: lädt…</span>
         </div>
-        <div class="grid" id="militaryGrid" style="grid-template-columns: repeat(3, 1fr);">
-          <div class="panel empty-note">Lädt…</div>
+        <div class="radar-layout">
+          <div class="panel radar-map-wrap">
+            <p class="panel-label">Kartenansicht (100 km Radius)</p>
+            <div id="militaryMap"><div class="empty-note">Lädt…</div></div>
+            <div class="radar-legend">
+              <span><span class="legend-swatch" style="background:var(--brick)"></span>Militär</span>
+              <span><span class="legend-swatch" style="background:var(--accent)"></span>Besonders</span>
+              <span><span class="legend-swatch" style="background:transparent; border:1.5px solid var(--brick);"></span>Notfall-Squawk</span>
+            </div>
+          </div>
+          <div class="flight-side-panel" style="height:auto;">
+            <p class="panel-label">Details</p>
+            <div class="grid" id="militaryGrid" style="grid-template-columns: repeat(2, 1fr); gap:14px;">
+              <div class="panel empty-note">Lädt…</div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -437,8 +463,8 @@
             <p class="panel-label">Anflüge</p>
             <div class="flight-table-wrap">
               <table class="flight-table">
-                <thead><tr><th></th><th></th><th>Kennung / Typ</th><th style="text-align:right">Richtung</th><th style="text-align:right">Ankunft</th></tr></thead>
-                <tbody id="approachTableBody"><tr><td colspan="5" class="empty-note">Lädt…</td></tr></tbody>
+                <thead><tr><th></th><th></th><th>Kennung / Typ</th><th>Ziel</th><th style="text-align:right">Höhe</th><th style="text-align:right">Richtung</th><th style="text-align:right">Ankunft</th></tr></thead>
+                <tbody id="approachTableBody"><tr><td colspan="7" class="empty-note">Lädt…</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -697,6 +723,7 @@
         verticalRate: numericOrNull(raw.baro_rate ?? raw.geom_rate),
         isMilitary: Boolean(Number(raw.dbFlags) & 1),
         isSpecial: Boolean(raw.isSpecial),
+        squawk: raw.squawk !== undefined && raw.squawk !== null && String(raw.squawk).trim() !== "" ? String(raw.squawk).trim() : null,
       };
     }
     function thumbUrl(item) {
@@ -704,6 +731,11 @@
       if (icao) return `${API_BASE}/airline-logo?icao=${encodeURIComponent(icao)}&variant=tail`;
       if (item.type) return `${RUDI_WORKER}/flights/silhouette?type=${encodeURIComponent(item.type)}`;
       return null;
+    }
+    const EMERGENCY_SQUAWKS = { "7500": "Entführung", "7600": "Funkausfall", "7700": "Notfall" };
+    function squawkBadgeHtml(item) {
+      const label = item.squawk ? EMERGENCY_SQUAWKS[item.squawk] : null;
+      return label ? `<span class="squawk-badge" title="Squawk ${escapeHtml(item.squawk)}">${escapeHtml(label)} ${escapeHtml(item.squawk)}</span>` : "";
     }
     function cityOnly(value) {
       if (!value) return null;
@@ -771,7 +803,7 @@
     // ---------------------------------------------------------------
     // Flugradar
     // ---------------------------------------------------------------
-    function renderRadarMap(aircraft, center, targetEl) {
+    function renderRadarMap(aircraft, center, targetEl, onSelect = (item) => openFlightDetail(item)) {
       const W = 600, H = 600, radiusKm = 100, maxR = 270;
       const scale = maxR / radiusKm;
       let svg = `<svg viewBox="${-W/2} ${-H/2} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
@@ -788,19 +820,23 @@
         const p = project(item.lat, item.lon, center, scale);
         const dist = Math.sqrt(p.x ** 2 + p.y ** 2);
         if (dist > maxR + 10) return;
-        const color = item.isSpecial ? "#DDFF2C" : (item.isMilitary ? "#E2685C" : "#6FA8DC");
+        const isEmergency = Boolean(item.squawk && EMERGENCY_SQUAWKS[item.squawk]);
+        const color = isEmergency ? "#E2685C" : item.isSpecial ? "#DDFF2C" : (item.isMilitary ? "#E2685C" : "#6FA8DC");
         const rot = item.track ?? 0;
         // Größerer, unsichtbarer Kreis um den eigentlichen Pfeil herum --
         // macht das Ziel zum Klicken größer, ohne die Optik zu ändern.
         svg += `<g class="radar-marker" data-idx="${i}" style="cursor:pointer;">
           <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="12" fill="transparent"/>
+          ${isEmergency ? `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="10" fill="none" stroke="#E2685C" stroke-width="1.5"/>` : ""}
           <g transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${rot})"><path d="M0,-8 L5.5,6 L0,2.5 L-5.5,6 Z" fill="${color}"/></g>
+          <text x="${(p.x + 9).toFixed(1)}" y="${(p.y - 6).toFixed(1)}" font-size="9" font-weight="700" fill="#F2F4F0" font-family="Roboto Mono, monospace">${i + 1}</text>
         </g>`;
       });
       svg += `</svg>`;
       targetEl.innerHTML = svg;
       targetEl.querySelectorAll(".radar-marker").forEach((marker) => {
-        marker.addEventListener("click", () => openFlightDetail(aircraft[Number(marker.dataset.idx)]));
+        const idx = Number(marker.dataset.idx);
+        marker.addEventListener("click", () => onSelect(aircraft[idx], idx));
       });
     }
 
@@ -816,21 +852,24 @@
     function renderFlightTable(aircraft) {
       currentFlightList = aircraft;
       const tbody = document.getElementById("flightTableBody");
-      if (!aircraft.length) { tbody.innerHTML = `<tr><td colspan="7" class="empty-note">Keine Flugzeuge im Umkreis.</td></tr>`; return; }
+      if (!aircraft.length) { tbody.innerHTML = `<tr><td colspan="9" class="empty-note">Keine Flugzeuge im Umkreis.</td></tr>`; return; }
+      const center = CENTERS[activeCenter];
       tbody.innerHTML = aircraft.map((item, i) => {
         const url = thumbUrl(item);
         const idLine = item.callsign || item.registration || "—";
         const typeLine = [item.type, item.registration].filter(Boolean).join(" · ") || "Typ unbekannt";
         const altM = item.altitude !== null ? Math.round(item.altitude * 0.3048).toLocaleString("de-DE") : "–";
         const speedKmh = item.speed !== null ? Math.round(item.speed * 1.852) : "–";
-        const distKm = Math.round(haversineKm(CENTERS[activeCenter], item));
+        const distKm = Math.round(haversineKm(center, item));
+        const bearing = bearingDeg(center, item);
         return `<tr class="flight-row" data-idx="${i}" style="cursor:pointer;">
+            <td class="flight-idx-cell">${i + 1}</td>
             <td class="flight-thumb-cell"><div class="flight-thumb">${url ? `<img src="${escapeHtml(url)}" alt="" onerror="this.parentElement.innerHTML=''"/>` : ""}</div></td>
-            <td><div class="flight-id">${escapeHtml(idLine)}</div><div class="flight-meta">${escapeHtml(typeLine)}</div></td>
-            <td class="flight-meta" id="dest-${i}">Lädt…</td>
+            <td><div class="flight-id">${escapeHtml(idLine)}${squawkBadgeHtml(item)}</div><div class="flight-meta">${escapeHtml(typeLine)}</div></td>
+            <td class="flight-meta" id="route-${i}">Lädt…</td>
             <td class="num-cell">${altM} m</td><td class="num-cell">${speedKmh} km/h</td>
             <td class="num-cell mono" style="font-size:11px;">${verticalPhaseLabel(item.verticalRate)}</td>
-            <td class="num-cell">${distKm} km</td>
+            <td class="num-cell">${compassLabel(bearing)} · ${distKm} km</td>
             <td class="num-cell">${item.isSpecial ? '<span class="flight-star">★</span>' : ""}</td>
           </tr>`;
       }).join("");
@@ -839,20 +878,21 @@
         row.addEventListener("click", () => openFlightDetail(currentFlightList[Number(row.dataset.idx)]));
       });
 
-      // Ziel für die ersten 20 Zeilen im Hintergrund nachladen (nicht
-      // für alle, das wären bei viel Verkehr zu viele Anfragen auf
-      // einmal).
+      // Route (Herkunft -> Ziel) für die ersten 20 Zeilen im Hintergrund
+      // nachladen (nicht für alle, das wären bei viel Verkehr zu viele
+      // Anfragen auf einmal).
       aircraft.slice(0, 20).forEach(async (item, i) => {
-        if (!item.callsign) { const el = document.getElementById(`dest-${i}`); if (el) el.textContent = "–"; return; }
+        const el = document.getElementById(`route-${i}`);
+        if (!el) return;
+        if (!item.callsign) { el.textContent = "–"; return; }
         try {
-          const data = await fetchJson(`${API_BASE}/route?callsign=${encodeURIComponent(item.callsign)}`);
-          const route = data?.route;
-          const dest = route ? cityOnly(extractFirst(route?.destination?.municipality, route?.arrival?.municipality, route?.destination?.name, route?.arrival?.name)) : null;
-          const el = document.getElementById(`dest-${i}`);
-          if (el) el.textContent = dest || "–";
-        } catch (e) { const el = document.getElementById(`dest-${i}`); if (el) el.textContent = "–"; }
+          const routed = await enrichWithRoute(item);
+          if (routed.originCity && routed.destinationCity) el.textContent = `${routed.originCity} → ${routed.destinationCity}`;
+          else if (routed.destinationCity) el.textContent = `→ ${routed.destinationCity}`;
+          else el.textContent = "–";
+        } catch (e) { el.textContent = "–"; }
       });
-      for (let i = 20; i < aircraft.length; i++) { const el = document.getElementById(`dest-${i}`); if (el) el.textContent = "–"; }
+      for (let i = 20; i < aircraft.length; i++) { const el = document.getElementById(`route-${i}`); if (el) el.textContent = "–"; }
     }
 
     /**
@@ -897,13 +937,13 @@
             ${photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt="" style="width:100%; height:100%; object-fit:cover;"/>` : `<span class="empty-note">Kein Foto verfügbar</span>`}
           </div>
           <div style="flex:1; min-width:0;">
-            <p class="panel-label" style="margin-bottom:4px;">${escapeHtml(idLine)}</p>
+            <p class="panel-label" style="margin-bottom:4px;">${escapeHtml(idLine)}${squawkBadgeHtml(item)}</p>
             <p style="font-size:16px; font-weight:700; margin:0 0 6px;">${routeLine}</p>
             ${routed.iataFlight ? `<p class="stat-meta">Flugnummer ${escapeHtml(routed.iataFlight)}</p>` : ""}
             ${routed.remainingTime ? `<p class="stat-meta">Noch ca. ${escapeHtml(routed.remainingTime)} bis zum Ziel (${Math.round(routed.remainingDistanceKm)} km)</p>` : ""}
             ${operator ? `<p class="stat-meta">Betreiber: ${escapeHtml(operator)}</p>` : ""}
             ${country ? `<p class="stat-meta">Land: ${escapeHtml(country)}</p>` : ""}
-            <p class="stat-meta">${escapeHtml(item.type || "Typ unbekannt")} · ${escapeHtml(item.registration || "—")}</p>
+            <p class="stat-meta">${escapeHtml(identify?.aircraftType || item.type || "Typ unbekannt")} · ${escapeHtml(item.registration || "—")}</p>
           </div>
           <button class="flight-detail-close" title="Schließen">✕</button>
         </div>
@@ -960,21 +1000,38 @@
         const stampEl = document.getElementById("militaryStamp");
         if (stampEl) stampEl.textContent = `Stand: ${stamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })} Uhr`;
 
-        if (!aircraft.length) { grid.innerHTML = `<div class="panel empty-note">Aktuell keine militärischen Flugzeuge im Umkreis.</div>`; return; }
+        const mapEl = document.getElementById("militaryMap");
+        if (!aircraft.length) {
+          grid.innerHTML = `<div class="panel empty-note">Aktuell keine militärischen Flugzeuge im Umkreis.</div>`;
+          if (mapEl) mapEl.innerHTML = `<div class="empty-note">Keine Positionen im Kartenbereich.</div>`;
+          return;
+        }
+
+        if (mapEl) {
+          renderRadarMap(aircraft, center, mapEl, (item, idx) => {
+            const card = document.getElementById(`mil-card-${idx}`);
+            if (!card) return;
+            card.scrollIntoView({ behavior: "smooth", block: "center" });
+            card.style.outline = "2px solid var(--accent)";
+            setTimeout(() => { card.style.outline = ""; }, 1500);
+          });
+        }
 
         grid.innerHTML = aircraft.map((item, i) => {
           const idLine = item.callsign || item.registration || "—";
           const altM = item.altitude !== null ? Math.round(item.altitude * 0.3048).toLocaleString("de-DE") : "–";
           const speedKmh = item.speed !== null ? Math.round(item.speed * 1.852) : "–";
-          return `<div class="panel military-card">
+          const bearing = bearingDeg(center, item);
+          return `<div class="panel military-card" id="mil-card-${i}">
+            <span class="mil-index-badge">#${i + 1}</span>
             <div class="military-photo" id="mil-photo-${i}">
               <span class="empty-note">Lädt Foto…</span>
             </div>
-            <div class="flight-id" style="font-size:18px; margin-top:12px;">${escapeHtml(idLine)}</div>
+            <div class="flight-id" style="font-size:18px; margin-top:12px;">${escapeHtml(idLine)}${squawkBadgeHtml(item)}</div>
             <div class="flight-meta" id="mil-type-${i}">${escapeHtml(item.type || "Typ unbekannt")} · ${escapeHtml(item.registration || "—")}</div>
             <div class="mono" id="mil-info-${i}" style="font-size:11px; color:var(--ink-soft); margin-top:10px; line-height:1.7;">Betreiber &amp; Land werden geladen…</div>
             <div class="mono" style="font-size:11px; color:var(--ink-soft); margin-top:6px; border-top:1px solid var(--line); padding-top:8px;">
-              ${Math.round(item.distKm)} km entfernt · ${altM} m · ${speedKmh} km/h
+              ${compassLabel(bearing)} · ${Math.round(item.distKm)} km · ${altM} m · ${speedKmh} km/h · ${verticalPhaseLabel(item.verticalRate)}
             </div>
           </div>`;
         }).join("");
@@ -1074,9 +1131,11 @@
           const dist = Math.sqrt(p.x**2 + p.y**2);
           const cp = dist > maxR ? {x: p.x/dist*maxR, y: p.y/dist*maxR} : p;
           const rot = item.track ?? 0;
-          const color = item.isSpecial ? "#DDFF2C" : "#6FA8DC";
+          const isEmergency = Boolean(item.squawk && EMERGENCY_SQUAWKS[item.squawk]);
+          const color = isEmergency ? "#E2685C" : item.isSpecial ? "#DDFF2C" : "#6FA8DC";
           svg += `<g class="radar-marker" data-idx="${i}" style="cursor:pointer;">
             <circle cx="${cp.x.toFixed(1)}" cy="${cp.y.toFixed(1)}" r="12" fill="transparent"/>
+            ${isEmergency ? `<circle cx="${cp.x.toFixed(1)}" cy="${cp.y.toFixed(1)}" r="10" fill="none" stroke="#E2685C" stroke-width="1.5"/>` : ""}
             <g transform="translate(${cp.x.toFixed(1)} ${cp.y.toFixed(1)}) rotate(${rot})"><path d="M0,-9 L5.5,6 L0,3 L-5.5,6 Z" fill="${color}" stroke="#0A0A0A" stroke-width="1"/></g>
           </g>`;
           svg += `<text x="${cp.x+11}" y="${cp.y+3}" font-size="9" font-weight="700" fill="#F2F4F0" font-family="Roboto Mono, monospace">${i+1}</text>`;
@@ -1089,23 +1148,38 @@
         });
 
         const tbody = document.getElementById("approachTableBody");
-        if (!approaches.length) { tbody.innerHTML = `<tr><td colspan="5" class="empty-note">Kein Flugzeug nähert sich gerade ${escapeHtml(target.label)}.</td></tr>`; return; }
+        if (!approaches.length) { tbody.innerHTML = `<tr><td colspan="7" class="empty-note">Kein Flugzeug nähert sich gerade ${escapeHtml(target.label)}.</td></tr>`; return; }
         tbody.innerHTML = approaches.map((item, i) => {
           const bearing = bearingDeg(target, item);
           const idLine = item.callsign || item.registration || "—";
           const etaMin = item.approach.minutesAhead;
           const eta = new Date(Date.now() + etaMin * 60000).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
           const url = thumbUrl(item);
+          const altM = item.altitude !== null ? Math.round(item.altitude * 0.3048).toLocaleString("de-DE") : "–";
           return `<tr class="flight-row" data-idx="${i}" style="cursor:pointer;">
             <td class="mono" style="font-weight:700;">${i+1}</td>
             <td class="flight-thumb-cell"><div class="flight-thumb">${url ? `<img src="${escapeHtml(url)}" alt="" onerror="this.parentElement.innerHTML=''"/>` : ""}</div></td>
-            <td><div class="flight-id">${escapeHtml(idLine)}</div><div class="flight-meta">${escapeHtml(item.type || "")}</div></td>
+            <td><div class="flight-id">${escapeHtml(idLine)}${squawkBadgeHtml(item)}</div><div class="flight-meta">${escapeHtml(item.type || "")}</div></td>
+            <td class="flight-meta" id="app-dest-${i}">Lädt…</td>
+            <td class="num-cell">${altM} m</td>
             <td class="num-cell">${compassLabel(bearing)} · ${Math.round(item.approach.distanceKm)}km</td>
             <td class="num-cell">${eta} <span style="color:var(--ink-soft)">(${etaMin} min)</span></td>
           </tr>`;
         }).join("");
         tbody.querySelectorAll(".flight-row").forEach((row) => {
           row.addEventListener("click", () => openFlightDetail(approaches[Number(row.dataset.idx)], "approachDetailSlot"));
+        });
+
+        // Zielort für jede Anflug-Zeile nachladen (max. 8 Zeilen, daher
+        // unproblematisch, alle direkt anzufragen).
+        approaches.forEach(async (item, i) => {
+          const el = document.getElementById(`app-dest-${i}`);
+          if (!el) return;
+          if (!item.callsign) { el.textContent = "–"; return; }
+          try {
+            const routed = await enrichWithRoute(item);
+            el.textContent = routed.destinationCity || "–";
+          } catch (e) { el.textContent = "–"; }
         });
       } catch (error) {
         console.error(error);
