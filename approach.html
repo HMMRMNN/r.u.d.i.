@@ -48,8 +48,11 @@
     align-items: center;
     padding: 6px 14px;
     border-bottom: 1px solid var(--black);
-    flex: 1 1 0;
-    min-height: 0;
+    /* Feste Höhe statt flex:1 -- sonst dehnen sich die vorhandenen Zeilen
+       gleichmäßig über die volle Listenhöhe, sobald weniger als MAX_ROWS
+       Flugzeuge da sind, und die Liste "rutscht" optisch in die Mitte statt
+       oben stehenzubleiben. */
+    flex: 0 0 80px;
   }
   .row:last-child { border-bottom: none; }
   .row-num {
