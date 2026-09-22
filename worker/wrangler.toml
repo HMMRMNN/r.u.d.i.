@@ -2,16 +2,10 @@ name = "rudi"
 main = "src/index.js"
 compatibility_date = "2024-09-01"
 
-# KV-Namespace-Binding "RUDI_KV" -- die ID ist kontobezogen und nicht
-# im Code sichtbar. So findest du sie:
-#   wrangler kv namespace list
-# (oder im Dashboard: Workers & Pages -> KV -> Namespace anklicken,
-# die ID steht in der URL/Übersicht). Trag sie unten anstelle von
-# "TODO-KV-NAMESPACE-ID" ein, bevor der erste Deploy läuft --
-# ansonsten schlägt "wrangler deploy" fehl.
+# KV-Namespace-Binding "RUDI_KV" -> Namespace "rudi-data" im Dashboard.
 [[kv_namespaces]]
 binding = "RUDI_KV"
-id = "TODO-KV-NAMESPACE-ID"
+id = "5243ab7095fd4e2ead7331ea129f19bd"
 
 # Service Binding zum separaten "aviradar-api"-Worker (siehe
 # handleFlightProxy in src/index.js für den Hintergrund: normale
