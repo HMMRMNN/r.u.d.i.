@@ -48,7 +48,6 @@
       --safe-b: env(safe-area-inset-bottom, 0px);
       --safe-l: env(safe-area-inset-left, 0px);
       --safe-r: env(safe-area-inset-right, 0px);
-      --hud-h: 84px;
       color-scheme: dark;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -242,19 +241,6 @@
     #dots { display: flex; justify-content: center; gap: 7px; margin-top: 9px; flex-wrap: wrap; }
     .dot { width: 5px; height: 5px; background: var(--ink-ghost); padding: 7px; margin: -7px; background-clip: content-box; cursor: pointer; }
     .dot.active { background: var(--ink); background-clip: content-box; }
-
-    /* ---- Einmaliger "Zum Home-Bildschirm"-Hinweis ---- */
-    #a2hs {
-      position: fixed; left: 14px; right: 14px; z-index: 20;
-      bottom: calc(var(--hud-h) + 14px + var(--safe-b));
-      border: 1px solid var(--line); background: var(--panel);
-      padding: 12px 14px; display: flex; align-items: center; gap: 12px;
-      transform: translateY(140%); transition: transform .35s ease;
-    }
-    #a2hs.visible { transform: translateY(0); }
-    #a2hs p { margin: 0; font-size: 12px; color: var(--ink-body); line-height: 1.5; flex: 1; }
-    #a2hs p b { color: var(--ink-dim); font-weight: 500; }
-    #a2hs button { flex-shrink: 0; border: 1px solid var(--line); background: transparent; color: var(--ink-faint); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 12px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -283,11 +269,6 @@
       <div id="progressTrack"><div id="progressFill"></div></div>
       <div id="dots"></div>
     </div>
-  </div>
-
-  <div id="a2hs">
-    <p>Für randloses Vollbild: unten <b>Teilen</b> &rarr; <b>Zum Home-Bildschirm</b>.</p>
-    <button id="a2hsClose">Ok</button>
   </div>
 
   <script src="iphone-screens.js"></script>
@@ -416,22 +397,6 @@
 
     setPlaying(true);
     render();
-
-    // --- "Zum Home-Bildschirm hinzufügen"-Hinweis: nur auf iPhone, nur
-    // wenn nicht schon im Standalone-Modus offen, nur einmal. ---
-    (function maybeShowA2HS() {
-      const isIphone = /iphone/i.test(navigator.userAgent);
-      const isStandalone = window.navigator.standalone === true;
-      let dismissed = false;
-      try { dismissed = localStorage.getItem("rudi-a2hs-dismissed") === "1"; } catch (error) { /* z.B. privater Modus */ }
-      if (!isIphone || isStandalone || dismissed) return;
-      const banner = document.getElementById("a2hs");
-      setTimeout(() => banner.classList.add("visible"), 1500);
-      document.getElementById("a2hsClose").addEventListener("click", () => {
-        banner.classList.remove("visible");
-        try { localStorage.setItem("rudi-a2hs-dismissed", "1"); } catch (error) { /* ignorieren */ }
-      });
-    })();
 
     // --- Wake Lock: iPhone soll bei offener Seite nicht einschlafen
     // (Safari ab iOS 16.4). Wird bei Rückkehr aus dem Hintergrund
