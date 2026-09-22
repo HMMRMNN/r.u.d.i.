@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#000000" />
+  <title>R.U.D.I. — Screens</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+    html, body {
+      width: 100%; height: 100%; margin: 0; padding: 0;
+      background: #000; overflow: hidden;
+      font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      -webkit-touch-callout: none;
+    }
+
+    /* Die Original-Seiten sind fest auf 800x480 gebaut (siehe .frame in
+       jeder Einzelseite) -- statt sie neu zu bauen, laden wir sie 1:1
+       als iframes ("Look soll erhalten bleiben") und skalieren den
+       kompletten 800x480-Block per JS auf die verfügbare Fläche.
+       filter: invert(1) dreht Schwarz/Weiß um, ohne die Seiten selbst
+       anzufassen -- exakt das gewünschte "invertiert fürs iPhone". */
+    #stage {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: #000;
+    }
+    #frameWrap {
+      position: relative;
+      width: 800px; height: 480px;
+      flex-shrink: 0;
+      transform-origin: center center;
+    }
+    iframe.screen {
+      position: absolute; inset: 0;
+      width: 800px; height: 480px;
+      border: 0; display: block;
+      background: #fff;
+      filter: invert(1);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .25s ease;
+    }
+    iframe.screen.active { opacity: 1; }
+
+    /* Unsichtbare Tap-Zonen über allem -- links/rechts blättern manuell,
+       Mitte schaltet Play/Pause. Liegen über den iframes (die selbst
+       pointer-events:none haben), damit kein Tap versehentlich mit der
+       Originalseite interagiert (z.B. Standort-Button in A.L.V.I.N.html). */
+    #tapZones { position: fixed; inset: 0; display: flex; z-index: 5; }
+    #tapZones > div { flex: 1 1 0; }
+
+    /* Steuerleiste: liegt über dem Content, blendet nach Inaktivität
+       aus, damit möglichst viel vom eigentlichen Screen sichtbar bleibt. */
+    #hud {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+      background: linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.55) 70%, transparent);
+      color: #fff;
+      opacity: 0; pointer-events: none;
+      transition: opacity .3s ease;
+    }
+    #hud.visible { opacity: 1; pointer-events: auto; }
+
+    #hudRow { display: flex; align-items: center; gap: 12px; }
+    .hud-btn {
+      flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.5); background: transparent;
+      color: #fff; font-size: 13px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .hud-btn:active { background: rgba(255,255,255,0.15); }
+    #hudLabel {
+      flex: 1; min-width: 0; text-align: center;
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #hudWake { font-size: 9px; opacity: 0.55; margin-top: 1px; }
+
+    #progressTrack {
+      margin-top: 8px; height: 2px; width: 100%;
+      background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden;
+    }
+    #progressFill {
+      height: 100%; width: 0%; background: #fff; border-radius: 2px;
+      animation: fillBar 120s linear forwards;
+      animation-play-state: paused;
+    }
+    @keyframes fillBar { from { width: 0%; } to { width: 100%; } }
+
+    #dots { display: flex; justify-content: center; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+    .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      padding: 6px; margin: -6px; background-clip: content-box;
+      cursor: pointer;
+    }
+    .dot.active { background: #fff; background-clip: content-box; }
+
+    #hint {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+      text-align: center; color: #fff; opacity: 0;
+      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      transition: opacity .3s ease; pointer-events: none;
+    }
+    #hint.visible { opacity: 0.6; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <div id="frameWrap"></div>
+  </div>
+
+  <div id="hint">Tippen: vor/zurück &middot; Mitte: Pause</div>
+
+  <div id="tapZones">
+    <div id="tapPrev"></div>
+    <div id="tapPlay"></div>
+    <div id="tapNext"></div>
+  </div>
+
+  <div id="hud">
+    <div id="hudRow">
+      <button class="hud-btn" id="btnPrev" title="Zurück">&#8249;</button>
+      <button class="hud-btn" id="btnPlay" title="Pause/Play">&#10074;&#10074;</button>
+      <button class="hud-btn" id="btnNext" title="Weiter">&#8250;</button>
+      <div style="flex:1; min-width:0;">
+        <div id="hudLabel">Laden…</div>
+        <div id="hudWake">Display bleibt an</div>
+      </div>
+    </div>
+    <div id="progressTrack"><div id="progressFill"></div></div>
+    <div id="dots"></div>
+  </div>
+
+  <script>
+    "use strict";
+
+    // Reihenfolge frei wählbar -- Reihenfolge hier: allgemeines zuerst,
+    // dann alles rund ums Fliegen zusammen, dann Gleitschirm/Wetter,
+    // Pizza zum Schluss.
+    const SCREENS = [
+      { file: "weather.html", label: "Wetter & Familie" },
+      { file: "warnings.html", label: "Wetterwarnung" },
+      { file: "traffic.html", label: "Flugliste" },
+      { file: "approach.html", label: "Anflug-Radar" },
+      { file: "A.L.V.I.N.html", label: "Flugradar" },
+      { file: "military.html", label: "Militärflugzeuge" },
+      { file: "paragliding.html", label: "Gleitschirm & Segelflug" },
+      { file: "paragliderslive.html", label: "Gleitschirm Live" },
+      { file: "chiemsee.html", label: "Chiemsee" },
+      { file: "snow.html", label: "Schneebericht" },
+      { file: "training.html", label: "Training" },
+      { file: "pizza.html", label: "Pizza-Bilanz" },
+    ];
+
+    const ROTATE_MS = 120000; // 2 Minuten
+    const FRAME_W = 800, FRAME_H = 480;
+
+    const frameWrap = document.getElementById("frameWrap");
+    const hud = document.getElementById("hud");
+    const hint = document.getElementById("hint");
+    const hudLabel = document.getElementById("hudLabel");
+    const hudWake = document.getElementById("hudWake");
+    const btnPlay = document.getElementById("btnPlay");
+    const progressFill = document.getElementById("progressFill");
+    const dotsWrap = document.getElementById("dots");
+
+    let current = 0;
+    let playing = true;
+    let timer = null;
+    let hideHudTimer = null;
+
+    // --- Skalierung: die feste 800x480-Bühne auf die verfügbare Fläche
+    // (egal ob iPhone-Hochformat, Querformat, iPad, Desktop-Fenster...)
+    // passend einpassen, Seitenverhältnis bleibt erhalten. ---
+    function updateScale() {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const scale = Math.min(vw / FRAME_W, vh / FRAME_H);
+      frameWrap.style.transform = `scale(${scale})`;
+    }
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    window.addEventListener("orientationchange", () => setTimeout(updateScale, 300));
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", updateScale);
+    }
+
+    // --- Alle Screens als iframes vorladen (bleiben im Hintergrund
+    // aktiv, holen also weiter ihre Daten), nur der aktive ist sichtbar
+    // -- so ist beim Umschalten sofort "alles da", kein Nachladen. ---
+    const iframes = SCREENS.map((screen, index) => {
+      const el = document.createElement("iframe");
+      el.className = "screen";
+      el.src = screen.file;
+      el.loading = index === 0 ? "eager" : "lazy";
+      frameWrap.appendChild(el);
+      return el;
+    });
+
+    SCREENS.forEach((_, index) => {
+      const dot = document.createElement("div");
+      dot.className = "dot";
+      dot.addEventListener("click", (e) => { e.stopPropagation(); goTo(index); });
+      dotsWrap.appendChild(dot);
+    });
+    const dots = Array.from(dotsWrap.children);
+
+    function render() {
+      iframes.forEach((el, i) => el.classList.toggle("active", i === current));
+      dots.forEach((d, i) => d.classList.toggle("active", i === current));
+      hudLabel.textContent = `${current + 1}/${SCREENS.length} — ${SCREENS[current].label}`;
+      restartProgressBar();
+    }
+
+    function restartProgressBar() {
+      progressFill.style.animation = "none";
+      // Reflow erzwingen, damit die Animation beim erneuten Setzen
+      // wirklich von vorne beginnt statt einfach weiterzulaufen.
+      void progressFill.offsetWidth;
+      progressFill.style.animation = `fillBar ${ROTATE_MS / 1000}s linear forwards`;
+      progressFill.style.animationPlayState = playing ? "running" : "paused";
+    }
+
+    function goTo(index) {
+      current = ((index % SCREENS.length) + SCREENS.length) % SCREENS.length;
+      render();
+      if (playing) startTimer();
+    }
+    function next() { goTo(current + 1); }
+    function prev() { goTo(current - 1); }
+
+    function startTimer() {
+      stopTimer();
+      timer = setInterval(next, ROTATE_MS);
+    }
+    function stopTimer() {
+      if (timer) clearInterval(timer);
+      timer = null;
+    }
+
+    function setPlaying(value) {
+      playing = value;
+      btnPlay.innerHTML = playing ? "&#10074;&#10074;" : "&#9654;";
+      if (playing) startTimer(); else stopTimer();
+      progressFill.style.animationPlayState = playing ? "running" : "paused";
+    }
+
+    function showHud() {
+      hud.classList.add("visible");
+      clearTimeout(hideHudTimer);
+      hideHudTimer = setTimeout(() => hud.classList.remove("visible"), 4000);
+    }
+
+    document.getElementById("tapPrev").addEventListener("click", () => { prev(); showHud(); });
+    document.getElementById("tapNext").addEventListener("click", () => { next(); showHud(); });
+    document.getElementById("tapPlay").addEventListener("click", () => { setPlaying(!playing); showHud(); });
+
+    document.getElementById("btnPrev").addEventListener("click", (e) => { e.stopPropagation(); prev(); showHud(); });
+    document.getElementById("btnNext").addEventListener("click", (e) => { e.stopPropagation(); next(); showHud(); });
+    document.getElementById("btnPlay").addEventListener("click", (e) => { e.stopPropagation(); setPlaying(!playing); showHud(); });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") { prev(); showHud(); }
+      else if (e.key === "ArrowRight") { next(); showHud(); }
+      else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); showHud(); }
+    });
+
+    // Kurzer Hinweis beim ersten Laden, verschwindet zusammen mit der HUD.
+    hint.classList.add("visible");
+    setTimeout(() => hint.classList.remove("visible"), 4000);
+
+    render();
+    startTimer();
+    showHud();
+
+    // --- Wake Lock: iPhone soll bei offener Seite nicht einschlafen.
+    // Screen Wake Lock API (Safari ab iOS 16.4). Wird beim Schlafen/
+    // Tab-Wechsel vom System selbst freigegeben -- bei Rückkehr in den
+    // Vordergrund hier erneut anfordern. ---
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+      if (!("wakeLock" in navigator)) {
+        hudWake.textContent = "Wake Lock nicht unterstützt";
+        return;
+      }
+      try {
+        wakeLock = await navigator.wakeLock.request("screen");
+        hudWake.textContent = "Display bleibt an";
+        wakeLock.addEventListener("release", () => {
+          hudWake.textContent = "Display-Sperre inaktiv";
+        });
+      } catch (error) {
+        hudWake.textContent = "Display bleibt an: nicht möglich";
+        console.error(error);
+      }
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") requestWakeLock();
+    });
+
+    requestWakeLock();
+  </script>
+</body>
+</html>
