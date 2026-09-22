@@ -9,116 +9,126 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet"
   />
 
   <style>
+    /* ---------------------------------------------------------------
+       TESTLAUF: gleiches Design-System wie control.html/iphone.html
+       (Inter/JetBrains Mono, Eckenklammern, Mono-Labels in
+       Großbuchstaben, scharfe statt runde Kanten) -- aber streng
+       monochrom (reines #000/#fff, keine Grautöne als Farbwert) statt
+       der Zinc-Palette, weil das E-Ink-Display am Ende ohnehin nur
+       1-Bit Schwarz/Weiß darstellen kann (siehe update-screenshot.yml:
+       Kontrastanhebung + harter Schwellwert). Opacity für dezentere
+       Texte bleibt wie bisher erlaubt -- das rundet beim Threshold
+       zuverlässig sauber, wie die bisherige Version bereits zeigt.
+    --------------------------------------------------------------- */
     :root { --black:#000000; --white:#ffffff; }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
-      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      display: grid; place-items: center; font-family: "Inter", Arial, Helvetica, sans-serif;
       -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
     }
+    .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
+
     .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
 
+    /* HUD-Eckenklammern -- gleiches Motiv wie control.html/iphone.html. */
+    .corner { position: absolute; width: 12px; height: 12px; border: 1.5px solid var(--black); pointer-events: none; }
+    .corner-tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+    .corner-tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+    .corner-bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+    .corner-br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
     .header {
-      position: absolute; top: 14px; left: 20px; right: 20px;
+      position: absolute; top: 16px; left: 22px; right: 22px;
       display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--black);
+      gap: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--black);
     }
-    .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
-    .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
-    .date-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
-    .date-badge .day { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
-    .date-badge .full { font-size: 10px; }
+    .eyebrow { margin: 0; font-size: 11px; font-weight: 500; letter-spacing: 0.24em; text-transform: uppercase; }
+    .subtitle { margin: 5px 0 0; font-size: 10px; line-height: 1.1; opacity: 0.55; }
+    .date-badge { text-align: right; }
+    .date-badge .day { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+    .date-badge .full { font-size: 9px; opacity: 0.55; margin-top: 2px; }
 
     .main {
-      position: absolute; top: 58px; left: 20px; right: 20px; bottom: 34px;
-      display: grid; grid-template-rows: 2fr 1fr; gap: 0;
+      position: absolute; top: 62px; left: 22px; right: 22px; bottom: 36px;
+      display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px;
     }
 
-    /* ---- Obere Hälfte: Wetter heute + Ausblick ---- */
-    .weather-row { display: grid; grid-template-columns: 230px 1fr; border-bottom: 1px solid var(--black); padding-bottom: 10px; }
-    .today { padding-right: 16px; border-right: 1px solid var(--black); }
+    .panel { border: 1px solid var(--black); padding: 12px 14px; min-width: 0; min-height: 0; overflow: hidden; }
+    .panel-label { margin: 0 0 10px; font-size: 9px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.55; }
 
-    .temp-big { font-size: 76px; font-weight: 800; line-height: 1; letter-spacing: -0.04em; }
-    .temp-range { margin-top: 4px; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 12px; }
+    /* ---- Jetzt-Panel ---- */
+    .temp-row { display: flex; align-items: baseline; gap: 10px; }
+    .temp-big { font-size: 54px; font-weight: 300; line-height: 1; letter-spacing: -0.03em; }
+    .temp-cond { font-size: 12px; opacity: 0.7; }
+    .temp-range { margin-top: 2px; font-size: 11px; opacity: 0.55; }
+    .kv-list { margin-top: 10px; display: grid; gap: 5px; }
+    .kv { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding-bottom: 4px; border-bottom: 1px solid var(--black); }
+    .kv span:first-child { opacity: 0.55; }
+    .kv span:last-child { font-weight: 500; }
 
-    .mini-stats { margin-top: 14px; display: grid; gap: 7px; }
-    .mini-stat {
-      display: flex; justify-content: space-between; gap: 8px;
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10.5px;
-      padding-bottom: 5px; border-bottom: 1px solid #000;
-    }
-    .mini-stat span:first-child { opacity: 0.7; }
-    .mini-stat span:last-child { font-weight: 700; }
+    /* ---- Ausblick-Panel ---- */
+    .chip-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .chip { border: 1px solid var(--black); padding: 7px 5px; text-align: center; }
+    .chip-day { font-size: 8.5px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.6; }
+    .chip-temp { margin-top: 5px; font-size: 19px; font-weight: 300; letter-spacing: -0.01em; }
+    .chip-cond { margin-top: 4px; font-size: 8px; line-height: 1.2; opacity: 0.7; }
+    .clothing-row { margin-top: 10px; display: flex; justify-content: space-between; gap: 8px; font-size: 10px; padding-top: 8px; border-top: 1px solid var(--black); }
 
-    .outlook { padding-left: 18px; }
-    .outlook h2, .kids h2 { margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-    .outlook-list { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-    .outlook-day { border: 1.5px solid var(--black); border-radius: 8px; padding: 12px 10px; text-align: left; }
-    .outlook-day .d-name { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-    .outlook-day .d-temp { margin-top: 6px; font-family: "Work Sans", Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-    .outlook-day .d-cond { font-size: 9.5px; margin-top: 6px; line-height: 1.25; }
-
-    /* ---- Untere Hälfte: Familie ---- */
-    .family-row { display: grid; grid-template-columns: 230px 1fr; padding-top: 10px; }
-    .activities { padding-right: 16px; border-right: 1px solid var(--black); }
+    /* ---- Aktivitäten-Panel ---- */
     .activity-list { margin: 0; padding: 0; list-style: none; }
-    .activity-list li { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-bottom: 1px dashed #000; font-size: 11.5px; }
-    .activity-list li .num { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; opacity: 0.5; width: 12px; flex-shrink: 0; }
+    .activity-list li { display: flex; gap: 9px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--black); font-size: 11.5px; }
+    .activity-list li:last-child { border-bottom: none; }
+    .activity-list .num { font-size: 9px; opacity: 0.45; width: 12px; flex-shrink: 0; }
 
-    .kids { padding-left: 18px; }
-    .meal-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .meal { border: 1.5px solid var(--black); border-radius: 8px; padding: 10px 11px; text-align: left; overflow: hidden; }
-    .meal .tag { font-size: 8px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; }
-    .meal .name {
-      font-size: 12.5px; font-weight: 700; margin-top: 4px; line-height: 1.25;
+    /* ---- Rezepte-Panel ---- */
+    .stack-list { display: flex; flex-direction: column; gap: 7px; height: 100%; }
+    .stack-item { border: 1px solid var(--black); padding: 7px 9px; flex: 1; overflow: hidden; }
+    .stack-title { font-size: 11.5px; font-weight: 600; line-height: 1.2; }
+    .stack-desc {
+      font-size: 9px; margin-top: 3px; opacity: 0.7; line-height: 1.3;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-      max-height: 2.6em;
     }
-    .meal .desc {
-      font-size: 9px; margin-top: 5px; opacity: 0.8; line-height: 1.35;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-      max-height: 2.4em;
-    }
-
-    .clothing-box { margin-top: 8px; padding: 6px 9px; border: 1.5px solid var(--black); display: flex; justify-content: space-between; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; }
 
     .footer {
-      position: absolute; left: 20px; right: 20px; bottom: 10px;
+      position: absolute; left: 22px; right: 22px; bottom: 12px;
       display: flex; align-items: center; justify-content: space-between; gap: 14px;
-      padding-top: 7px; border-top: 1px solid var(--black);
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
-      font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+      padding-top: 8px; border-top: 1px solid var(--black);
+      font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; opacity: 0.7;
     }
     .empty {
-      position: absolute; inset: 58px 20px 34px; display: grid; place-items: center;
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 13px; text-align: center;
+      position: absolute; inset: 62px 22px 36px; display: grid; place-items: center;
+      font-size: 13px; text-align: center;
     }
   </style>
 </head>
 
 <body>
   <main class="frame">
+    <span class="corner corner-tl"></span><span class="corner corner-tr"></span>
+    <span class="corner corner-bl"></span><span class="corner corner-br"></span>
+
     <header class="header">
       <div>
-        <p class="brand">WETTER &amp; FAMILIE</p>
-        <p class="subtitle">Heute, Ausblick &amp; Aktivit&auml;ten</p>
+        <p class="eyebrow">Wetter &amp; Familie</p>
+        <p class="subtitle mono">Heute, Ausblick &amp; Aktivit&auml;ten</p>
       </div>
-      <div class="date-badge">
+      <div class="date-badge mono">
         <div class="day" id="dayName">&ndash;</div>
         <div class="full" id="fullDate">&ndash;</div>
       </div>
     </header>
 
     <section class="main" id="main">
-      <div class="empty">Loading&hellip;</div>
+      <div class="empty mono">Loading&hellip;</div>
     </section>
 
-    <footer class="footer">
+    <footer class="footer mono">
       <span>Grassau, Germany</span>
       <span id="updatedAt">Updating</span>
     </footer>
@@ -132,7 +142,7 @@
     const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 
     const WEATHER_LABELS = {
-      0: "Klar", 1: "\u00dcberw. klar", 2: "Teilw. bew\u00f6lkt", 3: "Bedeckt",
+      0: "Klar", 1: "Überw. klar", 2: "Teilw. bewölkt", 3: "Bedeckt",
       45: "Nebel", 48: "Reifnebel",
       51: "Nieselregen", 53: "Nieselregen", 55: "Nieselregen",
       61: "Regen", 63: "Regen", 65: "Regen",
@@ -212,7 +222,7 @@
       if (isSnowy) return { activities: ["Schlitten fahren", "Schneemann bauen", "Kakao-Pause danach"] };
       if (isRainy) return { activities: ["Indoor-Spielplatz", "Backen zusammen", "Bastelnachmittag"] };
       if (isHot) return { activities: ["Freibad / Planschbecken", "Wasserspiele im Garten", "Schatten-Spielplatz vormittags"] };
-      if (isNice) return { activities: ["Spielplatz-Besuch", "Spaziergang / kleine Wanderung", "Fahrrad/Laufrad \u00fcben"] };
+      if (isNice) return { activities: ["Spielplatz-Besuch", "Spaziergang / kleine Wanderung", "Fahrrad/Laufrad üben"] };
       return { activities: ["Kurzer Spaziergang zwischendurch", "Spielplatz, wenn's trocken bleibt", "Bastel-/Spielenachmittag"] };
     }
 
@@ -241,7 +251,7 @@
         updatedAt.textContent = `Updated ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}`;
       } catch (error) {
         console.error(error);
-        mainEl.innerHTML = '<div class="empty">Wetterdaten nicht verf&uuml;gbar.</div>';
+        mainEl.innerHTML = '<div class="empty mono">Wetterdaten nicht verf&uuml;gbar.</div>';
         updatedAt.textContent = "Update failed";
       }
     }
@@ -290,58 +300,61 @@
       const needsSunscreen = uvMax >= 4;
 
       mainEl.innerHTML = `
-        <div class="weather-row">
-          <div class="today">
+        <div class="panel">
+          <p class="panel-label">Jetzt</p>
+          <div class="temp-row">
             <div class="temp-big">${tLive}&deg;</div>
-            <div class="temp-range">Jetzt &middot; ${condition}</div>
-            <div class="temp-range" style="margin-top:2px;">Heute: ${tMin}&deg;&ndash;${tMax}&deg;C</div>
-            <div class="mini-stats">
-              <div class="mini-stat"><span>UV-Index</span><span>${uvMax.toFixed(1)}</span></div>
-              <div class="mini-stat"><span>Regen</span><span>${precipSum.toFixed(1)} mm</span></div>
-              <div class="mini-stat"><span>Wind max.</span><span>${windMax} km/h</span></div>
-              <div class="mini-stat"><span>Sonne auf/unter</span><span>${sunrise} / ${sunset}</span></div>
+            <div>
+              <div class="temp-cond">${condition}</div>
+              <div class="temp-range mono">${tMin}&deg;&ndash;${tMax}&deg;C heute</div>
             </div>
           </div>
-          <div class="outlook">
-            <h2>5-Tage-Ausblick</h2>
-            <div class="outlook-list">
-              ${outlookDays.map((d) => `
-                <div class="outlook-day">
-                  <div class="d-name">${d.name}</div>
-                  <div class="d-temp">${d.tMax}&deg;</div>
-                  <div class="d-cond">${d.cond}</div>
-                </div>
-              `).join("")}
-            </div>
-            <div class="clothing-box">
-              <span>${needsJacket ? "Jacke mitnehmen" : "Leicht reicht"}</span>
-              <span>${needsSunscreen ? "Sonnencreme n\u00f6tig" : "Kein starker Schutz n\u00f6tig"}</span>
-            </div>
+          <div class="kv-list mono">
+            <div class="kv"><span>UV-Index</span><span>${uvMax.toFixed(1)}</span></div>
+            <div class="kv"><span>Regen</span><span>${precipSum.toFixed(1)} mm</span></div>
+            <div class="kv"><span>Wind max.</span><span>${windMax} km/h</span></div>
+            <div class="kv"><span>Sonne auf/unter</span><span>${sunrise} / ${sunset}</span></div>
           </div>
         </div>
 
-        <div class="family-row">
-          <div class="activities">
-            <h2 style="font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin:0 0 8px;">Aktivit&auml;ten heute</h2>
-            <ul class="activity-list">
-              ${plan.activities.map((a, i) => `<li><span class="num">${i + 1}</span><span>${a}</span></li>`).join("")}
-            </ul>
+        <div class="panel">
+          <p class="panel-label">5-Tage-Ausblick</p>
+          <div class="chip-row">
+            ${outlookDays.map((d) => `
+              <div class="chip">
+                <div class="chip-day mono">${d.name}</div>
+                <div class="chip-temp">${d.tMax}&deg;</div>
+                <div class="chip-cond">${d.cond}</div>
+              </div>
+            `).join("")}
           </div>
-          <div class="kids">
-            <h2>Rezeptideen</h2>
-            <div class="meal-card">
-              <div class="meal">
-                <div class="name">${recipe1.name}</div>
-                <div class="desc">${recipe1.desc}</div>
-              </div>
-              <div class="meal">
-                <div class="name">${recipe2.name}</div>
-                <div class="desc">${recipe2.desc}</div>
-              </div>
-              <div class="meal">
-                <div class="name">${recipe3.name}</div>
-                <div class="desc">${recipe3.desc}</div>
-              </div>
+          <div class="clothing-row mono">
+            <span>${needsJacket ? "Jacke mitnehmen" : "Leicht reicht"}</span>
+            <span>${needsSunscreen ? "Sonnencreme nötig" : "Kein starker Schutz nötig"}</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <p class="panel-label">Aktivit&auml;ten heute</p>
+          <ul class="activity-list">
+            ${plan.activities.map((a, i) => `<li><span class="num mono">${i + 1}</span><span>${a}</span></li>`).join("")}
+          </ul>
+        </div>
+
+        <div class="panel">
+          <p class="panel-label">Rezeptideen</p>
+          <div class="stack-list">
+            <div class="stack-item">
+              <div class="stack-title">${recipe1.name}</div>
+              <div class="stack-desc">${recipe1.desc}</div>
+            </div>
+            <div class="stack-item">
+              <div class="stack-title">${recipe2.name}</div>
+              <div class="stack-desc">${recipe2.desc}</div>
+            </div>
+            <div class="stack-item">
+              <div class="stack-title">${recipe3.name}</div>
+              <div class="stack-desc">${recipe3.desc}</div>
             </div>
           </div>
         </div>
