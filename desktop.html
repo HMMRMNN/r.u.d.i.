@@ -885,6 +885,57 @@
       const dxKm = (lon - center.lon) * kmPerDegLon, dyKm = (lat - center.lat) * kmPerDegLat;
       return { x: dxKm * scalePxPerKm, y: -dyKm * scalePxPerKm };
     }
+
+    // ---------------------------------------------------------------
+    // Radar-Hintergrund: grob vereinfachter Chiemsee-Umriss + ein paar
+    // Orte als Orientierungshilfe -- keine echte Kartografie, nur damit
+    // sich ein Radar-Punkt leichter mit der Tabellenzeile UND der realen
+    // Gegend verknüpfen lässt, statt nur mit einer Nummer.
+    // ---------------------------------------------------------------
+    const CHIEMSEE_OUTLINE = [
+      [47.917, 12.395], [47.902, 12.443], [47.885, 12.516], [47.859, 12.487],
+      [47.816, 12.478], [47.833, 12.442], [47.859, 12.348], [47.885, 12.353],
+      [47.913, 12.371],
+    ];
+    const MAP_LANDMARKS = [
+      { name: "Prien a. Chiemsee", lat: 47.859, lon: 12.348 },
+      { name: "Aschau i. Chiemgau", lat: 47.7908, lon: 12.3336 },
+      { name: "Rosenheim", lat: 47.8561, lon: 12.1289 },
+      { name: "Traunstein", lat: 47.8697, lon: 12.6414 },
+      { name: "Salzburg", lat: 47.8095, lon: 13.0550 },
+      { name: "München", lat: 48.1351, lon: 11.5820 },
+      { name: "München Flughafen", lat: 48.226, lon: 11.674 },
+    ];
+    function renderMapLayer(center, scale, maxR) {
+      let layer = "";
+      const lakePts = CHIEMSEE_OUTLINE.map(([lat, lon]) => project(lat, lon, center, scale));
+      const lakeVisible = lakePts.some((p) => Math.sqrt(p.x ** 2 + p.y ** 2) <= maxR * 1.6);
+      if (lakeVisible) {
+        const d = lakePts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ") + " Z";
+        layer += `<path d="${d}" fill="#1a3a52" fill-opacity="0.35" stroke="#3d6a8a" stroke-width="1"/>`;
+      }
+      MAP_LANDMARKS.forEach((t) => {
+        const p = project(t.lat, t.lon, center, scale);
+        if (Math.sqrt(p.x ** 2 + p.y ** 2) > maxR) return;
+        layer += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2" fill="#52525b"/>`;
+        layer += `<text x="${(p.x + 5).toFixed(1)}" y="${(p.y + 3).toFixed(1)}" font-size="8" fill="#52525b" font-family="JetBrains Mono, monospace">${escapeHtml(t.name)}</text>`;
+      });
+      return layer;
+    }
+    // Kurze, extrapolierte Spur der letzten Minuten (aus aktuellem Kurs/
+    // Geschwindigkeit rückwärts projiziert) -- die API liefert keine echte
+    // Positionshistorie, das ist also eine plausible Annäherung, keine
+    // aufgezeichnete Flugbahn.
+    function renderAircraftTrail(item, center, scale) {
+      if (item.speed === null || item.track === null || item.speed < 30) return "";
+      const steps = [[6, 0.15], [4, 0.3], [2, 0.45]];
+      return steps.map(([minutesAgo, opacity]) => {
+        const ll = projectPosition(item.lat, item.lon, item.track, item.speed, -minutesAgo);
+        const p = project(ll.lat, ll.lon, center, scale);
+        return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2" fill="#ffffff" opacity="${opacity}"/>`;
+      }).join("");
+    }
+
     function bearingDeg(from, to) {
       const lat1 = radians(from.lat), lat2 = radians(to.lat);
       const dLon = radians(to.lon - from.lon);
@@ -1004,6 +1055,7 @@
       const W = 600, H = 600, radiusKm = 100, maxR = 270;
       const scale = maxR / radiusKm;
       let svg = `<svg viewBox="${-W/2} ${-H/2} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+      svg += renderMapLayer(center, scale, maxR);
       [25, 50, 75, 100].forEach((km) => {
         const r = km * scale;
         svg += `<circle cx="0" cy="0" r="${r}" fill="none" stroke="#27272a" stroke-width="1"/>`;
@@ -1020,6 +1072,7 @@
         const isEmergency = Boolean(item.squawk && EMERGENCY_SQUAWKS[item.squawk]);
         const color = isEmergency ? "#E2685C" : item.isSpecial ? "#ffffff" : (item.isMilitary ? "#E2685C" : "#6FA8DC");
         const rot = item.track ?? 0;
+        svg += renderAircraftTrail(item, center, scale);
         // Größerer, unsichtbarer Kreis um den eigentlichen Pfeil herum --
         // macht das Ziel zum Klicken größer, ohne die Optik zu ändern.
         svg += `<g class="radar-marker" data-idx="${i}" style="cursor:pointer;">
@@ -1317,6 +1370,7 @@
 
         const W = 440, H = 440, maxR = 200, scale = maxR / 60;
         let svg = `<svg viewBox="${-W/2} ${-H/2} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+        svg += renderMapLayer(target, scale, maxR);
         [20, 40, 60].forEach((km) => {
           const r = km * scale;
           svg += `<circle cx="0" cy="0" r="${r}" fill="none" stroke="#27272a" stroke-width="1"/>`;
@@ -1330,6 +1384,7 @@
           const rot = item.track ?? 0;
           const isEmergency = Boolean(item.squawk && EMERGENCY_SQUAWKS[item.squawk]);
           const color = isEmergency ? "#E2685C" : item.isSpecial ? "#ffffff" : "#6FA8DC";
+          svg += renderAircraftTrail(item, target, scale);
           svg += `<g class="radar-marker" data-idx="${i}" style="cursor:pointer;">
             <circle cx="${cp.x.toFixed(1)}" cy="${cp.y.toFixed(1)}" r="12" fill="transparent"/>
             ${isEmergency ? `<circle cx="${cp.x.toFixed(1)}" cy="${cp.y.toFixed(1)}" r="10" fill="none" stroke="#E2685C" stroke-width="1.5"/>` : ""}
