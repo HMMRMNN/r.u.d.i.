@@ -20,106 +20,65 @@
     /* ---------------------------------------------------------------
        Gleiches Design-System wie control.html (Zinc-Dunkelpalette,
        JetBrains Mono/Inter, HUD-Eckenklammern, Dot-Grid-Hintergrund,
-       Live-Dot) -- betrifft NUR diese Hülle/Steuerleiste. Die
-       eingebetteten Original-Seiten (per iframe) bleiben unangetastet,
-       damit das physische E-Ink-Display unverändert bleibt.
+       Live-Dot). Diese Seite rendert die Inhalte aller 12 Screens
+       KOMPLETT NEU in diesem System (kein iframe/invert-Hack mehr) --
+       die Datenlogik kommt aus iphone-screens.js und holt exakt
+       dieselben Endpunkte wie die jeweilige Original-E-Ink-Seite. Die
+       Original-Dateien (weather.html, traffic.html, ...) bleiben davon
+       komplett unberührt, inklusive der physischen E-Ink-Pipeline.
     --------------------------------------------------------------- */
     :root {
       --bg: #000000;
       --panel: #0a0a0b;
-      --line: #27272a;      /* zinc-800 */
-      --line-soft: #18181b; /* zinc-900 */
+      --panel-soft: #0d0d0f;
+      --line: #27272a;
+      --line-soft: #18181b;
       --ink: #ffffff;
-      --ink-dim: #d4d4d8;   /* zinc-300 */
-      --ink-body: #a1a1aa;  /* zinc-400 */
-      --ink-label: #71717a; /* zinc-500 */
-      --ink-faint: #52525b; /* zinc-600 */
-      --ink-ghost: #3f3f46; /* zinc-700 */
+      --ink-dim: #d4d4d8;
+      --ink-body: #a1a1aa;
+      --ink-label: #71717a;
+      --ink-faint: #52525b;
+      --ink-ghost: #3f3f46;
       --red: #ef4444;
       --emerald: #10b981;
+      --amber: #f59e0b;
       --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
       --sans: "Inter", -apple-system, "Segoe UI", Arial, sans-serif;
       --safe-t: env(safe-area-inset-top, 0px);
       --safe-b: env(safe-area-inset-bottom, 0px);
       --safe-l: env(safe-area-inset-left, 0px);
       --safe-r: env(safe-area-inset-right, 0px);
+      --hud-h: 84px;
       color-scheme: dark;
     }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
       width: 100%; height: 100%; margin: 0; padding: 0;
-      background: var(--bg); overflow: hidden;
+      background: var(--bg); color: var(--ink-body);
       font-family: var(--sans);
       -webkit-touch-callout: none;
-      touch-action: manipulation;
       overscroll-behavior: none;
     }
+    #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
 
-    #stage {
-      position: fixed; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      background-color: var(--bg);
-      background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
-      background-size: 18px 18px;
+    /* ---- Persistenter Status-Streifen oben ---- */
+    #topStrip {
+      flex-shrink: 0; z-index: 10;
+      padding: calc(8px + var(--safe-t)) calc(14px + var(--safe-r)) 8px calc(14px + var(--safe-l));
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink-label);
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-soft);
     }
-
-    /* Die Original-Seiten sind fest auf 800x480 gebaut (siehe .frame in
-       jeder Einzelseite) -- statt sie neu zu bauen, laden wir sie 1:1
-       als iframes ("Look soll erhalten bleiben") und skalieren den
-       kompletten 800x480-Block per JS auf die verfügbare Fläche.
-       filter: invert(1) dreht Schwarz/Weiß um, ohne die Seiten selbst
-       anzufassen -- exakt das gewünschte "invertiert fürs iPhone". */
-    #frameWrap {
-      position: relative;
-      width: 800px; height: 480px;
-      flex-shrink: 0;
-      transform-origin: center center;
+    #topStrip .brand { display: flex; align-items: center; gap: 7px; color: var(--ink-faint); flex-shrink: 0; }
+    #topStrip .brand b { color: var(--ink-dim); font-weight: 500; letter-spacing: 0.2em; }
+    #topStatus {
+      display: flex; align-items: center; gap: 7px; background: none; border: none; padding: 6px;
+      margin: -6px; font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent;
     }
-    iframe.screen {
-      position: absolute; inset: 0;
-      width: 800px; height: 480px;
-      border: 0; display: block;
-      background: #fff;
-      filter: invert(1);
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity .25s ease;
-    }
-    iframe.screen.active { opacity: 1; }
-
-    /* HUD-Eckenklammern um die Bühne herum -- skalieren automatisch mit
-       (liegen innerhalb von #frameWrap, das transform: scale() trägt),
-       bleiben also immer proportional zum Rahmen, wie eine Gerätefassung. */
-    .stage-corner { position: absolute; width: 22px; height: 22px; border: 2px solid var(--ink-ghost); pointer-events: none; }
-    .stage-corner.tl { top: -14px; left: -14px; border-right: none; border-bottom: none; }
-    .stage-corner.tr { top: -14px; right: -14px; border-left: none; border-bottom: none; }
-    .stage-corner.bl { bottom: -14px; left: -14px; border-right: none; border-top: none; }
-    .stage-corner.br { bottom: -14px; right: -14px; border-left: none; border-top: none; }
-
-    /* Tap-Feedback: kurzer Puls beim Antippen -- ersetzt fehlendes
-       haptisches Feedback im Browser durch eine sichtbare Bestätigung. */
-    .tap-pulse {
-      position: fixed; z-index: 20; pointer-events: none;
-      width: 64px; height: 64px; border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.5);
-      transform: translate(-50%, -50%) scale(0.4);
-      opacity: 0;
-    }
-    .tap-pulse.animate { animation: tapPulse .4s ease-out forwards; }
-    @keyframes tapPulse {
-      0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0.8; }
-      100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
-    }
-
-    /* Unsichtbare Tap-Zonen über allem -- links/rechts blättern manuell,
-       Mitte schaltet Play/Pause. Liegen über den iframes (die selbst
-       pointer-events:none haben), damit kein Tap versehentlich mit der
-       Originalseite interagiert (z.B. Standort-Button in A.L.V.I.N.html). */
-    #tapZones { position: fixed; inset: 0; display: flex; z-index: 5; }
-    #tapZones > div { flex: 1 1 0; }
-
-    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
-    .cursor-blink { animation: blink 1s step-start infinite; }
+    #topStatus.live { color: var(--red); }
+    #topCounter { color: var(--ink-faint); flex-shrink: 0; }
 
     @keyframes pulse-glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
     .live-dot {
@@ -129,99 +88,165 @@
     }
     .live-dot.calm { background: var(--ink-ghost); box-shadow: none; animation: none; }
 
-    /* ---- Persistenter Status-Streifen oben: bleibt immer sichtbar
-       (dezent), damit Rotationsstatus & Position auch ohne Tap sofort
-       ablesbar sind -- analog zur Topbar in control.html. ---- */
-    #topStrip {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
-      padding: calc(8px + var(--safe-t)) calc(14px + var(--safe-r)) 8px calc(14px + var(--safe-l));
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
-      color: var(--ink-label);
-      background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
-      pointer-events: none;
+    /* ---- Scrollbarer Inhaltsbereich ---- */
+    #content {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 14px calc(14px + var(--safe-r)) 24px calc(14px + var(--safe-l));
+      background-color: var(--bg);
+      background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 18px 18px;
+      touch-action: pan-y;
     }
-    #topStrip .brand { display: flex; align-items: center; gap: 7px; color: var(--ink-faint); }
-    #topStrip .brand b { color: var(--ink-dim); font-weight: 500; letter-spacing: 0.2em; }
-    #topStrip .status { display: flex; align-items: center; gap: 7px; }
-    #topStrip .status.calm { color: var(--ink-faint); }
-    #topStrip .status.live { color: var(--red); }
-    #topStrip .counter { color: var(--ink-faint); }
-
-    /* ---- Steuerleiste unten: liegt über dem Content, blendet nach
-       Inaktivität aus, damit möglichst viel vom Screen sichtbar bleibt.
-       Sharp/eckige Buttons statt Kreise, Eckenklammern-Panel -- gleiche
-       Sprache wie .ow-panel/.cta-btn in control.html. ---- */
-    #hud {
-      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-      padding: 12px calc(14px + var(--safe-r)) calc(12px + var(--safe-b)) calc(14px + var(--safe-l));
-      background: linear-gradient(to top, rgba(0,0,0,0.94), rgba(0,0,0,0.6) 65%, transparent);
-      opacity: 0; pointer-events: none;
-      transition: opacity .3s ease;
+    #screenTitle {
+      margin: 2px 0 12px; font-size: clamp(22px, 5vw, 30px); font-weight: 300; letter-spacing: -0.03em; color: var(--ink);
     }
-    #hud.visible { opacity: 1; pointer-events: auto; }
+    #screenTitle .cursor-blink { color: var(--ink-ghost); }
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    .cursor-blink { animation: blink 1s step-start infinite; }
 
-    #hudPanel { position: relative; border: 1px solid var(--line); background: var(--panel); padding: 10px 12px; }
-    .corner { position: absolute; width: 9px; height: 9px; border: 1px solid var(--ink-ghost); pointer-events: none; }
-    .corner.tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-    .corner.tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
-    .corner.bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
-    .corner.br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+    /* ---- Gemeinsame Content-Bausteine ---- */
+    .panel { position: relative; border: 1px solid var(--line); background: var(--panel); padding: 16px; margin-bottom: 12px; }
+    .panel-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .panel--half { margin-bottom: 0; }
+    .panel-head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .label { margin: 0 0 12px; font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-label); }
+    .panel-foot { margin: 10px 0 0; font-size: 11px; color: var(--ink-faint); line-height: 1.5; }
 
-    #hudRow { display: flex; align-items: center; gap: 10px; }
-    .hud-btn {
+    .stat-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .stat-tile { flex: 1 1 120px; }
+    .stat-tile--wide { flex-basis: 100%; }
+    .stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-label); margin-bottom: 4px; }
+    .stat-value { font-size: 32px; font-weight: 300; color: var(--ink); line-height: 1; letter-spacing: -0.02em; }
+    .stat-unit { font-size: 14px; font-weight: 400; color: var(--ink-faint); margin-left: 2px; }
+    .stat-caption { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); margin-top: 6px; }
+
+    .kv-list { display: flex; flex-direction: column; }
+    .kv { display: flex; justify-content: space-between; gap: 10px; font-family: var(--mono); font-size: 12px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); }
+    .kv:last-child { border-bottom: none; }
+    .kv .k { color: var(--ink-faint); }
+    .kv .v { color: var(--ink-dim); font-weight: 500; text-align: right; }
+
+    .chip-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+    .chip { flex: 0 0 auto; min-width: 62px; border: 1px solid var(--line); padding: 8px 10px; text-align: center; }
+    .chip-top { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; color: var(--ink-label); }
+    .chip-value { font-size: 20px; font-weight: 300; color: var(--ink); margin-top: 4px; }
+    .chip-sub { font-size: 9px; color: var(--ink-faint); margin-top: 3px; }
+
+    .stack-list { display: flex; flex-direction: column; gap: 10px; }
+    .stack-item { border: 1px solid var(--line); padding: 10px 12px; }
+    .stack-item--level3, .stack-item--level4 { border-color: var(--red); }
+    .stack-item-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .stack-title { font-size: 14px; font-weight: 500; color: var(--ink); }
+    .stack-sub { font-size: 12px; color: var(--ink-body); margin: 4px 0 0; line-height: 1.4; }
+    .stack-meta { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); margin: 6px 0 0; }
+
+    .badge {
+      display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 500;
+      letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border: 1px solid var(--ink-ghost); color: var(--ink-dim);
+      white-space: nowrap;
+    }
+    .badge--level3, .badge--level4 { border-color: var(--red); color: var(--red); }
+    .badge--level2 { border-color: var(--amber); color: var(--amber); }
+    .badge--low { border-color: var(--red); color: var(--red); }
+    .badge--high { border-color: var(--emerald); color: var(--emerald); }
+    .badge-row { margin-top: 10px; }
+
+    .data-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
+    .data-table th, .data-table td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line-soft); color: var(--ink-body); white-space: nowrap; }
+    .data-table th { font-size: 9px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-label); border-bottom: 1px solid var(--line); }
+    .data-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    .bar-list { display: flex; flex-direction: column; gap: 8px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11px; }
+    .bar-row-label { flex: 0 0 32px; color: var(--ink-faint); }
+    .bar-row-track { flex: 1; height: 6px; background: var(--line-soft); }
+    .bar-row-fill { height: 100%; background: var(--ink-dim); }
+    .bar-row-value { flex: 0 0 auto; color: var(--ink-dim); text-align: right; }
+
+    .goal-head { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--ink-dim); margin-bottom: 8px; }
+    .goal-head strong { color: var(--ink); font-weight: 500; }
+    .bar-wrap { position: relative; }
+    .bar-track { height: 10px; border: 1px solid var(--line); background: var(--line-soft); overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--ink); }
+    .bar-target { position: absolute; bottom: -6px; width: 0; height: 0; margin-left: -4px; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 6px solid var(--ink-ghost); }
+
+    .radar-box { display: flex; justify-content: center; padding: 6px 0; }
+    .radar-box svg { width: 100%; max-width: 260px; height: auto; }
+
+    .slice-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; justify-content: center; }
+
+    .flight-card { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+    .stack-list > .flight-card:last-child { border-bottom: none; }
+    .flight-card--tall .thumb-box { height: 64px; }
+    .row-num {
+      flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); color: var(--bg);
+      display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 9px; font-weight: 700; margin-top: 2px;
+    }
+    .thumb-box {
+      flex-shrink: 0; width: 52px; height: 52px; border-radius: 3px; background: #f4f4f5;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .thumb-box--lg { width: 64px; height: 64px; }
+    .thumb-box img, .thumb-box canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .thumb-fallback { font-family: var(--mono); font-size: 8px; font-weight: 700; color: #18181b; text-align: center; line-height: 1.2; padding: 2px; }
+    .flight-card-body { flex: 1; min-width: 0; }
+    .flight-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .flight-id { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .star { color: var(--amber); font-size: 13px; flex-shrink: 0; }
+    .flight-meta { font-size: 11.5px; color: var(--ink-body); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .flight-stats { display: flex; gap: 10px; margin-top: 4px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); flex-wrap: wrap; }
+    .flight-dest { flex-shrink: 0; text-align: right; }
+    .flight-dest-city { font-size: 13px; font-weight: 500; color: var(--ink-dim); }
+    .flight-dest-label { font-family: var(--mono); font-size: 9px; color: var(--ink-faint); margin-top: 2px; text-transform: uppercase; }
+
+    .empty-panel { border: 1px solid var(--line); background: var(--panel); padding: 32px 20px; text-align: center; }
+    .empty-mark { font-size: 30px; color: var(--emerald); }
+    .empty-title { font-size: 15px; font-weight: 500; color: var(--ink); margin: 8px 0 4px; }
+    .empty-sub { font-size: 12px; color: var(--ink-faint); margin: 0; }
+
+    .seg { display: flex; border: 1px solid var(--line); }
+    .seg-btn { font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; padding: 6px 10px; border: none; background: transparent; color: var(--ink-faint); cursor: pointer; }
+    .seg-btn + .seg-btn { border-left: 1px solid var(--line); }
+    .seg-btn.active { background: var(--ink); color: var(--bg); }
+
+    .loading-state, .error-state { padding: 40px 0; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+    .error-state { color: var(--red); }
+
+    /* ---- Bottom-Nav: persistente Leiste statt auto-ausblendendem HUD
+       -- da der Inhalt jetzt echtes scrollbares UI ist (kein Standbild
+       mehr), ist eine feste Toolbar wie in nativen Apps sinnvoller. ---- */
+    #bottomNav {
+      flex-shrink: 0; z-index: 10;
+      border-top: 1px solid var(--line); background: var(--panel-soft);
+      padding: 10px calc(14px + var(--safe-r)) calc(10px + var(--safe-b)) calc(14px + var(--safe-l));
+    }
+    #navRow { display: flex; align-items: center; gap: 10px; }
+    .nav-btn {
       flex-shrink: 0; width: 44px; height: 44px;
-      border: 1px solid var(--line); background: transparent;
-      color: var(--ink-dim); font-size: 15px; font-family: var(--mono);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: border-color .15s, background-color .15s, color .15s;
+      border: 1px solid var(--line); background: transparent; color: var(--ink-dim);
+      font-size: 15px; font-family: var(--mono);
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      transition: background-color .15s, color .15s;
     }
-    .hud-btn:active { background: var(--ink); border-color: var(--ink); color: #000; }
-    #hudInfo { flex: 1; min-width: 0; }
-    #hudLabel {
-      font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
-      color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    #hudWake {
-      display: flex; align-items: center; gap: 6px; margin-top: 3px;
-      font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint);
-    }
+    .nav-btn:active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    #navInfo { flex: 1; min-width: 0; }
+    #navLabel { font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #navWake { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
     .wake-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--emerald); flex-shrink: 0; }
     .wake-dot.off { background: var(--ink-ghost); }
 
-    #progressTrack {
-      margin-top: 10px; height: 2px; width: 100%;
-      background: var(--line-soft); overflow: hidden;
-    }
-    #progressFill {
-      height: 100%; width: 0%; background: var(--ink);
-      animation: fillBar 120s linear forwards;
-      animation-play-state: paused;
-    }
+    #progressTrack { margin-top: 9px; height: 2px; width: 100%; background: var(--line-soft); overflow: hidden; }
+    #progressFill { height: 100%; width: 0%; background: var(--ink); animation: fillBar 120s linear forwards; animation-play-state: paused; }
     @keyframes fillBar { from { width: 0%; } to { width: 100%; } }
 
-    #dots { display: flex; justify-content: center; gap: 7px; margin-top: 10px; flex-wrap: wrap; }
-    .dot {
-      width: 5px; height: 5px; background: var(--ink-ghost);
-      padding: 7px; margin: -7px; background-clip: content-box;
-      cursor: pointer;
-    }
+    #dots { display: flex; justify-content: center; gap: 7px; margin-top: 9px; flex-wrap: wrap; }
+    .dot { width: 5px; height: 5px; background: var(--ink-ghost); padding: 7px; margin: -7px; background-clip: content-box; cursor: pointer; }
     .dot.active { background: var(--ink); background-clip: content-box; }
 
-    #hint {
-      position: fixed; left: 0; right: 0; z-index: 15;
-      top: calc(38px + var(--safe-t));
-      text-align: center; color: var(--ink-body); opacity: 0;
-      font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-      transition: opacity .3s ease; pointer-events: none;
-    }
-    #hint.visible { opacity: 1; }
-
-    /* ---- Einmaliger Hinweis: "Zum Home-Bildschirm hinzufügen" für den
-       randlosen Vollbildmodus ohne Safari-Leiste. ---- */
+    /* ---- Einmaliger "Zum Home-Bildschirm"-Hinweis ---- */
     #a2hs {
       position: fixed; left: 14px; right: 14px; z-index: 20;
-      bottom: calc(14px + var(--safe-b));
+      bottom: calc(var(--hud-h) + 14px + var(--safe-b));
       border: 1px solid var(--line); background: var(--panel);
       padding: 12px 14px; display: flex; align-items: center; gap: 12px;
       transform: translateY(140%); transition: transform .35s ease;
@@ -229,46 +254,30 @@
     #a2hs.visible { transform: translateY(0); }
     #a2hs p { margin: 0; font-size: 12px; color: var(--ink-body); line-height: 1.5; flex: 1; }
     #a2hs p b { color: var(--ink-dim); font-weight: 500; }
-    #a2hs button {
-      flex-shrink: 0; border: 1px solid var(--line); background: transparent; color: var(--ink-faint);
-      font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
-      padding: 8px 12px; cursor: pointer;
-    }
+    #a2hs button { flex-shrink: 0; border: 1px solid var(--line); background: transparent; color: var(--ink-faint); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 12px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <div id="stage">
-    <div id="frameWrap">
-      <span class="stage-corner tl"></span><span class="stage-corner tr"></span>
-      <span class="stage-corner bl"></span><span class="stage-corner br"></span>
+  <div id="app">
+    <div id="topStrip">
+      <span class="brand"><b>R.U.D.I.</b> SCREENS</span>
+      <button id="topStatus" class="live" type="button"><span class="live-dot" id="topDot"></span><span id="topStatusText">ROTATING</span></button>
+      <span id="topCounter">1/12</span>
     </div>
-  </div>
 
-  <div id="topStrip">
-    <span class="brand"><b>R.U.D.I.</b> SCREENS</span>
-    <span class="status calm" id="topStatus"><span class="live-dot calm" id="topDot"></span><span id="topStatusText">ROTATING</span></span>
-    <span class="counter" id="topCounter">1/12</span>
-  </div>
+    <div id="content">
+      <h1 id="screenTitle">Laden<span class="cursor-blink">_</span></h1>
+      <div id="screenBody"><div class="loading-state">Laden&hellip;</div></div>
+    </div>
 
-  <div id="hint">Tippen: vor/zurück &middot; Mitte: Pause</div>
-
-  <div id="tapZones">
-    <div id="tapPrev"></div>
-    <div id="tapPlay"></div>
-    <div id="tapNext"></div>
-  </div>
-
-  <div id="hud">
-    <div id="hudPanel">
-      <span class="corner tl"></span><span class="corner tr"></span>
-      <span class="corner bl"></span><span class="corner br"></span>
-      <div id="hudRow">
-        <button class="hud-btn" id="btnPrev" title="Zurück">&#8249;</button>
-        <button class="hud-btn" id="btnPlay" title="Pause/Play">&#10074;&#10074;</button>
-        <button class="hud-btn" id="btnNext" title="Weiter">&#8250;</button>
-        <div id="hudInfo">
-          <div id="hudLabel">Laden…</div>
-          <div id="hudWake"><span class="wake-dot" id="wakeDot"></span><span id="wakeText">Display bleibt an</span></div>
+    <div id="bottomNav">
+      <div id="navRow">
+        <button class="nav-btn" id="btnPrev" title="Zurück">&#8249;</button>
+        <button class="nav-btn" id="btnPlay" title="Pause/Play">&#10074;&#10074;</button>
+        <button class="nav-btn" id="btnNext" title="Weiter">&#8250;</button>
+        <div id="navInfo">
+          <div id="navLabel">Laden…</div>
+          <div id="navWake"><span class="wake-dot" id="wakeDot"></span><span id="wakeText">Display bleibt an</span></div>
         </div>
       </div>
       <div id="progressTrack"><div id="progressFill"></div></div>
@@ -281,34 +290,16 @@
     <button id="a2hsClose">Ok</button>
   </div>
 
+  <script src="iphone-screens.js"></script>
   <script>
     "use strict";
 
-    // Reihenfolge frei wählbar -- Reihenfolge hier: allgemeines zuerst,
-    // dann alles rund ums Fliegen zusammen, dann Gleitschirm/Wetter,
-    // Pizza zum Schluss.
-    const SCREENS = [
-      { file: "weather.html", label: "Wetter & Familie" },
-      { file: "warnings.html", label: "Wetterwarnung" },
-      { file: "traffic.html", label: "Flugliste" },
-      { file: "approach.html", label: "Anflug-Radar" },
-      { file: "A.L.V.I.N.html", label: "Flugradar" },
-      { file: "military.html", label: "Militärflugzeuge" },
-      { file: "paragliding.html", label: "Gleitschirm & Segelflug" },
-      { file: "paragliderslive.html", label: "Gleitschirm Live" },
-      { file: "chiemsee.html", label: "Chiemsee" },
-      { file: "snow.html", label: "Schneebericht" },
-      { file: "training.html", label: "Training" },
-      { file: "pizza.html", label: "Pizza-Bilanz" },
-    ];
-
     const ROTATE_MS = 120000; // 2 Minuten
-    const FRAME_W = 800, FRAME_H = 480;
 
-    const frameWrap = document.getElementById("frameWrap");
-    const hud = document.getElementById("hud");
-    const hint = document.getElementById("hint");
-    const hudLabel = document.getElementById("hudLabel");
+    const screenTitle = document.getElementById("screenTitle");
+    const screenBody = document.getElementById("screenBody");
+    const content = document.getElementById("content");
+    const navLabel = document.getElementById("navLabel");
     const wakeDot = document.getElementById("wakeDot");
     const wakeText = document.getElementById("wakeText");
     const btnPlay = document.getElementById("btnPlay");
@@ -322,188 +313,148 @@
     let current = 0;
     let playing = true;
     let timer = null;
-    let hideHudTimer = null;
+    let refreshTimer = null;
+    let loadToken = 0; // verwirft veraltete Antworten, falls währenddessen weitergeblättert wurde
 
-    // --- Skalierung: die feste 800x480-Bühne auf die verfügbare Fläche
-    // (egal ob iPhone-Hochformat, Querformat, iPad, Desktop-Fenster...)
-    // passend einpassen, Seitenverhältnis bleibt erhalten. ---
-    function updateScale() {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const scale = Math.min(vw / FRAME_W, vh / FRAME_H);
-      frameWrap.style.transform = `scale(${scale})`;
-    }
-    updateScale();
-    window.addEventListener("resize", updateScale);
-    window.addEventListener("orientationchange", () => setTimeout(updateScale, 300));
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", updateScale);
-    }
-
-    // --- Alle Screens als iframes vorladen (bleiben im Hintergrund
-    // aktiv, holen also weiter ihre Daten), nur der aktive ist sichtbar
-    // -- so ist beim Umschalten sofort "alles da", kein Nachladen. ---
-    const iframes = SCREENS.map((screen, index) => {
-      const el = document.createElement("iframe");
-      el.className = "screen";
-      el.src = screen.file;
-      el.loading = index === 0 ? "eager" : "lazy";
-      frameWrap.appendChild(el);
-      return el;
-    });
-
-    SCREENS.forEach((_, index) => {
+    SCREEN_MODULES.forEach((_, index) => {
       const dot = document.createElement("div");
       dot.className = "dot";
-      dot.addEventListener("click", (e) => { e.stopPropagation(); goTo(index); });
+      dot.addEventListener("click", () => goTo(index));
       dotsWrap.appendChild(dot);
     });
     const dots = Array.from(dotsWrap.children);
 
+    async function loadScreen(index) {
+      const module = SCREEN_MODULES[index];
+      const myToken = ++loadToken;
+      screenTitle.innerHTML = `${escapeHtml(module.label)}<span class="cursor-blink">_</span>`;
+      screenBody.innerHTML = `<div class="loading-state">Laden&hellip;</div>`;
+      try {
+        await module.render(screenBody);
+      } catch (error) {
+        if (myToken !== loadToken) return; // Nutzer ist inzwischen weitergeblättert
+        console.error(`Screen "${module.id}" fehlgeschlagen:`, error);
+        screenBody.innerHTML = `<div class="error-state">Daten nicht verfügbar.<br>${escapeHtml(error.message || "")}</div>`;
+      }
+    }
+
     function render() {
-      iframes.forEach((el, i) => el.classList.toggle("active", i === current));
+      const module = SCREEN_MODULES[current];
       dots.forEach((d, i) => d.classList.toggle("active", i === current));
-      hudLabel.textContent = SCREENS[current].label;
-      topCounter.textContent = `${current + 1}/${SCREENS.length}`;
+      navLabel.textContent = module.label;
+      topCounter.textContent = `${current + 1}/${SCREEN_MODULES.length}`;
+      content.scrollTop = 0;
       restartProgressBar();
+      loadScreen(current);
+
+      clearInterval(refreshTimer);
+      refreshTimer = setInterval(() => loadScreen(current), module.refreshMs);
     }
 
     function restartProgressBar() {
       progressFill.style.animation = "none";
-      // Reflow erzwingen, damit die Animation beim erneuten Setzen
-      // wirklich von vorne beginnt statt einfach weiterzulaufen.
-      void progressFill.offsetWidth;
+      void progressFill.offsetWidth; // Reflow erzwingen -- sonst läuft die Animation nur weiter statt neu zu starten
       progressFill.style.animation = `fillBar ${ROTATE_MS / 1000}s linear forwards`;
       progressFill.style.animationPlayState = playing ? "running" : "paused";
     }
 
     function goTo(index) {
-      current = ((index % SCREENS.length) + SCREENS.length) % SCREENS.length;
+      current = ((index % SCREEN_MODULES.length) + SCREEN_MODULES.length) % SCREEN_MODULES.length;
       render();
       if (playing) startTimer();
     }
     function next() { goTo(current + 1); }
     function prev() { goTo(current - 1); }
 
-    function startTimer() {
-      stopTimer();
-      timer = setInterval(next, ROTATE_MS);
-    }
-    function stopTimer() {
-      if (timer) clearInterval(timer);
-      timer = null;
-    }
+    function startTimer() { stopTimer(); timer = setInterval(next, ROTATE_MS); }
+    function stopTimer() { if (timer) clearInterval(timer); timer = null; }
 
     function setPlaying(value) {
       playing = value;
       btnPlay.innerHTML = playing ? "&#10074;&#10074;" : "&#9654;";
       if (playing) startTimer(); else stopTimer();
       progressFill.style.animationPlayState = playing ? "running" : "paused";
-
-      topStatus.className = "status" + (playing ? " live" : " calm");
+      topStatus.className = playing ? "live" : "";
       topDot.className = "live-dot" + (playing ? "" : " calm");
       topStatusText.textContent = playing ? "ROTATING" : "PAUSED";
     }
 
-    function showHud() {
-      hud.classList.add("visible");
-      clearTimeout(hideHudTimer);
-      hideHudTimer = setTimeout(() => hud.classList.remove("visible"), 4000);
-    }
-
-    // Sichtbare Bestätigung beim Antippen (kein Haptik-Feedback im
-    // Browser verfügbar) -- kurzer Ring an der Tap-Position.
-    function pulseAt(x, y) {
-      const el = document.createElement("div");
-      el.className = "tap-pulse";
-      el.style.left = `${x}px`;
-      el.style.top = `${y}px`;
-      document.body.appendChild(el);
-      requestAnimationFrame(() => el.classList.add("animate"));
-      setTimeout(() => el.remove(), 450);
-    }
-
-    function bindTapZone(el, action) {
-      el.addEventListener("click", (e) => {
-        pulseAt(e.clientX, e.clientY);
-        action();
-        showHud();
-      });
-    }
-
-    bindTapZone(document.getElementById("tapPrev"), prev);
-    bindTapZone(document.getElementById("tapNext"), next);
-    bindTapZone(document.getElementById("tapPlay"), () => setPlaying(!playing));
-
-    document.getElementById("btnPrev").addEventListener("click", (e) => { e.stopPropagation(); prev(); showHud(); });
-    document.getElementById("btnNext").addEventListener("click", (e) => { e.stopPropagation(); next(); showHud(); });
-    document.getElementById("btnPlay").addEventListener("click", (e) => { e.stopPropagation(); setPlaying(!playing); showHud(); });
+    document.getElementById("btnPrev").addEventListener("click", prev);
+    document.getElementById("btnNext").addEventListener("click", next);
+    document.getElementById("btnPlay").addEventListener("click", () => setPlaying(!playing));
+    topStatus.addEventListener("click", () => setPlaying(!playing));
 
     document.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowLeft") { prev(); showHud(); }
-      else if (e.key === "ArrowRight") { next(); showHud(); }
-      else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); showHud(); }
+      if (e.key === "ArrowLeft") prev();
+      else if (e.key === "ArrowRight") next();
+      else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
     });
 
-    // Kurzer Hinweis beim ersten Laden, verschwindet nach 4s.
-    hint.classList.add("visible");
-    setTimeout(() => hint.classList.remove("visible"), 4000);
+    // Swipe links/rechts auf dem Inhaltsbereich zum manuellen Blättern --
+    // nur wenn die horizontale Bewegung deutlich überwiegt, damit
+    // normales vertikales Scrollen nicht versehentlich als Wisch zählt.
+    (function bindSwipe() {
+      let startX = 0, startY = 0, tracking = false;
+      content.addEventListener("touchstart", (e) => {
+        if (e.touches.length !== 1) return;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY; tracking = true;
+      }, { passive: true });
+      content.addEventListener("touchend", (e) => {
+        if (!tracking) return;
+        tracking = false;
+        const dx = e.changedTouches[0].clientX - startX;
+        const dy = e.changedTouches[0].clientY - startY;
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          if (dx < 0) next(); else prev();
+        }
+      }, { passive: true });
+    })();
+
+    function escapeHtml(value) {
+      return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    }
 
     setPlaying(true);
     render();
-    showHud();
 
     // --- "Zum Home-Bildschirm hinzufügen"-Hinweis: nur auf iPhone, nur
-    // wenn nicht schon im Standalone-Modus (Home-Bildschirm-App) offen,
-    // und nur einmal (per localStorage gemerkt). ---
+    // wenn nicht schon im Standalone-Modus offen, nur einmal. ---
     (function maybeShowA2HS() {
       const isIphone = /iphone/i.test(navigator.userAgent);
       const isStandalone = window.navigator.standalone === true;
       let dismissed = false;
-      try { dismissed = localStorage.getItem("rudi-a2hs-dismissed") === "1"; } catch (error) { /* Privater Modus o.ä. -- dann eben jedes Mal zeigen */ }
+      try { dismissed = localStorage.getItem("rudi-a2hs-dismissed") === "1"; } catch (error) { /* z.B. privater Modus */ }
       if (!isIphone || isStandalone || dismissed) return;
-
       const banner = document.getElementById("a2hs");
       setTimeout(() => banner.classList.add("visible"), 1500);
-      document.getElementById("a2hsClose").addEventListener("click", (e) => {
-        e.stopPropagation();
+      document.getElementById("a2hsClose").addEventListener("click", () => {
         banner.classList.remove("visible");
         try { localStorage.setItem("rudi-a2hs-dismissed", "1"); } catch (error) { /* ignorieren */ }
       });
     })();
 
-    // --- Wake Lock: iPhone soll bei offener Seite nicht einschlafen.
-    // Screen Wake Lock API (Safari ab iOS 16.4). Wird beim Schlafen/
-    // Tab-Wechsel vom System selbst freigegeben -- bei Rückkehr in den
-    // Vordergrund hier erneut anfordern. ---
+    // --- Wake Lock: iPhone soll bei offener Seite nicht einschlafen
+    // (Safari ab iOS 16.4). Wird bei Rückkehr aus dem Hintergrund
+    // erneut angefordert, da das System es sonst freigibt. ---
     let wakeLock = null;
-
     function setWakeStatus(active, text) {
       wakeDot.className = "wake-dot" + (active ? "" : " off");
       wakeText.textContent = text;
     }
-
     async function requestWakeLock() {
-      if (!("wakeLock" in navigator)) {
-        setWakeStatus(false, "Wake Lock nicht unterstützt");
-        return;
-      }
+      if (!("wakeLock" in navigator)) { setWakeStatus(false, "Wake Lock nicht unterstützt"); return; }
       try {
         wakeLock = await navigator.wakeLock.request("screen");
         setWakeStatus(true, "Display bleibt an");
-        wakeLock.addEventListener("release", () => {
-          setWakeStatus(false, "Display-Sperre inaktiv");
-        });
+        wakeLock.addEventListener("release", () => setWakeStatus(false, "Display-Sperre inaktiv"));
       } catch (error) {
         setWakeStatus(false, "Display bleibt an: nicht möglich");
         console.error(error);
       }
     }
-
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") requestWakeLock();
     });
-
     requestWakeLock();
   </script>
 </body>
