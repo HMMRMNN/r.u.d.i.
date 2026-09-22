@@ -1,0 +1,38 @@
+name = "rudi"
+main = "src/index.js"
+compatibility_date = "2024-09-01"
+
+# KV-Namespace-Binding "RUDI_KV" -- die ID ist kontobezogen und nicht
+# im Code sichtbar. So findest du sie:
+#   wrangler kv namespace list
+# (oder im Dashboard: Workers & Pages -> KV -> Namespace anklicken,
+# die ID steht in der URL/Übersicht). Trag sie unten anstelle von
+# "TODO-KV-NAMESPACE-ID" ein, bevor der erste Deploy läuft --
+# ansonsten schlägt "wrangler deploy" fehl.
+[[kv_namespaces]]
+binding = "RUDI_KV"
+id = "TODO-KV-NAMESPACE-ID"
+
+# Service Binding zum separaten "aviradar-api"-Worker (siehe
+# handleFlightProxy in src/index.js für den Hintergrund: normale
+# fetch()-Aufrufe zwischen zwei Workers im selben Account über die
+# öffentliche URL scheitern an Cloudflare-Fehler 1042).
+[[services]]
+binding = "AVIRADAR_API_BINDING"
+service = "aviradar-api"
+
+# Täglicher Cron (Health-Check + Pizza-Fahrterkennung, siehe
+# scheduled() in src/index.js). Zeit in UTC -- 18:00 UTC ist 20:00
+# Berlin-Zeit im Sommer bzw. 19:00 im Winter. Falls im Dashboard unter
+# Settings -> Triggers -> Cron Triggers ein anderer Wert eingetragen
+# ist, hier entsprechend anpassen, damit wrangler deploy ihn nicht
+# stillschweigend überschreibt.
+[triggers]
+crons = ["0 18 * * *"]
+
+# Secrets (GITHUB_TOKEN, HOLFUY_KEY, INTERVALS_API_KEY,
+# INTERVALS_ATHLETE_ID, PARAGLIDABLE_KEY, TELEGRAM_BOT_TOKEN,
+# TELEGRAM_CHAT_ID) stehen bewusst NICHT hier -- die bleiben, wie sie
+# im Cloudflare-Dashboard unter Settings -> Variables and secrets
+# hinterlegt sind. "wrangler deploy" fasst Secrets nicht an, ändert
+# nur Code + die oben stehenden Bindings/Trigger.
