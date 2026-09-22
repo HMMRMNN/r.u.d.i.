@@ -12,18 +12,55 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet"
   />
 
   <style>
-    :root { color-scheme: dark; }
+    /* ---------------------------------------------------------------
+       Gleiches Design-System wie control.html (Zinc-Dunkelpalette,
+       JetBrains Mono/Inter, HUD-Eckenklammern, Dot-Grid-Hintergrund,
+       Live-Dot) -- betrifft NUR diese Hülle/Steuerleiste. Die
+       eingebetteten Original-Seiten (per iframe) bleiben unangetastet,
+       damit das physische E-Ink-Display unverändert bleibt.
+    --------------------------------------------------------------- */
+    :root {
+      --bg: #000000;
+      --panel: #0a0a0b;
+      --line: #27272a;      /* zinc-800 */
+      --line-soft: #18181b; /* zinc-900 */
+      --ink: #ffffff;
+      --ink-dim: #d4d4d8;   /* zinc-300 */
+      --ink-body: #a1a1aa;  /* zinc-400 */
+      --ink-label: #71717a; /* zinc-500 */
+      --ink-faint: #52525b; /* zinc-600 */
+      --ink-ghost: #3f3f46; /* zinc-700 */
+      --red: #ef4444;
+      --emerald: #10b981;
+      --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+      --sans: "Inter", -apple-system, "Segoe UI", Arial, sans-serif;
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-l: env(safe-area-inset-left, 0px);
+      --safe-r: env(safe-area-inset-right, 0px);
+      color-scheme: dark;
+    }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
     html, body {
       width: 100%; height: 100%; margin: 0; padding: 0;
-      background: #000; overflow: hidden;
-      font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      background: var(--bg); overflow: hidden;
+      font-family: var(--sans);
       -webkit-touch-callout: none;
+      touch-action: manipulation;
+      overscroll-behavior: none;
+    }
+
+    #stage {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background-color: var(--bg);
+      background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 18px 18px;
     }
 
     /* Die Original-Seiten sind fest auf 800x480 gebaut (siehe .frame in
@@ -32,11 +69,6 @@
        kompletten 800x480-Block per JS auf die verfügbare Fläche.
        filter: invert(1) dreht Schwarz/Weiß um, ohne die Seiten selbst
        anzufassen -- exakt das gewünschte "invertiert fürs iPhone". */
-    #stage {
-      position: fixed; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      background: #000;
-    }
     #frameWrap {
       position: relative;
       width: 800px; height: 480px;
@@ -55,6 +87,30 @@
     }
     iframe.screen.active { opacity: 1; }
 
+    /* HUD-Eckenklammern um die Bühne herum -- skalieren automatisch mit
+       (liegen innerhalb von #frameWrap, das transform: scale() trägt),
+       bleiben also immer proportional zum Rahmen, wie eine Gerätefassung. */
+    .stage-corner { position: absolute; width: 22px; height: 22px; border: 2px solid var(--ink-ghost); pointer-events: none; }
+    .stage-corner.tl { top: -14px; left: -14px; border-right: none; border-bottom: none; }
+    .stage-corner.tr { top: -14px; right: -14px; border-left: none; border-bottom: none; }
+    .stage-corner.bl { bottom: -14px; left: -14px; border-right: none; border-top: none; }
+    .stage-corner.br { bottom: -14px; right: -14px; border-left: none; border-top: none; }
+
+    /* Tap-Feedback: kurzer Puls beim Antippen -- ersetzt fehlendes
+       haptisches Feedback im Browser durch eine sichtbare Bestätigung. */
+    .tap-pulse {
+      position: fixed; z-index: 20; pointer-events: none;
+      width: 64px; height: 64px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.5);
+      transform: translate(-50%, -50%) scale(0.4);
+      opacity: 0;
+    }
+    .tap-pulse.animate { animation: tapPulse .4s ease-out forwards; }
+    @keyframes tapPulse {
+      0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0.8; }
+      100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+    }
+
     /* Unsichtbare Tap-Zonen über allem -- links/rechts blättern manuell,
        Mitte schaltet Play/Pause. Liegen über den iframes (die selbst
        pointer-events:none haben), damit kein Tap versehentlich mit der
@@ -62,68 +118,136 @@
     #tapZones { position: fixed; inset: 0; display: flex; z-index: 5; }
     #tapZones > div { flex: 1 1 0; }
 
-    /* Steuerleiste: liegt über dem Content, blendet nach Inaktivität
-       aus, damit möglichst viel vom eigentlichen Screen sichtbar bleibt. */
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    .cursor-blink { animation: blink 1s step-start infinite; }
+
+    @keyframes pulse-glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+      background: var(--red); box-shadow: 0 0 8px rgba(239,68,68,0.6);
+      animation: pulse-glow 1.6s ease-in-out infinite;
+    }
+    .live-dot.calm { background: var(--ink-ghost); box-shadow: none; animation: none; }
+
+    /* ---- Persistenter Status-Streifen oben: bleibt immer sichtbar
+       (dezent), damit Rotationsstatus & Position auch ohne Tap sofort
+       ablesbar sind -- analog zur Topbar in control.html. ---- */
+    #topStrip {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      padding: calc(8px + var(--safe-t)) calc(14px + var(--safe-r)) 8px calc(14px + var(--safe-l));
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink-label);
+      background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
+      pointer-events: none;
+    }
+    #topStrip .brand { display: flex; align-items: center; gap: 7px; color: var(--ink-faint); }
+    #topStrip .brand b { color: var(--ink-dim); font-weight: 500; letter-spacing: 0.2em; }
+    #topStrip .status { display: flex; align-items: center; gap: 7px; }
+    #topStrip .status.calm { color: var(--ink-faint); }
+    #topStrip .status.live { color: var(--red); }
+    #topStrip .counter { color: var(--ink-faint); }
+
+    /* ---- Steuerleiste unten: liegt über dem Content, blendet nach
+       Inaktivität aus, damit möglichst viel vom Screen sichtbar bleibt.
+       Sharp/eckige Buttons statt Kreise, Eckenklammern-Panel -- gleiche
+       Sprache wie .ow-panel/.cta-btn in control.html. ---- */
     #hud {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-      padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-      background: linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.55) 70%, transparent);
-      color: #fff;
+      padding: 12px calc(14px + var(--safe-r)) calc(12px + var(--safe-b)) calc(14px + var(--safe-l));
+      background: linear-gradient(to top, rgba(0,0,0,0.94), rgba(0,0,0,0.6) 65%, transparent);
       opacity: 0; pointer-events: none;
       transition: opacity .3s ease;
     }
     #hud.visible { opacity: 1; pointer-events: auto; }
 
-    #hudRow { display: flex; align-items: center; gap: 12px; }
+    #hudPanel { position: relative; border: 1px solid var(--line); background: var(--panel); padding: 10px 12px; }
+    .corner { position: absolute; width: 9px; height: 9px; border: 1px solid var(--ink-ghost); pointer-events: none; }
+    .corner.tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+    .corner.tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+    .corner.bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+    .corner.br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+    #hudRow { display: flex; align-items: center; gap: 10px; }
     .hud-btn {
-      flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.5); background: transparent;
-      color: #fff; font-size: 13px; display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
+      flex-shrink: 0; width: 44px; height: 44px;
+      border: 1px solid var(--line); background: transparent;
+      color: var(--ink-dim); font-size: 15px; font-family: var(--mono);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: border-color .15s, background-color .15s, color .15s;
     }
-    .hud-btn:active { background: rgba(255,255,255,0.15); }
+    .hud-btn:active { background: var(--ink); border-color: var(--ink); color: #000; }
+    #hudInfo { flex: 1; min-width: 0; }
     #hudLabel {
-      flex: 1; min-width: 0; text-align: center;
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
-      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+      color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    #hudWake { font-size: 9px; opacity: 0.55; margin-top: 1px; }
+    #hudWake {
+      display: flex; align-items: center; gap: 6px; margin-top: 3px;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint);
+    }
+    .wake-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--emerald); flex-shrink: 0; }
+    .wake-dot.off { background: var(--ink-ghost); }
 
     #progressTrack {
-      margin-top: 8px; height: 2px; width: 100%;
-      background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden;
+      margin-top: 10px; height: 2px; width: 100%;
+      background: var(--line-soft); overflow: hidden;
     }
     #progressFill {
-      height: 100%; width: 0%; background: #fff; border-radius: 2px;
+      height: 100%; width: 0%; background: var(--ink);
       animation: fillBar 120s linear forwards;
       animation-play-state: paused;
     }
     @keyframes fillBar { from { width: 0%; } to { width: 100%; } }
 
-    #dots { display: flex; justify-content: center; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+    #dots { display: flex; justify-content: center; gap: 7px; margin-top: 10px; flex-wrap: wrap; }
     .dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      padding: 6px; margin: -6px; background-clip: content-box;
+      width: 5px; height: 5px; background: var(--ink-ghost);
+      padding: 7px; margin: -7px; background-clip: content-box;
       cursor: pointer;
     }
-    .dot.active { background: #fff; background-clip: content-box; }
+    .dot.active { background: var(--ink); background-clip: content-box; }
 
     #hint {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
-      padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
-      text-align: center; color: #fff; opacity: 0;
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
-      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      position: fixed; left: 0; right: 0; z-index: 15;
+      top: calc(38px + var(--safe-t));
+      text-align: center; color: var(--ink-body); opacity: 0;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
       transition: opacity .3s ease; pointer-events: none;
     }
-    #hint.visible { opacity: 0.6; }
+    #hint.visible { opacity: 1; }
+
+    /* ---- Einmaliger Hinweis: "Zum Home-Bildschirm hinzufügen" für den
+       randlosen Vollbildmodus ohne Safari-Leiste. ---- */
+    #a2hs {
+      position: fixed; left: 14px; right: 14px; z-index: 20;
+      bottom: calc(14px + var(--safe-b));
+      border: 1px solid var(--line); background: var(--panel);
+      padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+      transform: translateY(140%); transition: transform .35s ease;
+    }
+    #a2hs.visible { transform: translateY(0); }
+    #a2hs p { margin: 0; font-size: 12px; color: var(--ink-body); line-height: 1.5; flex: 1; }
+    #a2hs p b { color: var(--ink-dim); font-weight: 500; }
+    #a2hs button {
+      flex-shrink: 0; border: 1px solid var(--line); background: transparent; color: var(--ink-faint);
+      font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 8px 12px; cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <div id="stage">
-    <div id="frameWrap"></div>
+    <div id="frameWrap">
+      <span class="stage-corner tl"></span><span class="stage-corner tr"></span>
+      <span class="stage-corner bl"></span><span class="stage-corner br"></span>
+    </div>
+  </div>
+
+  <div id="topStrip">
+    <span class="brand"><b>R.U.D.I.</b> SCREENS</span>
+    <span class="status calm" id="topStatus"><span class="live-dot calm" id="topDot"></span><span id="topStatusText">ROTATING</span></span>
+    <span class="counter" id="topCounter">1/12</span>
   </div>
 
   <div id="hint">Tippen: vor/zurück &middot; Mitte: Pause</div>
@@ -135,17 +259,26 @@
   </div>
 
   <div id="hud">
-    <div id="hudRow">
-      <button class="hud-btn" id="btnPrev" title="Zurück">&#8249;</button>
-      <button class="hud-btn" id="btnPlay" title="Pause/Play">&#10074;&#10074;</button>
-      <button class="hud-btn" id="btnNext" title="Weiter">&#8250;</button>
-      <div style="flex:1; min-width:0;">
-        <div id="hudLabel">Laden…</div>
-        <div id="hudWake">Display bleibt an</div>
+    <div id="hudPanel">
+      <span class="corner tl"></span><span class="corner tr"></span>
+      <span class="corner bl"></span><span class="corner br"></span>
+      <div id="hudRow">
+        <button class="hud-btn" id="btnPrev" title="Zurück">&#8249;</button>
+        <button class="hud-btn" id="btnPlay" title="Pause/Play">&#10074;&#10074;</button>
+        <button class="hud-btn" id="btnNext" title="Weiter">&#8250;</button>
+        <div id="hudInfo">
+          <div id="hudLabel">Laden…</div>
+          <div id="hudWake"><span class="wake-dot" id="wakeDot"></span><span id="wakeText">Display bleibt an</span></div>
+        </div>
       </div>
+      <div id="progressTrack"><div id="progressFill"></div></div>
+      <div id="dots"></div>
     </div>
-    <div id="progressTrack"><div id="progressFill"></div></div>
-    <div id="dots"></div>
+  </div>
+
+  <div id="a2hs">
+    <p>Für randloses Vollbild: unten <b>Teilen</b> &rarr; <b>Zum Home-Bildschirm</b>.</p>
+    <button id="a2hsClose">Ok</button>
   </div>
 
   <script>
@@ -176,10 +309,15 @@
     const hud = document.getElementById("hud");
     const hint = document.getElementById("hint");
     const hudLabel = document.getElementById("hudLabel");
-    const hudWake = document.getElementById("hudWake");
+    const wakeDot = document.getElementById("wakeDot");
+    const wakeText = document.getElementById("wakeText");
     const btnPlay = document.getElementById("btnPlay");
     const progressFill = document.getElementById("progressFill");
     const dotsWrap = document.getElementById("dots");
+    const topStatus = document.getElementById("topStatus");
+    const topDot = document.getElementById("topDot");
+    const topStatusText = document.getElementById("topStatusText");
+    const topCounter = document.getElementById("topCounter");
 
     let current = 0;
     let playing = true;
@@ -225,7 +363,8 @@
     function render() {
       iframes.forEach((el, i) => el.classList.toggle("active", i === current));
       dots.forEach((d, i) => d.classList.toggle("active", i === current));
-      hudLabel.textContent = `${current + 1}/${SCREENS.length} — ${SCREENS[current].label}`;
+      hudLabel.textContent = SCREENS[current].label;
+      topCounter.textContent = `${current + 1}/${SCREENS.length}`;
       restartProgressBar();
     }
 
@@ -260,6 +399,10 @@
       btnPlay.innerHTML = playing ? "&#10074;&#10074;" : "&#9654;";
       if (playing) startTimer(); else stopTimer();
       progressFill.style.animationPlayState = playing ? "running" : "paused";
+
+      topStatus.className = "status" + (playing ? " live" : " calm");
+      topDot.className = "live-dot" + (playing ? "" : " calm");
+      topStatusText.textContent = playing ? "ROTATING" : "PAUSED";
     }
 
     function showHud() {
@@ -268,9 +411,29 @@
       hideHudTimer = setTimeout(() => hud.classList.remove("visible"), 4000);
     }
 
-    document.getElementById("tapPrev").addEventListener("click", () => { prev(); showHud(); });
-    document.getElementById("tapNext").addEventListener("click", () => { next(); showHud(); });
-    document.getElementById("tapPlay").addEventListener("click", () => { setPlaying(!playing); showHud(); });
+    // Sichtbare Bestätigung beim Antippen (kein Haptik-Feedback im
+    // Browser verfügbar) -- kurzer Ring an der Tap-Position.
+    function pulseAt(x, y) {
+      const el = document.createElement("div");
+      el.className = "tap-pulse";
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      document.body.appendChild(el);
+      requestAnimationFrame(() => el.classList.add("animate"));
+      setTimeout(() => el.remove(), 450);
+    }
+
+    function bindTapZone(el, action) {
+      el.addEventListener("click", (e) => {
+        pulseAt(e.clientX, e.clientY);
+        action();
+        showHud();
+      });
+    }
+
+    bindTapZone(document.getElementById("tapPrev"), prev);
+    bindTapZone(document.getElementById("tapNext"), next);
+    bindTapZone(document.getElementById("tapPlay"), () => setPlaying(!playing));
 
     document.getElementById("btnPrev").addEventListener("click", (e) => { e.stopPropagation(); prev(); showHud(); });
     document.getElementById("btnNext").addEventListener("click", (e) => { e.stopPropagation(); next(); showHud(); });
@@ -282,13 +445,32 @@
       else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); showHud(); }
     });
 
-    // Kurzer Hinweis beim ersten Laden, verschwindet zusammen mit der HUD.
+    // Kurzer Hinweis beim ersten Laden, verschwindet nach 4s.
     hint.classList.add("visible");
     setTimeout(() => hint.classList.remove("visible"), 4000);
 
+    setPlaying(true);
     render();
-    startTimer();
     showHud();
+
+    // --- "Zum Home-Bildschirm hinzufügen"-Hinweis: nur auf iPhone, nur
+    // wenn nicht schon im Standalone-Modus (Home-Bildschirm-App) offen,
+    // und nur einmal (per localStorage gemerkt). ---
+    (function maybeShowA2HS() {
+      const isIphone = /iphone/i.test(navigator.userAgent);
+      const isStandalone = window.navigator.standalone === true;
+      let dismissed = false;
+      try { dismissed = localStorage.getItem("rudi-a2hs-dismissed") === "1"; } catch (error) { /* Privater Modus o.ä. -- dann eben jedes Mal zeigen */ }
+      if (!isIphone || isStandalone || dismissed) return;
+
+      const banner = document.getElementById("a2hs");
+      setTimeout(() => banner.classList.add("visible"), 1500);
+      document.getElementById("a2hsClose").addEventListener("click", (e) => {
+        e.stopPropagation();
+        banner.classList.remove("visible");
+        try { localStorage.setItem("rudi-a2hs-dismissed", "1"); } catch (error) { /* ignorieren */ }
+      });
+    })();
 
     // --- Wake Lock: iPhone soll bei offener Seite nicht einschlafen.
     // Screen Wake Lock API (Safari ab iOS 16.4). Wird beim Schlafen/
@@ -296,19 +478,24 @@
     // Vordergrund hier erneut anfordern. ---
     let wakeLock = null;
 
+    function setWakeStatus(active, text) {
+      wakeDot.className = "wake-dot" + (active ? "" : " off");
+      wakeText.textContent = text;
+    }
+
     async function requestWakeLock() {
       if (!("wakeLock" in navigator)) {
-        hudWake.textContent = "Wake Lock nicht unterstützt";
+        setWakeStatus(false, "Wake Lock nicht unterstützt");
         return;
       }
       try {
         wakeLock = await navigator.wakeLock.request("screen");
-        hudWake.textContent = "Display bleibt an";
+        setWakeStatus(true, "Display bleibt an");
         wakeLock.addEventListener("release", () => {
-          hudWake.textContent = "Display-Sperre inaktiv";
+          setWakeStatus(false, "Display-Sperre inaktiv");
         });
       } catch (error) {
-        hudWake.textContent = "Display bleibt an: nicht möglich";
+        setWakeStatus(false, "Display bleibt an: nicht möglich");
         console.error(error);
       }
     }
