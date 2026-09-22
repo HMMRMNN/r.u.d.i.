@@ -709,7 +709,7 @@ async function handleDhvNordalpen(request, env) {
   const timeout = setTimeout(() => controller.abort(), 10000);
   try {
     const response = await fetch("https://www.dhv.de/wetter/dhv-wetter/", {
-      headers: { "User-Agent": "R.U.D.I.-Dashboard/1.0", Accept: "text/html" }, cache: "no-store", signal: controller.signal,
+      headers: { "User-Agent": "R.U.D.I.-Dashboard/1.0", Accept: "text/html" }, signal: controller.signal,
     });
     if (!response.ok) throw new Error(`DHV returned HTTP ${response.status}`);
     const text = htmlToText(await response.text());
@@ -784,7 +784,7 @@ async function handleDwdSegelflugwetter(request, env) {
   const timeout = setTimeout(() => controller.abort(), 10000);
   try {
     const response = await fetch("https://www.dwd.de/DE/fachnutzer/luftfahrt/teaser/luftsportberichte/fbdl60_edzm_node.html", {
-      headers: { "User-Agent": "R.U.D.I.-Dashboard/1.0", Accept: "text/html" }, cache: "no-store", signal: controller.signal,
+      headers: { "User-Agent": "R.U.D.I.-Dashboard/1.0", Accept: "text/html" }, signal: controller.signal,
     });
     if (!response.ok) throw new Error(`DWD returned HTTP ${response.status}`);
     const text = htmlToText(await response.text());
@@ -844,7 +844,7 @@ async function handleWeatherWarnings(request, env) {
     queryUrl.searchParams.set("f", "json");
 
     const response = await fetch(queryUrl.toString(), {
-      headers: { Accept: "application/json" }, cache: "no-store", signal: controller.signal,
+      headers: { Accept: "application/json" }, signal: controller.signal,
     });
     if (!response.ok) throw new Error(`DWD ArcGIS returned HTTP ${response.status}`);
     const data = await response.json();
@@ -896,7 +896,7 @@ async function handleChiemseeWaterTemp(request, env) {
   try {
     const response = await fetch(
       "https://www.gkd.bayern.de/de/seen/wassertemperatur/inn/stock-18400503/messwerte",
-      { headers: { "User-Agent": "R.U.D.I.-Dashboard/1.0", Accept: "text/html" }, cache: "no-store", signal: controller.signal }
+      { headers: { "User-Agent": "R.U.D.I.-Dashboard/1.0", Accept: "text/html" }, signal: controller.signal }
     );
     if (!response.ok) throw new Error(`GKD Bayern returned HTTP ${response.status}`);
     const html = await response.text();
@@ -969,7 +969,7 @@ async function handleChiemseeWaterTempHistory(request, env) {
   try {
     const response = await fetch(
       "https://www.gkd.bayern.de/de/seen/wassertemperatur/inn/stock-18400503/jahreswerte",
-      { headers: { "User-Agent": "R.U.D.I.-Dashboard/1.0", Accept: "text/html" }, cache: "no-store", signal: controller.signal }
+      { headers: { "User-Agent": "R.U.D.I.-Dashboard/1.0", Accept: "text/html" }, signal: controller.signal }
     );
     if (!response.ok) throw new Error(`GKD Bayern returned HTTP ${response.status}`);
     const html = await response.text();
@@ -1035,7 +1035,6 @@ async function handleParagliders(request, env) {
         Accept: "text/xml",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
       },
-      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -1148,7 +1147,6 @@ async function handleHolfuy(request, env) {
         const url = `https://api.holfuy.com/live/?s=${station.id}&pw=${env.HOLFUY_KEY}&m=JSON&tu=C&su=km%2Fh`;
         const response = await fetch(url, {
           headers: { Accept: "application/json" },
-          cache: "no-store",
         });
 
         if (!response.ok) {
@@ -1246,7 +1244,6 @@ async function handleAvalanche(request, env) {
   try {
     const response = await fetch(AVALANCHE_SOURCE_URL, {
       headers: { Accept: "application/xml" },
-      cache: "no-store",
     });
 
     if (response.status === 404) {
@@ -1439,7 +1436,6 @@ async function fetchTrainingActivities(env) {
   for (const authHeader of intervalsAuthHeaders(env)) {
     const response = await fetch(url, {
       headers: { ...authHeader, Accept: "application/json" },
-      cache: "no-store",
     });
 
     if (response.status === 401 || response.status === 403) {
@@ -1659,7 +1655,6 @@ async function fetchAthleteEftp(env) {
     try {
       const response = await fetch(url, {
         headers: { ...authHeader, Accept: "application/json" },
-        cache: "no-store",
       });
 
       if (response.status === 401 || response.status === 403) continue;
@@ -1717,7 +1712,6 @@ async function fetchTrainingWellness(env) {
     try {
       const response = await fetch(url, {
         headers: { ...authHeader, Accept: "application/json" },
-        cache: "no-store",
       });
 
       if (response.status === 401 || response.status === 403) continue;
@@ -2393,7 +2387,6 @@ async function handleTrainingDebug(request, env) {
 
       const actRes = await fetch(actUrl, {
         headers: { ...authHeader, Accept: "application/json" },
-        cache: "no-store",
       });
 
       if (actRes.status === 401 || actRes.status === 403) continue;
@@ -2412,7 +2405,6 @@ async function handleTrainingDebug(request, env) {
 
       const profRes = await fetch(`${INTERVALS_API}/athlete/${env.INTERVALS_ATHLETE_ID}`, {
         headers: { ...authHeader, Accept: "application/json" },
-        cache: "no-store",
       });
 
       if (profRes.ok) {
@@ -2567,7 +2559,6 @@ async function handleParaglidable(request, env) {
   try {
     const response = await fetch(upstreamUrl, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
       signal: controller.signal,
     });
 
