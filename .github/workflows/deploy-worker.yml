@@ -1,0 +1,26 @@
+name: Deploy R.U.D.I. Worker
+
+# Läuft nur, wenn sich am Worker selbst etwas ändert -- ein Commit an
+# den statischen Seiten (weather.html usw.) soll hier keinen Deploy
+# auslösen, das übernimmt weiterhin GitHub Pages von allein.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "worker/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Deploy per Wrangler
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: worker
