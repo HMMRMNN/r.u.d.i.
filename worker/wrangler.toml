@@ -2,6 +2,11 @@ name = "rudi"
 main = "src/index.js"
 compatibility_date = "2024-09-01"
 
+# Explizit gesetzt, damit wrangler den Account nicht per /memberships-API
+# auflösen muss -- der CI-Token hat bewusst nur "Workers Scripts: Edit"
+# und keine "Account Settings: Read"-Berechtigung.
+account_id = "2457993927c5e73db54e7f11356e20cd"
+
 # KV-Namespace-Binding "RUDI_KV" -> Namespace "rudi-data" im Dashboard.
 [[kv_namespaces]]
 binding = "RUDI_KV"
