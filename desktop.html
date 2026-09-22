@@ -363,7 +363,12 @@
   .warning-desc { font-size: 12.5px; color: var(--ink); margin: 8px 0 0; line-height: 1.5; }
   .warning-time { font-family: "JetBrains Mono", monospace; font-size: 10px; margin: 8px 0 0; color: var(--ink-soft); }
   .calm-state { display: flex; align-items: center; gap: 14px; padding: 20px; }
-  .calm-mark { font-size: 36px; color: var(--accent); }
+  .calm-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    background: var(--forest); box-shadow: 0 0 8px rgba(127,203,158,0.5);
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  .calm-status { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 2px; color: var(--ink); }
 
   /* Schnee */
   .avalanche-badge { display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 0; font-weight: 800; font-size: 22px; }
@@ -2313,7 +2318,7 @@
       try {
         const data = await fetchJson(`${RUDI_WORKER}/warnings/traunstein`, { headers: { Accept: "application/json" } });
         if (!data.warnings || !data.warnings.length) {
-          el.innerHTML = `<div class="panel calm-state"><span class="calm-mark">✓</span><div><strong>Keine Warnungen</strong><p class="stat-meta">Landkreis Traunstein</p></div></div>`;
+          el.innerHTML = `<div class="panel calm-state"><span class="calm-dot"></span><div><p class="calm-status mono">Status: Keine aktiven Warnungen</p><p class="stat-meta">Landkreis Traunstein</p></div></div>`;
           return;
         }
         el.innerHTML = data.warnings.map((w) => {
