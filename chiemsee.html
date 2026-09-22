@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#000000" />
+<meta name="theme-color" content="#ffffff" />
 <title>Chiemsee</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,7 +14,7 @@
 />
 
 <style>
-  :root { --black: #fff; --white: #000; }
+  :root { --black: #000; --white: #fff; }
   * { box-sizing: border-box; -webkit-font-smoothing: none; }
   html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--white); color: var(--black); font-family: "Work Sans", Arial, Helvetica, sans-serif; }
   .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
@@ -49,7 +49,7 @@
     display: flex; align-items: center; gap: 8px;
   }
   .rating-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--black); flex-shrink: 0; }
-  .rating-dot.medium { background: repeating-linear-gradient(45deg, #fff 0 2px, #000 2px 4px); }
+  .rating-dot.medium { background: repeating-linear-gradient(45deg, #000 0 2px, #fff 2px 4px); }
   .rating-dot.low { background: var(--white); border: 1.5px solid var(--black); }
   .rating-text { font-size: 11px; font-weight: 700; margin: 0; }
 
@@ -163,7 +163,7 @@
         if (month !== lastMonth) {
           const x = xFor(i);
           const monthLabel = new Date(2000, Number(month) - 1, 1).toLocaleDateString("de-DE", { month: "short" });
-          monthMarks += `<line x1="${x}" y1="${padY_top}" x2="${x}" y2="${H - padY_bottom}" stroke="#fff" stroke-width="0.5" stroke-dasharray="1 2"/>`;
+          monthMarks += `<line x1="${x}" y1="${padY_top}" x2="${x}" y2="${H - padY_bottom}" stroke="#000" stroke-width="0.5" stroke-dasharray="1 2"/>`;
           monthMarks += `<text x="${x}" y="${H - 3}" font-size="7" font-family="Roboto Mono, monospace" text-anchor="start">${monthLabel}</text>`;
           lastMonth = month;
         }
@@ -174,10 +174,10 @@
 
       return `
         <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-          <path d="${bandPath}" fill="#fff" opacity="0.12" stroke="none"/>
+          <path d="${bandPath}" fill="#000" opacity="0.12" stroke="none"/>
           ${monthMarks}
-          <path d="${meanPath}" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/>
-          <circle cx="${xFor(history.length - 1)}" cy="${lastY}" r="2.5" fill="#fff"/>
+          <path d="${meanPath}" fill="none" stroke="#000" stroke-width="1.8" stroke-linejoin="round"/>
+          <circle cx="${xFor(history.length - 1)}" cy="${lastY}" r="2.5" fill="#000"/>
           <text x="${xFor(history.length - 1)}" y="${lastY - 6}" font-size="9" font-family="Roboto Mono, monospace" font-weight="700" text-anchor="end">${last.meanC.toFixed(1)}°</text>
         </svg>
       `;

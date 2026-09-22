@@ -154,6 +154,21 @@ jobs:
                   except Exception:
                       pass
 
+                  # Zusätzlich auf Bilder warten (Tail-Logos in A.L.V.I.N.html,
+                  # Fotos in traffic.html/military.html) -- die werden erst NACH
+                  # dem obigen Daten-Check per <img src> nachgeladen, waren beim
+                  # Screenshot also oft noch leer ("Tails verschwunden" trotz
+                  # fertiger Flugliste). img.complete wird laut Spec auch bei
+                  # einem Ladefehler (404 o.ä.) true -- blockiert also nicht
+                  # dauerhaft, falls eine einzelne Bildquelle mal ausfällt.
+                  try:
+                      page.wait_for_function(
+                          "() => Array.from(document.images).every(img => img.complete)",
+                          timeout=4000,
+                      )
+                  except Exception:
+                      pass
+
                   raw_path = f"raw_{display_id}.png"
                   page.screenshot(path=raw_path)
                   browser.close()
