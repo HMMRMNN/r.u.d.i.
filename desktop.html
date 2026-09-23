@@ -12,14 +12,16 @@
   rel="stylesheet"
 />
 
-<!-- Echte Kartenbasis fuers Flugradar (Leaflet + CARTO Dark-Matter-Kacheln,
-     kein API-Key noetig) -- ersetzt dort den abstrakten Radar-Scope durch
-     eine echte Live-Tracker-Karte (Flightradar24-Stil). Lokal aus
-     vendor/leaflet/ eingebunden statt von einem externen CDN (unpkg) --
-     manche Netzwerke/Browser blockieren unbekannte Skript-CDNs, was die
-     ganze Seite mit "Flugdaten nicht verfügbar" abstürzen ließ, obwohl
-     die Flugdaten selbst da waren. Die Kartenkacheln kommen weiterhin
-     live von CARTO (kein Weg drumrum ohne eigenen Tile-Server). -->
+<!-- Echte Kartenbasis fuers Flugradar (Leaflet + Esri "World Dark Gray"-
+     Kacheln, kein API-Key noetig) -- ersetzt dort den abstrakten
+     Radar-Scope durch eine echte Live-Tracker-Karte (Flightradar24-Stil).
+     Lokal aus vendor/leaflet/ eingebunden statt von einem externen CDN
+     (unpkg) -- manche Netzwerke/Browser blockieren unbekannte Skript-
+     CDNs, was die ganze Seite mit "Flugdaten nicht verfügbar" abstürzen
+     ließ, obwohl die Flugdaten selbst da waren. Die Kartenkacheln kommen
+     weiterhin live von Esri (kein Weg drumrum ohne eigenen Tile-Server;
+     CARTOs bisher genutzter anonymer Endpunkt verlangt inzwischen einen
+     API-Key). -->
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <script src="vendor/leaflet/leaflet.js"></script>
 
@@ -178,7 +180,8 @@
   .legend-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
   /* ---- Flugradar: echte Live-Tracker-Karte statt Radar-Scope ---- */
-  .live-map-shell { height: 560px; position: relative; padding: 0; overflow: hidden; }
+  .live-radar-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+  .live-map-shell { height: 620px; position: relative; padding: 0; overflow: hidden; }
   .live-map { position: absolute; inset: 0; }
   .leaflet-container { background: #0a0a0b; font-family: "Roboto Mono", monospace; }
   .leaflet-control-attribution { background: rgba(10,10,11,0.75) !important; color: var(--ink-soft) !important; font-size: 9px !important; }
@@ -200,10 +203,14 @@
   }
   .live-map-legend span { display: inline-flex; align-items: center; gap: 6px; }
 
-  .flight-strip-wrap { margin-top: 16px; }
-  .flight-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+  .flight-list-wrap { height: 620px; display: flex; flex-direction: column; }
+  .flight-strip {
+    display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; min-height: 0; padding-right: 4px;
+  }
+  .flight-strip::-webkit-scrollbar { width: 8px; }
+  .flight-strip::-webkit-scrollbar-thumb { background: var(--line); border-radius: 0; }
   .flight-chip {
-    flex: 0 0 210px; border: 1px solid var(--line); background: var(--panel); padding: 10px 12px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); padding: 10px 12px; cursor: pointer;
     display: flex; gap: 10px; align-items: center; border-left: 3px solid transparent;
     transition: background-color .15s, border-color .15s, box-shadow .15s;
   }
@@ -583,18 +590,20 @@
           </div>
           <span class="mono" id="flightradarStamp" style="font-size:11px; color:var(--ink-soft);">Stand: lädt…</span>
         </div>
-        <div class="panel live-map-shell">
-          <div id="liveMap" class="live-map"></div>
-          <div id="flightDetailFloat" class="flight-detail-float"></div>
-          <div class="live-map-legend">
-            <span><span class="legend-swatch" style="background:var(--sky)"></span>Linienflug</span>
-            <span><span class="legend-swatch" style="background:var(--accent)"></span>Besonders</span>
-            <span><span class="legend-swatch" style="background:var(--brick)"></span>Militär / Notfall-Squawk</span>
+        <div class="live-radar-layout">
+          <div class="panel live-map-shell">
+            <div id="liveMap" class="live-map"></div>
+            <div id="flightDetailFloat" class="flight-detail-float"></div>
+            <div class="live-map-legend">
+              <span><span class="legend-swatch" style="background:var(--sky)"></span>Linienflug</span>
+              <span><span class="legend-swatch" style="background:var(--accent)"></span>Besonders</span>
+              <span><span class="legend-swatch" style="background:var(--brick)"></span>Militär / Notfall-Squawk</span>
+            </div>
           </div>
-        </div>
-        <div class="panel flight-strip-wrap">
-          <p class="panel-label">Alle Flugzeuge im Umkreis (<span id="flightCount">0</span>)</p>
-          <div class="flight-strip" id="flightStrip"><div class="empty-note">Lädt…</div></div>
+          <div class="panel flight-list-wrap">
+            <p class="panel-label">Alle Flugzeuge im Umkreis (<span id="flightCount">0</span>)</p>
+            <div class="flight-strip" id="flightStrip"><div class="empty-note">Lädt…</div></div>
+          </div>
         </div>
       </section>
 
@@ -1226,15 +1235,17 @@
       if (liveMap) return;
       if (typeof L === "undefined") throw new Error("Leaflet (vendor/leaflet/leaflet.js) ist nicht geladen.");
       liveMap = L.map("liveMap", { attributionControl: true, zoomControl: true }).setView([47.7756, 12.4552], 10);
-      // WICHTIG: {r} wird von Leaflet nur ersetzt, wenn detectRetina aktiv
-      // ist -- sonst bleibt "{r}" wörtlich in der URL stehen, jede
-      // Kachel-Anfrage geht ins Leere (404) und die Karte bleibt leer.
-      // Genau das war der Grund für "kaum etwas erkennbar".
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-        maxZoom: 18,
-        detectRetina: true,
-        subdomains: "abcd",
-        attribution: "&copy; OpenStreetMap &copy; CARTO",
+      // CARTOs anonyme Kachel-Endpunkte (basemaps.cartocdn.com) verlangen
+      // mittlerweile einen API-Key -- Esris "World Dark Gray"-Canvas ist
+      // seit Jahren stabil ohne Anmeldung/Key nutzbar, daher der Wechsel.
+      // Zwei Layer übereinander: Base (Flächen) + Reference (Straßen,
+      // Grenzen, Beschriftung), wie von Esri für diesen Stil vorgesehen.
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 16,
+        attribution: "Tiles &copy; Esri",
+      }).addTo(liveMap);
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 16,
       }).addTo(liveMap);
       // Reihenfolge wichtig: Trails zuerst hinzugefügt, damit sie unter
       // den Flugzeug-Markern liegen statt sie zu verdecken.
