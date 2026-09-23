@@ -3,114 +3,90 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#000000" />
   <title>Pizza-Bilanz</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet"
   />
 
   <style>
-    :root { --black:#000000; --white:#ffffff; }
+    /* ---------------------------------------------------------------
+       Design-System wie control.html/iphone.html: klar umrissene
+       Panels (dünner Rahmen) statt freier Typografie. Inter +
+       JetBrains Mono, streng monochrom, invertiert (schwarzer
+       Hintergrund). Gleiche Daten/Fetch-Logik wie bisher, nur
+       Layout/Optik neu.
+    --------------------------------------------------------------- */
+    :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
-      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      display: grid; place-items: center; font-family: "Inter", Arial, Helvetica, sans-serif;
       -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
     }
+    .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
+
     .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+    .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
-    .header {
-      position: absolute; top: 14px; left: 20px; right: 20px;
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--black);
-    }
-    .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
-    .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
-    .date-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
-    .date-badge .day { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
-    .date-badge .full { font-size: 10px; }
+    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; }
+    .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
+    .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
 
-    /* Zweispaltig wie bei weather.html/paragliding.html: links die
-       große Kennzahl stehend, rechts der visuelle Hauptteil. Löst das
-       vorherige Problem (Zahl und Text baseline-verrutscht nebeneinander). */
-    .main {
-      position: absolute; top: 58px; left: 20px; right: 20px; bottom: 34px;
-      display: grid; grid-template-rows: 1fr auto; gap: 0;
-    }
+    .col-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 8px; }
 
-    .top-row { display: grid; grid-template-columns: 220px 1fr; border-bottom: 1px solid var(--black); padding-bottom: 10px; }
+    .panel { border: 1px solid var(--line); padding: 14px 16px; }
+    .panel + .panel { margin-top: 14px; }
 
-    .stat-col { padding-right: 16px; border-right: 1px solid var(--black); text-align: left; }
-    .big-number { font-size: 84px; font-weight: 800; line-height: 1; letter-spacing: -0.04em; }
-    .big-label { margin-top: 2px; font-size: 13px; font-weight: 700; }
-    .big-sub { margin-top: 6px; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; }
+    .hero { display: flex; align-items: flex-end; gap: 16px; }
+    .hero-num { font-size: 96px; font-weight: 200; line-height: 0.82; letter-spacing: -0.04em; }
+    .hero-side { padding-bottom: 10px; }
+    .hero-label { font-size: 18px; font-weight: 400; }
+    .hero-sub { margin-top: 4px; font-size: 12px; opacity: 0.55; }
 
-    .stat-col .mini-stats { margin-top: 14px; display: grid; gap: 7px; }
-    .stat-col .mini-stat {
-      display: flex; justify-content: space-between; gap: 8px;
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10.5px;
-      padding-bottom: 6px; border-bottom: 1px solid #000;
-    }
-    .stat-col .mini-stat span:first-child { opacity: 0.7; }
-    .stat-col .mini-stat span:last-child { font-weight: 700; }
+    .stat-line { margin-top: 10px; font-size: 12px; letter-spacing: 0.02em; opacity: 0.7; }
+    .stat-line + .stat-line { margin-top: 4px; opacity: 0.55; }
 
-    /* ---- Die Stuecke ---- */
-    .slices {
-      padding-left: 18px; display: flex; flex-wrap: wrap; align-content: center; justify-content: flex-start;
-      gap: 10px;
-    }
-    .slice { flex: 0 0 auto; }
+    .slices { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .slice { flex: 0 0 auto; color: var(--black); }
     /* Angebissenes Stueck = der Rest, der nicht ganz voll wird.
        Gestrichelte Kontur, damit es sich klar vom vollen Stueck
        unterscheidet -- auf 1-Bit gibt es keine Halbtoene dafuer. */
     .slice.partial path.crustline { stroke-dasharray: 3 2.5; }
 
-    /* ---- Fusszeile mit den Fahrtdaten ---- */
-    .ride-row {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-      padding-top: 10px;
-    }
-    .ride-box { border: 1.5px solid var(--black); border-radius: 8px; padding: 9px 11px; text-align: left; }
-    .ride-box .rb-label { font-size: 8.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.65; }
-    .ride-box .rb-value { font-size: 19px; font-weight: 800; margin-top: 3px; line-height: 1; letter-spacing: -0.02em; }
-    .ride-box .rb-unit { font-size: 10px; font-weight: 600; }
+    .ride-row { margin-top: auto; display: flex; gap: 14px; }
+    .ride-item { flex: 1; border: 1px solid var(--line); padding: 10px 12px; }
+    .ride-label { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.5; }
+    .ride-value { margin-top: 4px; font-size: 21px; font-weight: 300; letter-spacing: -0.02em; }
+    .ride-unit { font-size: 12px; font-weight: 400; opacity: 0.65; }
 
-    .empty { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; gap: 8px; height: 100%; }
-    .empty .headline { font-size: 20px; font-weight: 800; }
-    .empty .sub { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; }
+    .empty { padding-top: 4px; }
+    .empty .headline { font-size: 20px; font-weight: 400; }
+    .empty .sub { margin-top: 6px; font-size: 12px; opacity: 0.6; }
 
     .footer {
-      position: absolute; left: 20px; right: 20px; bottom: 10px;
+      position: absolute; left: 34px; right: 34px; bottom: 14px;
       display: flex; align-items: center; justify-content: space-between; gap: 14px;
-      padding-top: 7px; border-top: 1px solid var(--black);
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
-      font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+      font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; opacity: 0.45;
     }
   </style>
 </head>
 
 <body>
   <main class="frame">
-    <header class="header">
-      <div>
-        <p class="brand">PIZZA-BILANZ</p>
-        <p class="subtitle" id="subtitle">L&auml;dt&hellip;</p>
+    <div class="canvas" id="canvas">
+      <div class="masthead">
+        <span class="mast-left mono">R.U.D.I. &middot; Pizza-Bilanz</span>
+        <span class="mast-right mono" id="mastDate">&ndash;</span>
       </div>
-      <div class="date-badge">
-        <div class="day" id="dayName">&ndash;</div>
-        <div class="full" id="fullDate">&ndash;</div>
-      </div>
-    </header>
-
-    <section class="main" id="main">
       <div class="empty"><div class="headline">L&auml;dt&hellip;</div></div>
-    </section>
+    </div>
 
-    <footer class="footer">
+    <footer class="footer mono">
       <span id="basis">Nach der letzten Radfahrt</span>
       <span id="updatedAt">Updating</span>
     </footer>
@@ -122,37 +98,34 @@
     const PIZZA_API = "https://rudi.marvinradar.workers.dev/pizza";
     const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 
-    const mainEl = document.getElementById("main");
-    const subtitle = document.getElementById("subtitle");
+    const canvas = document.getElementById("canvas");
     const updatedAt = document.getElementById("updatedAt");
-    const dayName = document.getElementById("dayName");
-    const fullDate = document.getElementById("fullDate");
+    const mastDate = document.getElementById("mastDate");
     const basisEl = document.getElementById("basis");
 
-    // Ein Pizzastueck. Bewusst nur schwarze Konturen und
-    // Vollschwarz-Details -- Graustufen wuerden beim 1-Bit-Threshold
-    // entweder verschwinden oder zu Flaechen zulaufen.
+    // Ein Pizzastueck. Bewusst nur Konturen und Vollflaechen-Details in
+    // currentColor -- auf dem invertierten (schwarzen) Hintergrund also
+    // weiß statt hartcodiert schwarz. Graustufen wuerden beim 1-Bit-
+    // Threshold entweder verschwinden oder zu Flaechen zulaufen.
     function sliceSvg(size, partial) {
       const s = size;
       return `<svg class="slice${partial ? " partial" : ""}" width="${s}" height="${s}" viewBox="0 0 100 100">
-        <path d="M50 6 L92 84 Q50 98 8 84 Z" fill="none" stroke="#000" stroke-width="4" stroke-linejoin="round"/>
-        <path class="crustline" d="M12 76 Q50 90 88 76" fill="none" stroke="#000" stroke-width="3.5"/>
-        <circle cx="40" cy="40" r="6" fill="#000"/>
-        <circle cx="60" cy="52" r="6" fill="#000"/>
-        <circle cx="36" cy="60" r="5" fill="#000"/>
-        <circle cx="58" cy="28" r="4.5" fill="#000"/>
+        <path d="M50 6 L92 84 Q50 98 8 84 Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+        <path class="crustline" d="M12 76 Q50 90 88 76" fill="none" stroke="currentColor" stroke-width="3.5"/>
+        <circle cx="40" cy="40" r="6" fill="currentColor"/>
+        <circle cx="60" cy="52" r="6" fill="currentColor"/>
+        <circle cx="36" cy="60" r="5" fill="currentColor"/>
+        <circle cx="58" cy="28" r="4.5" fill="currentColor"/>
       </svg>`;
     }
 
-    // Je mehr Stuecke, desto kleiner -- weniger Platz als vorher (rechte
-    // Spalte statt volle Breite), deshalb etwas kleiner gestuft.
     function sliceSize(count) {
-      if (count <= 3) return 92;
-      if (count <= 6) return 76;
-      if (count <= 9) return 62;
-      if (count <= 12) return 52;
-      if (count <= 20) return 42;
-      return 32;
+      if (count <= 3) return 78;
+      if (count <= 6) return 64;
+      if (count <= 9) return 52;
+      if (count <= 12) return 44;
+      if (count <= 20) return 36;
+      return 28;
     }
 
     function formatDate(iso) {
@@ -162,7 +135,7 @@
     }
 
     function formatDuration(minutes) {
-      if (!minutes) return "\u2013";
+      if (!minutes) return "–";
       const h = Math.floor(minutes / 60);
       const m = minutes % 60;
       return h > 0 ? `${h}:${String(m).padStart(2, "0")} h` : `${m} min`;
@@ -170,8 +143,9 @@
 
     async function load() {
       const now = new Date();
-      dayName.textContent = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" }).toUpperCase();
-      fullDate.textContent = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
+      const dayName = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" }).toUpperCase();
+      const fullDate = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
+      mastDate.textContent = `${dayName} · ${fullDate}`;
 
       try {
         const res = await fetch(PIZZA_API, { headers: { Accept: "application/json" }, cache: "no-store" });
@@ -192,11 +166,14 @@
     }
 
     function renderEmpty(data) {
-      subtitle.textContent = "Keine Fahrt";
-      mainEl.innerHTML = `
+      canvas.innerHTML = `
+        <div class="masthead">
+          <span class="mast-left mono">R.U.D.I. &middot; Pizza-Bilanz</span>
+          <span class="mast-right mono">${mastDate.textContent}</span>
+        </div>
         <div class="empty">
           <div class="headline">Noch keine Fahrt erfasst</div>
-          <div class="sub">${data.reason || "Nach der n\u00e4chsten Radfahrt geht es hier weiter"}</div>
+          <div class="sub mono">${data.reason || "Nach der nächsten Radfahrt geht es hier weiter"}</div>
         </div>`;
     }
 
@@ -214,41 +191,43 @@
       for (let i = 0; i < slices; i++) svgs += sliceSvg(size, false);
       if (showPartial) svgs += sliceSvg(size, true);
 
-      subtitle.textContent = `${data.kcal.toLocaleString("de-DE")} kcal verbrannt`;
-      basisEl.textContent = `1 St\u00fcck = ${data.kcalProStueck || 285} kcal`;
+      basisEl.textContent = `1 Stück = ${data.kcalProStueck || 285} kcal`;
 
-      mainEl.innerHTML = `
-        <div class="top-row">
-          <div class="stat-col">
-            <div class="big-number">${slices}</div>
-            <div class="big-label">St&uuml;ck Pizza verdient</div>
-            <div class="big-sub">${showPartial ? "+ 1 angebissenes" : "glatt aufgegangen"}</div>
+      canvas.innerHTML = `
+        <div class="masthead">
+          <span class="mast-left mono">R.U.D.I. &middot; Pizza-Bilanz</span>
+          <span class="mast-right mono">${mastDate.textContent}</span>
+        </div>
 
-            <div class="mini-stats">
-              <div class="mini-stat"><span>Verbrauch</span><span>${data.kcal.toLocaleString("de-DE")} kcal</span></div>
-              <div class="mini-stat"><span>Datum</span><span>${formatDate(data.date)}</span></div>
+        <div class="panel">
+          <div class="hero">
+            <div class="hero-num">${slices}</div>
+            <div class="hero-side">
+              <div class="hero-label">St&uuml;ck Pizza verdient</div>
+              <div class="hero-sub mono">${showPartial ? "+ 1 angebissenes" : "glatt aufgegangen"}</div>
             </div>
           </div>
+          <div class="stat-line mono">${data.kcal.toLocaleString("de-DE")} kcal verbrannt &middot; ${formatDate(data.date)}</div>
 
-          <div class="slices">${svgs || '<div class="big-sub">Nicht genug f&uuml;r ein ganzes St&uuml;ck</div>'}</div>
+          <div class="slices">${svgs || '<div class="hero-sub mono">Nicht genug f&uuml;r ein ganzes St&uuml;ck</div>'}</div>
         </div>
 
         <div class="ride-row">
-          <div class="ride-box">
-            <div class="rb-label">Distanz</div>
-            <div class="rb-value">${data.km}<span class="rb-unit"> km</span></div>
+          <div class="ride-item">
+            <div class="ride-label">Distanz</div>
+            <div class="ride-value">${data.km}<span class="ride-unit"> km</span></div>
           </div>
-          <div class="ride-box">
-            <div class="rb-label">H&ouml;henmeter</div>
-            <div class="rb-value">${data.elevation}<span class="rb-unit"> hm</span></div>
+          <div class="ride-item">
+            <div class="ride-label">H&ouml;henmeter</div>
+            <div class="ride-value">${data.elevation}<span class="ride-unit"> hm</span></div>
           </div>
-          <div class="ride-box">
-            <div class="rb-label">Dauer</div>
-            <div class="rb-value">${formatDuration(data.minutes)}</div>
+          <div class="ride-item">
+            <div class="ride-label">Dauer</div>
+            <div class="ride-value">${formatDuration(data.minutes)}</div>
           </div>
-          <div class="ride-box">
-            <div class="rb-label">Verbrauch</div>
-            <div class="rb-value">${data.kcal}<span class="rb-unit"> kcal</span></div>
+          <div class="ride-item">
+            <div class="ride-label">Verbrauch</div>
+            <div class="ride-value">${data.kcal}<span class="ride-unit"> kcal</span></div>
           </div>
         </div>
       `;

@@ -3,34 +3,38 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#000000" />
   <title>Flugradar</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet"
   />
 
   <style>
-    :root { --black:#000000; --white:#ffffff; --gray:#777777; }
+    /* ---------------------------------------------------------------
+       Design-System wie control.html/iphone.html: klar umrissene
+       Panels (dünner Rahmen) statt freier Typografie -- jedes Flugzeug
+       bekommt eine eigene Karte. Inter + JetBrains Mono, streng
+       monochrom, invertiert (schwarzer Hintergrund). Die Tail-Logo-Box
+       bleibt bewusst weiß (Logos/Filter sind für hellen Untergrund
+       gedacht) -- liest sich wie ein Foto-Passepartout, analog zu
+       military.html. Gleiche Daten/Fetch-Logik wie bisher, nur
+       Layout/Optik neu.
+    --------------------------------------------------------------- */
+    :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); --line-soft: rgba(255,255,255,0.14); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
-      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      display: grid; place-items: center; font-family: "Inter", Arial, Helvetica, sans-serif;
       -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
     }
-    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+    .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
 
-    .header {
-      position: absolute; top: 14px; left: 20px; right: 20px;
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--black);
-    }
-    .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
-    .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
-    .live-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+    .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
     /* Sehr subtil: kleiner, unauffälliger Kreis-Button, verschmilzt fast
        mit dem Rahmen -- fällt auf dem E-Ink-Screenshot kaum auf, ist im
@@ -46,61 +50,64 @@
 
     .location-modal {
       position: absolute; top: 26px; right: 6px; z-index: 20;
-      width: 220px; background: var(--white); border: 1.5px solid var(--black);
-      border-radius: 6px; padding: 10px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      width: 220px; background: #0a0a0a; border: 1px solid rgba(255,255,255,0.3);
+      padding: 12px 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
     }
-    .location-modal .lm-title { margin: 0 0 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .location-modal .lm-title { margin: 0 0 8px; font-size: 9.5px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.6; }
     .location-modal .lm-gps-btn {
-      width: 100%; padding: 6px 8px; font-size: 10.5px; font-family: "Work Sans", sans-serif;
-      border: 1px solid var(--black); border-radius: 4px; background: var(--white); cursor: pointer;
+      width: 100%; padding: 6px 8px; font-size: 10.5px; font-family: "Inter", sans-serif;
+      border: 1px solid rgba(255,255,255,0.3); background: transparent; color: var(--black); cursor: pointer;
     }
-    .location-modal .lm-gps-btn:hover { background: #f5f5f5; }
-    .location-modal .lm-or { margin: 8px 0 4px; font-size: 9px; opacity: 0.6; text-align: center; }
+    .location-modal .lm-gps-btn:hover { background: rgba(255,255,255,0.08); }
+    .location-modal .lm-or { margin: 8px 0 4px; font-size: 9px; opacity: 0.5; text-align: center; }
     .location-modal .lm-input {
-      width: 100%; padding: 5px 6px; font-size: 10.5px; font-family: "Work Sans", sans-serif;
-      border: 1px solid var(--black); border-radius: 4px; box-sizing: border-box;
+      width: 100%; padding: 5px 6px; font-size: 10.5px; font-family: "Inter", sans-serif;
+      border: 1px solid rgba(255,255,255,0.3); background: transparent; color: var(--black); box-sizing: border-box;
     }
     .location-modal .lm-buttons { display: flex; gap: 6px; margin-top: 8px; }
     .location-modal .lm-buttons button {
-      flex: 1; padding: 5px 0; font-size: 10px; font-family: "Work Sans", sans-serif;
-      border: 1px solid var(--black); border-radius: 4px; cursor: pointer;
+      flex: 1; padding: 5px 0; font-size: 10px; font-family: "Inter", sans-serif; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.3);
     }
-    .location-modal .lm-cancel { background: var(--white); }
-    .location-modal .lm-save { background: var(--black); color: var(--white); }
-    .location-modal .lm-status { margin: 6px 0 0; font-size: 9px; opacity: 0.7; min-height: 11px; }
+    .location-modal .lm-cancel { background: transparent; color: var(--black); }
+    .location-modal .lm-save { background: var(--black); color: var(--white); border-color: var(--black); }
+    .location-modal .lm-status { margin: 6px 0 0; font-size: 9px; opacity: 0.6; min-height: 11px; }
 
-    .aircraft-list { position: absolute; top: 58px; left: 20px; right: 20px; bottom: 34px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
-    .aircraft { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 10px 10px 8px; text-align: left; }
-    .aircraft + .aircraft { border-left: 1px solid var(--black); }
+    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+    .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
+    .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
 
-    .tail { display: grid; place-items: start center; width: 100%; height: 132px; min-height: 132px; padding: 0 2px 12px; border-bottom: 1px solid var(--black); }
+    .aircraft-list { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; min-height: 0; }
+    .aircraft { display: flex; flex-direction: column; min-width: 0; min-height: 0; border: 1px solid var(--line); }
+
+    .tail { display: grid; place-items: center; width: 100%; height: 118px; min-height: 118px; background: #ffffff; border-bottom: 1px solid var(--line); }
     .tail img {
-      display: block; width: 100%; max-width: 182px; max-height: 122px; object-fit: contain;
-      filter: grayscale(1) contrast(1.95) drop-shadow(0.5px 0 0 var(--black)) drop-shadow(-0.5px 0 0 var(--black)) drop-shadow(0 0.5px 0 var(--black)) drop-shadow(0 -0.5px 0 var(--black));
+      display: block; width: 100%; max-width: 178px; max-height: 108px; object-fit: contain;
+      filter: grayscale(1) contrast(1.95) drop-shadow(0.5px 0 0 #000) drop-shadow(-0.5px 0 0 #000) drop-shadow(0 0.5px 0 #000) drop-shadow(0 -0.5px 0 #000);
     }
-    .tail-fallback { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; }
+    .tail-fallback { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; color: #000000; }
 
-    .route-block { min-width: 0; padding: 9px 0 8px; border-bottom: 1px solid var(--black); }
-    .aircraft-type { margin: 0; font-family: "Work Sans", Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; }
-    .to-line { margin: 4px 0 2px; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; line-height: 1; }
-    .destination { margin: 0; font-family: "Work Sans", Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+    .route-block { min-width: 0; padding: 9px 10px 0; }
+    .aircraft-type { margin: 0; font-size: 14px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.1; opacity: 0.8; }
+    .to-line { margin: 3px 0 0; font-size: 11px; opacity: 0.5; }
+    .destination { margin: 1px 0 0; font-size: 19px; font-weight: 300; letter-spacing: -0.02em; line-height: 1.05; }
 
-    .details { min-width: 0; padding-top: 8px; }
-    .detail-group { padding: 0 0 7px; }
-    .detail-group + .detail-group { padding-top: 7px; border-top: 1px solid var(--black); }
+    .details { min-width: 0; padding: 9px 10px 10px; }
+    .detail-group { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line-soft); }
+    .detail-group:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 
-    .meta { margin: 0; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; line-height: 1.15; letter-spacing: -0.01em; overflow-wrap: anywhere; }
-    .meta + .meta { margin-top: 2px; }
-    .meta.route-meta { text-transform: uppercase; }
-    .meta.phase-meta { text-transform: uppercase; letter-spacing: 0.04em; }
+    .meta { margin: 0; font-size: 10px; opacity: 0.6; line-height: 1.25; overflow-wrap: anywhere; }
+    .meta strong { opacity: 1; font-weight: 600; }
+    .meta + .meta { margin-top: 1px; }
+    .meta.route-meta { text-transform: uppercase; opacity: 0.5; }
+    .meta.phase-meta { text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.45; }
 
     .footer {
-      position: absolute; left: 20px; right: 20px; bottom: 10px;
+      position: absolute; left: 34px; right: 34px; bottom: 14px;
       display: flex; align-items: center; justify-content: space-between; gap: 14px;
-      padding-top: 7px; border-top: 1px solid var(--black);
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+      font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; opacity: 0.45;
     }
-    .empty { position: absolute; inset: 58px 20px 34px; display: grid; place-items: center; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 13px; text-align: center; line-height: 1.2; }
+    .empty { font-size: 13px; opacity: 0.6; line-height: 1.3; }
 
     @media (max-width: 799px), (max-height: 479px) {
       body { place-items: start; }
@@ -124,19 +131,19 @@
       </div>
       <p class="lm-status" id="lmStatus"></p>
     </div>
-    <header class="header">
-      <div>
-        <p class="brand">FLUGRADAR</p>
-        <p class="subtitle">Live-Flugverfolgung &amp; Routeninfo</p>
+
+    <div class="canvas">
+      <div class="masthead">
+        <span class="mast-left mono">R.U.D.I. &middot; Flugradar</span>
+        <span class="mast-right mono">Live</span>
       </div>
-      <p class="live-badge">Live</p>
-    </header>
 
-    <section class="aircraft-list" id="aircraftList">
-      <div class="empty">Loading aircraft...</div>
-    </section>
+      <section class="aircraft-list" id="aircraftList">
+        <div class="empty mono">Loading aircraft...</div>
+      </section>
+    </div>
 
-    <footer class="footer">
+    <footer class="footer mono">
       <span id="footerCity">Loading location…</span>
       <span id="updatedAt">Updating</span>
     </footer>
@@ -328,7 +335,7 @@
         }
       } catch (error) {
         console.error(error);
-        aircraftList.innerHTML = '<div class="empty">Aircraft data unavailable.</div>';
+        aircraftList.innerHTML = '<div class="empty mono">Aircraft data unavailable.</div>';
         updatedAt.textContent = "Update failed";
       }
     }
@@ -417,7 +424,7 @@
 
     function renderAircraft(aircraft) {
       if (!aircraft.length) {
-        aircraftList.innerHTML = '<div class="empty">No airborne aircraft with route data nearby.</div>';
+        aircraftList.innerHTML = '<div class="empty mono">No airborne aircraft with route data nearby.</div>';
         return;
       }
 
@@ -455,22 +462,22 @@
               ` : `<span class="tail-fallback">AIR</span>`}
             </div>
             <div class="route-block">
-              <p class="aircraft-type">${escapeHtml(expandAircraftType(item.type))}</p>
-              <p class="to-line">→</p>
+              <p class="aircraft-type mono">${escapeHtml(expandAircraftType(item.type))}</p>
+              <p class="to-line mono">→</p>
               <p class="destination">${escapeHtml(item.destinationCity)}</p>
             </div>
             <div class="details">
-              <div class="detail-group"><p class="meta"><strong>${escapeHtml(flightLine)}${isSpecial ? " \u2605" : ""}</strong></p></div>
-              <div class="detail-group"><p class="meta route-meta">${escapeHtml(routeSummary)}</p></div>
+              <div class="detail-group"><p class="meta mono"><strong>${escapeHtml(flightLine)}${isSpecial ? " ★" : ""}</strong></p></div>
+              <div class="detail-group"><p class="meta route-meta mono">${escapeHtml(routeSummary)}</p></div>
               <div class="detail-group">
-                ${altitudeMeters !== null ? `<p class="meta">${escapeHtml(formatNumber(altitudeMeters))} m</p>` : ''}
-                ${speedKmh !== null ? `<p class="meta">${escapeHtml(formatNumber(speedKmh))} km/h</p>` : ''}
-                <p class="meta">${escapeHtml(`${Math.round(item.track)}°`)}</p>
+                ${altitudeMeters !== null ? `<p class="meta mono">${escapeHtml(formatNumber(altitudeMeters))} m</p>` : ''}
+                ${speedKmh !== null ? `<p class="meta mono">${escapeHtml(formatNumber(speedKmh))} km/h</p>` : ''}
+                <p class="meta mono">${escapeHtml(`${Math.round(item.track)}°`)}</p>
               </div>
               <div class="detail-group">
-                ${distanceToDestination ? `<p class="meta">${escapeHtml(distanceToDestination)}</p>` : ''}
-                ${distanceFromHQ ? `<p class="meta">${escapeHtml(distanceFromHQ)}</p>` : ''}
-                <p class="meta phase-meta">${escapeHtml(flightPhase)}</p>
+                ${distanceToDestination ? `<p class="meta mono">${escapeHtml(distanceToDestination)}</p>` : ''}
+                ${distanceFromHQ ? `<p class="meta mono">${escapeHtml(distanceFromHQ)}</p>` : ''}
+                <p class="meta phase-meta mono">${escapeHtml(flightPhase)}</p>
               </div>
             </div>
           </article>

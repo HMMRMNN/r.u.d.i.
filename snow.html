@@ -3,151 +3,94 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#000000" />
   <title>Schneebericht</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet"
   />
 
   <style>
-    :root { --black:#000000; --white:#ffffff; }
+    /* ---------------------------------------------------------------
+       Design-System wie control.html/iphone.html: klar umrissene
+       Panels (dünner Rahmen) und echte <table>-Elemente für
+       tabellarische Daten -- sorgt für sauber ausgerichtete Spalten
+       (der reine Flex-/Typografie-Ansatz vorher lief bei
+       unterschiedlich langen Zeilen "krumm"). Inter + JetBrains Mono,
+       streng monochrom, invertiert (schwarzer Hintergrund). Gleiche
+       Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
+    --------------------------------------------------------------- */
+    :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); --line-soft: rgba(255,255,255,0.14); }
     * { box-sizing: border-box; }
-
-    html, body {
-      width: 100%; height: 100%; margin: 0; overflow: hidden;
-      background: var(--white); color: var(--black);
-    }
-
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
-      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
-      -webkit-font-smoothing: none;
-      text-rendering: optimizeSpeed;
+      display: grid; place-items: center; font-family: "Inter", Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
     }
+    .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
 
-    .frame {
-      position: relative; width: 800px; height: 480px;
-      overflow: hidden; background: var(--white);
-      border: 1px solid var(--black);
-    }
+    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+    .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
-    .header {
-      position: absolute; top: 14px; left: 20px; right: 20px;
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--black);
-    }
+    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; }
+    .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
+    .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
 
-    .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
-    .subtitle {
-      margin: 4px 0 0; font-size: 11px; line-height: 1.1;
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
-    }
-    .date-badge {
-      text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
-    }
-    .date-badge .day { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
-    .date-badge .full { font-size: 10px; }
+    .col-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 8px; }
+    .stat-line { margin-top: 8px; font-size: 12px; letter-spacing: 0.02em; opacity: 0.7; }
+    .stat-line + .stat-line { margin-top: 4px; opacity: 0.55; }
 
-    .main {
-      position: absolute; top: 58px; left: 20px; right: 20px; bottom: 34px;
-      display: grid; grid-template-columns: 240px 1fr; gap: 0;
-    }
+    .split { display: flex; gap: 20px; flex: 1; min-height: 0; }
+    .split-col.narrow { flex: 0 0 230px; display: flex; flex-direction: column; gap: 12px; }
+    .split-col.wide { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
-    .overview { padding-right: 16px; border-right: 1px solid var(--black); }
+    .panel { border: 1px solid var(--line); padding: 12px 14px; }
+    .panel + .panel { margin-top: 12px; }
 
-    .snow-row { display: flex; gap: 14px; }
-    .snow-col { flex: 1 1 0; }
-    .snow-big { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
-    .snow-unit { font-size: 14px; font-weight: 700; }
-    .snow-lbl {
-      font-size: 8px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.6;
-    }
+    .dual-hero { display: flex; gap: 24px; }
+    .dual-hero-item { flex: 1; }
+    .dual-hero-value { font-size: 40px; font-weight: 200; line-height: 0.9; letter-spacing: -0.03em; }
+    .dual-hero-unit { font-size: 14px; font-weight: 300; opacity: 0.7; }
 
-    .mini-stats { margin-top: 12px; display: grid; gap: 6px; }
-    .mini-stat {
-      display: flex; justify-content: space-between; gap: 8px;
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10.5px;
-      padding-bottom: 5px; border-bottom: 1px solid #000;
-    }
-    .mini-stat span:first-child { opacity: 0.7; }
-    .mini-stat span:last-child { font-weight: 700; }
+    .info-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .info-row + .info-row { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+    .info-value { font-size: 13px; font-weight: 600; text-align: right; }
+    .info-hint { margin-top: 2px; font-size: 9.5px; opacity: 0.55; }
 
-    .info-box {
-      margin-top: 8px; padding: 7px 9px; border: 1.5px solid var(--black);
-    }
-    .info-box.foehn { border-style: dashed; }
-    .info-box.avalanche { border-style: solid; border-width: 2px; }
-    .info-box .label {
-      font-size: 7.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-    }
-    .info-box .value { margin-top: 2px; font-size: 14px; font-weight: 800; }
-    .info-box .hint { margin-top: 2px; font-size: 8.5px; opacity: 0.75; }
+    .resorts-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+    .rating-line { font-size: 12px; }
 
-    .resorts { padding-left: 18px; display: flex; flex-direction: column; }
+    table.data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    table.data-table th {
+      text-align: right; font-size: 9px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase;
+      opacity: 0.5; padding: 0 0 6px; border-bottom: 1px solid var(--line);
+    }
+    table.data-table th:first-child { text-align: left; }
+    table.data-table td { text-align: right; padding: 7px 0; border-bottom: 1px solid var(--line-soft); }
+    table.data-table td:first-child { text-align: left; }
+    table.data-table tr:last-child td { border-bottom: none; }
 
-    .resorts-head {
-      display: flex; align-items: baseline; justify-content: space-between;
-      margin-bottom: 6px;
-    }
-    .resorts-head h2 {
-      margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-    }
-    .rating {
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 700;
-      padding: 2px 8px; border: 1.5px solid var(--black);
-    }
-
-    .resort-table { width: 100%; border-collapse: collapse; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; }
-    .resort-table th, .resort-table td { text-align: left; padding: 4px 5px 5px 0; border-bottom: 1px solid #000; }
-    .resort-table th { font-size: 8px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.65; border-bottom: 1.5px solid var(--black); }
-
-    .sun-row {
-      margin-top: 10px; display: flex; gap: 16px;
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px;
-    }
-    .sun-row .item span { display: block; font-size: 7.5px; opacity: 0.6; text-transform: uppercase; }
-
-    .disclaimer {
-      margin-top: auto; padding-top: 6px; border-top: 1px solid #000;
-      font-size: 9.5px; line-height: 1.35;
-    }
+    .disclaimer { margin-top: 12px; font-size: 9.5px; line-height: 1.5; opacity: 0.5; }
+    .disclaimer strong { opacity: 1; font-weight: 600; }
 
     .footer {
-      position: absolute; left: 20px; right: 20px; bottom: 10px;
+      position: absolute; left: 34px; right: 34px; bottom: 14px;
       display: flex; align-items: center; justify-content: space-between; gap: 14px;
-      padding-top: 7px; border-top: 1px solid var(--black);
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace;
-      font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+      font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; opacity: 0.45;
     }
-
-    .empty {
-      position: absolute; inset: 58px 20px 34px; display: grid; place-items: center;
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 13px; text-align: center;
-    }
+    .empty { font-size: 13px; opacity: 0.6; }
   </style>
 </head>
 
 <body>
   <main class="frame">
-    <header class="header">
-      <div>
-        <p class="brand">SCHNEEBERICHT</p>
-        <p class="subtitle">Chiemgauer Skigebiete &amp; Tourenplanung</p>
-      </div>
-      <div class="date-badge">
-        <div class="day" id="dayName">&ndash;</div>
-        <div class="full" id="fullDate">&ndash;</div>
-      </div>
-    </header>
-
-    <section class="main" id="main">
-      <div class="empty">Loading&hellip;</div>
-    </section>
-
-    <footer class="footer">
+    <div class="canvas" id="canvas">
+      <div class="empty mono">Loading&hellip;</div>
+    </div>
+    <footer class="footer mono">
       <span>Grassau, Germany</span>
       <span id="updatedAt">Updating</span>
     </footer>
@@ -184,10 +127,8 @@
 
     const ALL_LOCATIONS = [VALLEY, ...RESORTS];
 
-    const mainEl = document.getElementById("main");
+    const canvas = document.getElementById("canvas");
     const updatedAt = document.getElementById("updatedAt");
-    const dayName = document.getElementById("dayName");
-    const fullDate = document.getElementById("fullDate");
 
     async function loadSnow() {
       try {
@@ -225,7 +166,7 @@
           `Updated ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`;
       } catch (error) {
         console.error(error);
-        mainEl.innerHTML = '<div class="empty">Schneedaten nicht verfügbar.</div>';
+        canvas.innerHTML = '<div class="empty mono">Schneedaten nicht verf&uuml;gbar.</div>';
         updatedAt.textContent = "Update failed";
       }
     }
@@ -250,10 +191,16 @@
       return dirs[Math.round(deg / 45) % 8];
     }
 
+    function ratingDot(rating) {
+      if (rating === "GUT") return "●";
+      if (rating === "MÄSSIG") return "◐";
+      return "○";
+    }
+
     function render(dataArray, avalancheData) {
       const now = new Date();
-      dayName.textContent = now.toLocaleDateString("de-DE", { weekday: "long" }).toUpperCase();
-      fullDate.textContent = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" });
+      const dayName = now.toLocaleDateString("de-DE", { weekday: "long" }).toUpperCase();
+      const fullDate = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" });
 
       const valleyData = extractPoint(dataArray[0]);
       const resortData = RESORTS.map((resort, i) => ({
@@ -286,76 +233,81 @@
       const rows = resortData.map((r) => `
         <tr>
           <td>${r.name}${r.avalancheRegion === "unklar" ? " *" : ""}</td>
-          <td>${r.elevation} m</td>
-          <td>${r.snowDepthCm} cm</td>
-          <td>+${r.newSnow24hCm} cm</td>
-          <td>${r.wind} km/h ${windDirLabel(r.windDir)}</td>
+          <td class="mono">${r.elevation} m</td>
+          <td class="mono">${r.snowDepthCm} cm</td>
+          <td class="mono">+${r.newSnow24hCm} cm</td>
+          <td class="mono">${r.wind} km/h ${windDirLabel(r.windDir)}</td>
         </tr>
       `).join("");
 
-      mainEl.innerHTML = `
-        <div class="overview">
-          <div class="snow-row">
-            <div class="snow-col">
-              <div class="snow-lbl">Tal (${VALLEY.elevation}m)</div>
-              <div class="snow-big">${valleyData.snowDepthCm}<span class="snow-unit">cm</span></div>
-            </div>
-            <div class="snow-col">
-              <div class="snow-lbl">Berg (${mainResort.elevation}m)</div>
-              <div class="snow-big">${mainResort.snowDepthCm}<span class="snow-unit">cm</span></div>
-            </div>
-          </div>
-
-          <div class="mini-stats">
-            <div class="mini-stat"><span>Neuschnee Berg 24h</span><span>+${mainResort.newSnow24hCm} cm</span></div>
-            <div class="mini-stat"><span>Temp Tal / Berg</span><span>${valleyData.temp}&deg; / ${mainResort.temp}&deg;C</span></div>
-            <div class="mini-stat"><span>Frostgrenze</span><span>${mainResort.freezingLevel} m</span></div>
-            <div class="mini-stat"><span>Wind Berg</span><span>${mainResort.wind} km/h ${windDirLabel(mainResort.windDir)}</span></div>
-          </div>
-
-          <div class="info-box avalanche">
-            <div class="label">Lawinenwarnstufe (Chiemgau West)</div>
-            <div class="value">${avalancheLabel}</div>
-            <div class="hint">${avalancheHint}</div>
-          </div>
-
-          <div class="info-box foehn">
-            <div class="label">F&ouml;hn / Nassschnee</div>
-            <div class="value">${foehnLabel}</div>
-            <div class="hint">${foehnHint}</div>
-          </div>
-
-          <div class="sun-row">
-            <div class="item"><span>Aufgang</span>${sunrise}</div>
-            <div class="item"><span>Untergang</span>${sunset}</div>
-          </div>
+      canvas.innerHTML = `
+        <div class="masthead">
+          <span class="mast-left mono">R.U.D.I. &middot; Schneebericht</span>
+          <span class="mast-right mono">${dayName} &middot; ${fullDate}</span>
         </div>
 
-        <div class="resorts">
-          <div class="resorts-head">
-            <h2>Skigebiete Chiemgau</h2>
-            <span class="rating">${rating}</span>
+        <div class="split">
+          <div class="split-col narrow">
+            <div class="panel">
+              <div class="dual-hero">
+                <div class="dual-hero-item">
+                  <p class="col-label">Tal (${VALLEY.elevation}m)</p>
+                  <div class="dual-hero-value">${valleyData.snowDepthCm}<span class="dual-hero-unit">cm</span></div>
+                </div>
+                <div class="dual-hero-item">
+                  <p class="col-label">Berg (${mainResort.elevation}m)</p>
+                  <div class="dual-hero-value">${mainResort.snowDepthCm}<span class="dual-hero-unit">cm</span></div>
+                </div>
+              </div>
+              <p class="stat-line mono">Neuschnee Berg 24h +${mainResort.newSnow24hCm} cm &middot; Temp Tal/Berg ${valleyData.temp}&deg;/${mainResort.temp}&deg;C</p>
+              <p class="stat-line mono">Frostgrenze ${mainResort.freezingLevel} m &middot; Wind Berg ${mainResort.wind} km/h ${windDirLabel(mainResort.windDir)}</p>
+              <p class="stat-line mono">Sonne ${sunrise}&ndash;${sunset}</p>
+            </div>
+
+            <div class="panel">
+              <div class="info-row">
+                <div>
+                  <p class="col-label" style="margin-bottom:2px;">Lawinenwarnstufe (West)</p>
+                  <p class="info-hint">${avalancheHint}</p>
+                </div>
+                <p class="info-value">${avalancheLabel}</p>
+              </div>
+              <div class="info-row">
+                <div>
+                  <p class="col-label" style="margin-bottom:2px;">F&ouml;hn / Nassschnee</p>
+                  <p class="info-hint">${foehnHint}</p>
+                </div>
+                <p class="info-value">${foehnLabel}</p>
+              </div>
+            </div>
           </div>
 
-          <table class="resort-table">
-            <thead>
-              <tr><th>Gebiet</th><th>Gipfel</th><th>Schnee</th><th>Neu</th><th>Wind</th></tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
+          <div class="split-col wide">
+            <div class="panel" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+              <div class="resorts-head">
+                <p class="col-label" style="margin:0;">Skigebiete Chiemgau</p>
+                <span class="rating-line mono">${ratingDot(rating)} ${rating}</span>
+              </div>
 
-          <p class="disclaimer">
-            <strong>* Winklmoos-Steinplatte &amp; Unternberg: Zuordnung zur
-            Lawinenregion (West/Ost) nicht verifiziert &ndash; die
-            Warnstufe oben gilt nachweislich NICHT f&uuml;r diese beiden
-            Gebiete.</strong> Vor jeder Tour dort separat den vollst&auml;ndigen
-            Lagebericht auf lawinenwarndienst.bayern.de pr&uuml;fen.
-            Schneeh&ouml;he, Wind &amp; Neuschnee: Wettermodell-Sch&auml;tzung
-            (Open-Meteo) an gesch&auml;tzten Gipfelkoordinaten &ndash;
-            <strong>keine offizielle Pistenmeldung</strong>. Ersetzt nie
-            die eigenst&auml;ndige Tourenplanung und den vollst&auml;ndigen
-            Lawinenlagebericht.
-          </p>
+              <table class="data-table">
+                <thead><tr><th>Gebiet</th><th>Gipfel</th><th>Schnee</th><th>Neu</th><th>Wind</th></tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+
+              <p class="disclaimer">
+                <strong>* Winklmoos-Steinplatte &amp; Unternberg: Zuordnung zur
+                Lawinenregion (West/Ost) nicht verifiziert &ndash; die
+                Warnstufe oben gilt nachweislich NICHT f&uuml;r diese beiden
+                Gebiete.</strong> Vor jeder Tour dort separat den vollst&auml;ndigen
+                Lagebericht auf lawinenwarndienst.bayern.de pr&uuml;fen.
+                Schneeh&ouml;he, Wind &amp; Neuschnee: Wettermodell-Sch&auml;tzung
+                (Open-Meteo) an gesch&auml;tzten Gipfelkoordinaten &ndash;
+                <strong>keine offizielle Pistenmeldung</strong>. Ersetzt nie
+                die eigenst&auml;ndige Tourenplanung und den vollst&auml;ndigen
+                Lawinenlagebericht.
+              </p>
+            </div>
+          </div>
         </div>
       `;
     }
