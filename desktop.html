@@ -12,6 +12,12 @@
   rel="stylesheet"
 />
 
+<!-- Echte Kartenbasis fuers Flugradar (Leaflet + CARTO Dark-Matter-Kacheln,
+     kein API-Key noetig) -- ersetzt dort den abstrakten Radar-Scope durch
+     eine echte Live-Tracker-Karte (Flightradar24-Stil). -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
 <style>
   /* ---------------------------------------------------------------
      Gleiches Design-System wie control.html (nach thelobbynews.com/
@@ -166,6 +172,46 @@
   .radar-legend span { display: inline-flex; align-items: center; gap: 6px; }
   .legend-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
+  /* ---- Flugradar: echte Live-Tracker-Karte statt Radar-Scope ---- */
+  .live-map-shell { height: 560px; position: relative; padding: 0; overflow: hidden; }
+  .live-map { position: absolute; inset: 0; }
+  .leaflet-container { background: #0a0a0b; font-family: "Roboto Mono", monospace; }
+  .leaflet-control-attribution { background: rgba(10,10,11,0.75) !important; color: var(--ink-soft) !important; font-size: 9px !important; }
+  .leaflet-control-attribution a { color: var(--ink-soft) !important; }
+  .leaflet-control-zoom a { background: var(--panel) !important; border-color: var(--line) !important; color: var(--ink) !important; border-radius: 0 !important; }
+  .plane-marker { background: none; border: none; }
+
+  .flight-detail-float {
+    position: absolute; top: 14px; left: 14px; z-index: 500; width: 300px; max-width: calc(100% - 28px);
+    background: rgba(10,10,11,0.95); border: 1px solid var(--line); backdrop-filter: blur(6px);
+    display: none;
+  }
+  .flight-detail-float.visible { display: block; }
+
+  .live-map-legend {
+    position: absolute; bottom: 14px; right: 14px; z-index: 500; display: flex; gap: 14px;
+    background: rgba(10,10,11,0.85); border: 1px solid var(--line); padding: 7px 12px;
+    font-size: 11px; color: var(--ink-soft); flex-wrap: wrap;
+  }
+  .live-map-legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+  .flight-strip-wrap { margin-top: 16px; }
+  .flight-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+  .flight-chip {
+    flex: 0 0 210px; border: 1px solid var(--line); background: var(--panel); padding: 10px 12px; cursor: pointer;
+    display: flex; gap: 10px; align-items: center; transition: background-color .15s, border-color .15s;
+  }
+  .flight-chip:hover { background: var(--panel-hover); }
+  .flight-chip.active { background: var(--panel-hover); border-color: var(--ink-soft); }
+  .flight-chip-thumb {
+    width: 36px; height: 36px; border: 1px solid var(--line); background: #000000; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .flight-chip-thumb img { max-width: 32px; max-height: 32px; object-fit: contain; }
+  .flight-chip-body { min-width: 0; }
+  .flight-chip-id { font-family: "Roboto Mono", monospace; font-weight: 700; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .flight-chip-meta { font-size: 10.5px; color: var(--ink-soft); font-family: "Roboto Mono", monospace; margin-top: 2px; white-space: nowrap; }
+
   .flight-select-row { display: flex; gap: 10px; margin-bottom: 14px; }
   .toggle-btn {
     font-family: "Roboto Mono", monospace; font-size: 11.5px; padding: 6px 14px; border-radius: 0;
@@ -296,6 +342,19 @@
     border-radius: 0; width: 26px; height: 26px; cursor: pointer; font-size: 14px; line-height: 1; flex-shrink: 0;
   }
   .flight-detail-close:hover { border-color: var(--accent); color: var(--accent); }
+  .fd-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .fd-id { font-family: "Roboto Mono", monospace; font-weight: 700; font-size: 13px; }
+  .fd-body { padding: 12px; }
+  .fd-photo { width: 100%; aspect-ratio: 16/10; border: 1px solid var(--line); background: #000000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .fd-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .fd-route { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+  .fd-route-city { font-size: 11.5px; font-weight: 700; text-transform: uppercase; max-width: 90px; }
+  .fd-route-city.dest { text-align: right; }
+  .fd-route-line { flex: 1; height: 1px; background-image: repeating-linear-gradient(to right, var(--ink-soft) 0 4px, transparent 4px 8px); position: relative; }
+  .fd-route-line .fd-plane-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(90deg); font-size: 12px; color: var(--accent); background: var(--panel); }
+  .fd-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 14px; }
+  .fd-stat-label { font-family: "Roboto Mono", monospace; font-size: 9.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; }
+  .fd-stat-value { font-size: 12.5px; font-weight: 600; margin-top: 2px; }
   .military-card { position: relative; display: flex; flex-direction: column; }
   .military-photo {
     width: 100%; aspect-ratio: 16/10; border-radius: 0; overflow: hidden;
@@ -514,26 +573,18 @@
           </div>
           <span class="mono" id="flightradarStamp" style="font-size:11px; color:var(--ink-soft);">Stand: lädt…</span>
         </div>
-        <div class="radar-layout">
-          <div class="panel radar-map-wrap">
-            <p class="panel-label">Kartenansicht (100 km Radius)</p>
-            <div id="radarMap"><div class="empty-note">Lädt…</div></div>
-            <div class="radar-legend">
-              <span><span class="legend-swatch" style="background:var(--sky)"></span>Linienflug</span>
-              <span><span class="legend-swatch" style="background:var(--accent)"></span>Besonders</span>
-              <span><span class="legend-swatch" style="background:var(--brick)"></span>Militär / Notfall-Squawk</span>
-            </div>
+        <div class="panel live-map-shell">
+          <div id="liveMap" class="live-map"></div>
+          <div id="flightDetailFloat" class="flight-detail-float"></div>
+          <div class="live-map-legend">
+            <span><span class="legend-swatch" style="background:var(--sky)"></span>Linienflug</span>
+            <span><span class="legend-swatch" style="background:var(--accent)"></span>Besonders</span>
+            <span><span class="legend-swatch" style="background:var(--brick)"></span>Militär / Notfall-Squawk</span>
           </div>
-          <div class="panel flight-side-panel">
-            <div id="flightDetailSlot" class="flight-detail-slot"></div>
-            <p class="panel-label">Alle Flugzeuge im Umkreis</p>
-            <div class="flight-table-wrap">
-              <table class="flight-table">
-                <thead><tr><th>#</th><th></th><th>Kennung / Typ</th><th>Route</th><th style="text-align:right">Höhe</th><th style="text-align:right">Geschw.</th><th style="text-align:right">Vertikal</th><th style="text-align:right">Peilung &amp; Entfernung</th><th></th></tr></thead>
-                <tbody id="flightTableBody"><tr><td colspan="9" class="empty-note">Lädt…</td></tr></tbody>
-              </table>
-            </div>
-          </div>
+        </div>
+        <div class="panel flight-strip-wrap">
+          <p class="panel-label">Alle Flugzeuge im Umkreis (<span id="flightCount">0</span>)</p>
+          <div class="flight-strip" id="flightStrip"><div class="empty-note">Lädt…</div></div>
         </div>
       </section>
 
@@ -1145,50 +1196,76 @@
       return "→ Reiseflug";
     }
 
-    function renderFlightTable(aircraft) {
+    // ---- Live-Tracker-Karte (Leaflet) fürs Flugradar --------------------
+    let liveMap = null;
+    let liveMapMarkers = null;
+    const liveMapMarkerByIdx = new Map();
+
+    function initLiveMap() {
+      if (liveMap) return;
+      liveMap = L.map("liveMap", { attributionControl: true, zoomControl: true }).setView([47.7756, 12.4552], 9);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        maxZoom: 18,
+        attribution: "&copy; OpenStreetMap &copy; CARTO",
+      }).addTo(liveMap);
+      liveMapMarkers = L.layerGroup().addTo(liveMap);
+    }
+
+    function planeDivIcon(color, rotationDeg, isEmergency) {
+      const ring = isEmergency ? `<circle cx="11" cy="11" r="9.5" fill="none" stroke="${color}" stroke-width="1.5"/>` : "";
+      return L.divIcon({
+        className: "plane-marker",
+        html: `<svg width="22" height="22" viewBox="0 0 22 22">${ring}<g transform="translate(11 11) rotate(${rotationDeg})"><path d="M0,-8 L5.5,6 L0,2.5 L-5.5,6 Z" fill="${color}" stroke="#000000" stroke-width="1"/></g></svg>`,
+        iconSize: [22, 22], iconAnchor: [11, 11],
+      });
+    }
+
+    function renderLiveMap(aircraft, center) {
+      initLiveMap();
+      liveMap.setView([center.lat, center.lon]);
+      liveMapMarkers.clearLayers();
+      liveMapMarkerByIdx.clear();
+      aircraft.forEach((item, i) => {
+        const isEmergency = Boolean(item.squawk && EMERGENCY_SQUAWKS[item.squawk]);
+        const color = isEmergency ? "#E2685C" : item.isSpecial ? "#ffffff" : (item.isMilitary ? "#E2685C" : "#6FA8DC");
+        const marker = L.marker([item.lat, item.lon], { icon: planeDivIcon(color, item.track ?? 0, isEmergency) });
+        marker.on("click", () => selectFlight(i));
+        marker.addTo(liveMapMarkers);
+        liveMapMarkerByIdx.set(i, marker);
+      });
+      requestAnimationFrame(() => liveMap.invalidateSize());
+    }
+
+    function selectFlight(idx) {
+      const item = currentFlightList[idx];
+      if (!item) return;
+      openFlightDetail(item, "flightDetailFloat");
+      document.querySelectorAll(".flight-chip").forEach((chip) => chip.classList.toggle("active", Number(chip.dataset.idx) === idx));
+      const marker = liveMapMarkerByIdx.get(idx);
+      if (marker && liveMap) liveMap.panTo(marker.getLatLng());
+    }
+
+    function renderFlightStrip(aircraft) {
       currentFlightList = aircraft;
-      const tbody = document.getElementById("flightTableBody");
-      if (!aircraft.length) { tbody.innerHTML = `<tr><td colspan="9" class="empty-note">Keine Flugzeuge im Umkreis.</td></tr>`; return; }
-      const center = CENTERS[activeCenter];
-      tbody.innerHTML = aircraft.map((item, i) => {
+      const strip = document.getElementById("flightStrip");
+      document.getElementById("flightCount").textContent = aircraft.length;
+      if (!aircraft.length) { strip.innerHTML = `<div class="empty-note">Keine Flugzeuge im Umkreis.</div>`; return; }
+      strip.innerHTML = aircraft.map((item, i) => {
         const url = thumbUrl(item);
         const idLine = item.callsign || item.registration || "—";
-        const typeLine = [item.type, item.registration].filter(Boolean).join(" · ") || "Typ unbekannt";
         const altM = item.altitude !== null ? Math.round(item.altitude * 0.3048).toLocaleString("de-DE") : "–";
         const speedKmh = item.speed !== null ? Math.round(item.speed * 1.852) : "–";
-        const distKm = Math.round(haversineKm(center, item));
-        const bearing = bearingDeg(center, item);
-        return `<tr class="flight-row" data-idx="${i}" style="cursor:pointer;">
-            <td class="flight-idx-cell">${i + 1}</td>
-            <td class="flight-thumb-cell"><div class="flight-thumb">${url ? `<img src="${escapeHtml(url)}" alt="" onerror="this.parentElement.innerHTML=''"/>` : ""}</div></td>
-            <td><div class="flight-id">${escapeHtml(idLine)}${squawkBadgeHtml(item)}</div><div class="flight-meta">${escapeHtml(typeLine)}</div></td>
-            <td class="flight-meta" id="route-${i}">Lädt…</td>
-            <td class="num-cell">${altM} m</td><td class="num-cell">${speedKmh} km/h</td>
-            <td class="num-cell mono" style="font-size:11px;">${verticalPhaseLabel(item.verticalRate)}</td>
-            <td class="num-cell">${compassLabel(bearing)} · ${distKm} km</td>
-            <td class="num-cell">${item.isSpecial ? '<span class="flight-star">★</span>' : ""}</td>
-          </tr>`;
+        return `<div class="flight-chip" data-idx="${i}">
+            <div class="flight-chip-thumb">${url ? `<img src="${escapeHtml(url)}" alt="" onerror="this.parentElement.innerHTML=''"/>` : ""}</div>
+            <div class="flight-chip-body">
+              <div class="flight-chip-id">${escapeHtml(idLine)}${item.isSpecial ? '<span class="flight-star">★</span>' : ""}${squawkBadgeHtml(item)}</div>
+              <div class="flight-chip-meta">${altM} m · ${speedKmh} km/h</div>
+            </div>
+          </div>`;
       }).join("");
-
-      document.querySelectorAll(".flight-row").forEach((row) => {
-        row.addEventListener("click", () => openFlightDetail(currentFlightList[Number(row.dataset.idx)]));
+      strip.querySelectorAll(".flight-chip").forEach((chip) => {
+        chip.addEventListener("click", () => selectFlight(Number(chip.dataset.idx)));
       });
-
-      // Route (Herkunft -> Ziel) für die ersten 20 Zeilen im Hintergrund
-      // nachladen (nicht für alle, das wären bei viel Verkehr zu viele
-      // Anfragen auf einmal).
-      aircraft.slice(0, 20).forEach(async (item, i) => {
-        const el = document.getElementById(`route-${i}`);
-        if (!el) return;
-        if (!item.callsign) { el.textContent = "–"; return; }
-        try {
-          const routed = await enrichWithRoute(item);
-          if (routed.originCity && routed.destinationCity) el.textContent = `${routed.originCity} → ${routed.destinationCity}`;
-          else if (routed.destinationCity) el.textContent = `→ ${routed.destinationCity}`;
-          else el.textContent = "–";
-        } catch (e) { el.textContent = "–"; }
-      });
-      for (let i = 20; i < aircraft.length; i++) { const el = document.getElementById(`route-${i}`); if (el) el.textContent = "–"; }
     }
 
     /**
@@ -1197,23 +1274,23 @@
      * (Start/Ziel, verbleibende Zeit) nach. Auf dem Desktop haben wir
      * den Platz dafür, den es auf dem E-Ink-Display nicht gäbe.
      */
-    async function openFlightDetail(item, slotId = "flightDetailSlot") {
+    async function openFlightDetail(item, slotId = "flightDetailFloat") {
       const slot = document.getElementById(slotId);
       if (!slot) return;
+      slot.classList.add("visible");
       const idLine = item.callsign || item.registration || "—";
+      const closeFloat = () => slot.classList.remove("visible");
       slot.innerHTML = `
-        <div class="flight-detail-card">
-          <div style="width:180px; height:130px; border-radius:0; overflow:hidden; background:#000000; border:1px solid var(--line); flex-shrink:0; display:flex; align-items:center; justify-content:center;">
-            <span class="empty-note">Lädt…</span>
-          </div>
-          <div style="flex:1;">
-            <p class="panel-label" style="margin-bottom:4px;">${escapeHtml(idLine)}</p>
-            <div class="empty-note">Lädt Foto &amp; Route…</div>
-          </div>
+        <div class="fd-header">
+          <span class="fd-id">${escapeHtml(idLine)}${squawkBadgeHtml(item)}</span>
           <button class="flight-detail-close" title="Schließen">✕</button>
         </div>
+        <div class="fd-body">
+          <div class="fd-photo"><span class="empty-note">Lädt…</span></div>
+          <div class="empty-note" style="margin-top:10px;">Lädt Foto &amp; Route…</div>
+        </div>
       `;
-      slot.querySelector(".flight-detail-close").addEventListener("click", () => { slot.innerHTML = ""; });
+      slot.querySelector(".flight-detail-close").addEventListener("click", closeFloat);
 
       const [identify, routed] = await Promise.all([
         identifyAircraft(item).catch(() => null),
@@ -1223,28 +1300,34 @@
       const photoUrl = identify?.photo?.thumbnailUrl || identify?.photo?.url || null;
       const country = identify?.countryCode ? (COUNTRY_NAMES[identify.countryCode] || identify.countryCode) : null;
       const operator = identify?.operator || routed.operator || null;
-      const routeLine = routed.originCity && routed.destinationCity
-        ? `${escapeHtml(routed.originCity)} → ${escapeHtml(routed.destinationCity)}`
-        : (routed.destinationCity ? `Ziel: ${escapeHtml(routed.destinationCity)}` : "Route unbekannt");
+      const originLabel = routed.originCity || "Herkunft?";
+      const destLabel = routed.destinationCity || "Ziel?";
 
       slot.innerHTML = `
-        <div class="flight-detail-card">
-          <div style="width:180px; height:130px; border-radius:0; overflow:hidden; background:#000000; border:1px solid var(--line); flex-shrink:0; display:flex; align-items:center; justify-content:center;">
-            ${photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt="" style="width:100%; height:100%; object-fit:cover;"/>` : `<span class="empty-note">Kein Foto verfügbar</span>`}
-          </div>
-          <div style="flex:1; min-width:0;">
-            <p class="panel-label" style="margin-bottom:4px;">${escapeHtml(idLine)}${squawkBadgeHtml(item)}</p>
-            <p style="font-size:16px; font-weight:700; margin:0 0 6px;">${routeLine}</p>
-            ${routed.iataFlight ? `<p class="stat-meta">Flugnummer ${escapeHtml(routed.iataFlight)}</p>` : ""}
-            ${routed.remainingTime ? `<p class="stat-meta">Noch ca. ${escapeHtml(routed.remainingTime)} bis zum Ziel (${Math.round(routed.remainingDistanceKm)} km)</p>` : ""}
-            ${operator ? `<p class="stat-meta">Betreiber: ${escapeHtml(operator)}</p>` : ""}
-            ${country ? `<p class="stat-meta">Land: ${escapeHtml(country)}</p>` : ""}
-            <p class="stat-meta">${escapeHtml(identify?.aircraftType || item.type || "Typ unbekannt")} · ${escapeHtml(item.registration || "—")}</p>
-          </div>
+        <div class="fd-header">
+          <span class="fd-id">${escapeHtml(idLine)}${squawkBadgeHtml(item)}</span>
           <button class="flight-detail-close" title="Schließen">✕</button>
         </div>
+        <div class="fd-body">
+          <div class="fd-photo">${photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt=""/>` : `<span class="empty-note">Kein Foto verfügbar</span>`}</div>
+          <div class="fd-route">
+            <span class="fd-route-city">${escapeHtml(originLabel)}</span>
+            <span class="fd-route-line"><span class="fd-plane-dot">✈</span></span>
+            <span class="fd-route-city dest">${escapeHtml(destLabel)}</span>
+          </div>
+          <div class="fd-stats">
+            <div><p class="fd-stat-label">Typ</p><p class="fd-stat-value">${escapeHtml(identify?.aircraftType || item.type || "—")}</p></div>
+            <div><p class="fd-stat-label">Kennzeichen</p><p class="fd-stat-value">${escapeHtml(item.registration || "—")}</p></div>
+            <div><p class="fd-stat-label">Höhe</p><p class="fd-stat-value">${item.altitude !== null ? Math.round(item.altitude * 0.3048).toLocaleString("de-DE") + " m" : "—"}</p></div>
+            <div><p class="fd-stat-label">Geschw.</p><p class="fd-stat-value">${item.speed !== null ? Math.round(item.speed * 1.852).toLocaleString("de-DE") + " km/h" : "—"}</p></div>
+            ${operator ? `<div><p class="fd-stat-label">Betreiber</p><p class="fd-stat-value">${escapeHtml(operator)}</p></div>` : ""}
+            ${country ? `<div><p class="fd-stat-label">Land</p><p class="fd-stat-value">${escapeHtml(country)}</p></div>` : ""}
+            ${routed.iataFlight ? `<div><p class="fd-stat-label">Flugnummer</p><p class="fd-stat-value">${escapeHtml(routed.iataFlight)}</p></div>` : ""}
+            ${routed.remainingTime ? `<div><p class="fd-stat-label">Restzeit</p><p class="fd-stat-value">${escapeHtml(routed.remainingTime)} (${Math.round(routed.remainingDistanceKm)} km)</p></div>` : ""}
+          </div>
+        </div>
       `;
-      slot.querySelector(".flight-detail-close").addEventListener("click", () => { slot.innerHTML = ""; });
+      slot.querySelector(".flight-detail-close").addEventListener("click", closeFloat);
     }
 
 
@@ -1258,8 +1341,9 @@
           .map(normalizeAircraft).filter(Boolean).filter((a) => a.altitude !== 0 && a.callsign)
           .map((a) => ({ ...a, distKm: haversineKm(center, a) })).filter((a) => a.distKm <= 100)
           .sort((a, b) => a.distKm - b.distKm);
-        renderRadarMap(aircraft, center, document.getElementById("radarMap"));
-        renderFlightTable(aircraft);
+        renderLiveMap(aircraft, center);
+        renderFlightStrip(aircraft);
+        document.getElementById("flightDetailFloat").classList.remove("visible");
 
         const fetchedAtHeader = response.headers.get("X-MARVIN-Fetched-At");
         const stamp = fetchedAtHeader ? new Date(fetchedAtHeader) : new Date();
@@ -1269,8 +1353,10 @@
         return aircraft;
       } catch (error) {
         console.error(error);
-        document.getElementById("radarMap").innerHTML = `<div class="empty-note">Flugdaten gerade nicht verfügbar.</div>`;
-        document.getElementById("flightTableBody").innerHTML = `<tr><td colspan="6" class="empty-note">Flugdaten gerade nicht verfügbar.</td></tr>`;
+        // Container-innerHTML NICHT anfassen, sobald Leaflet einmal initialisiert
+        // ist -- Leaflet verwaltet seine eigenen Kind-Elemente (Panes, Tiles)
+        // darin und würde beim nächsten Refresh sonst kaputtgehen.
+        document.getElementById("flightStrip").innerHTML = `<div class="empty-note">Flugdaten gerade nicht verfügbar.</div>`;
         const stampEl = document.getElementById("flightradarStamp");
         if (stampEl) stampEl.textContent = "Stand: nicht verfügbar";
         return [];
