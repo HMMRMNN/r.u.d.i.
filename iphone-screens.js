@@ -1,11 +1,11 @@
 "use strict";
 
 /* =====================================================================
-   R.U.D.I. iPhone-Ansicht -- Render-Module für alle 11 Screens.
+   R.U.D.I. iPhone-Ansicht -- Render-Module für alle 10 Screens.
 
    Jedes Modul holt sich die IDENTISCHEN Daten von den IDENTISCHEN
    Endpunkten wie die jeweilige Original-E-Ink-Seite (weather.html,
-   traffic.html, ...), rendert sie aber komplett neu im Control-Design
+   snow.html, ...), rendert sie aber komplett neu im Control-Design
    (siehe control.html: Zinc-Palette, JetBrains Mono/Inter, Panels mit
    Eckenklammern, Mono-Labels in Großbuchstaben) statt im starren
    800x480-E-Ink-Layout. Die Original-Dateien bleiben davon unberührt.
@@ -128,9 +128,9 @@ const POSITIONS = {
   ismaning: { lat: 48.226, lon: 11.674, label: "Ismaning" },
 };
 
-// Kleiner Positions-Umschalter (Grassau/Ismaning), wiederverwendet von
-// traffic/military -- identische Auswahl wie in den Original-
-// Seiten, nur als Segmented-Control statt <select> fürs Fingertippen.
+// Kleiner Positions-Umschalter (Grassau/Ismaning), für militär --
+// identische Auswahl wie in der Original-Seite, nur als Segmented-
+// Control statt <select> fürs Fingertippen.
 function positionSwitcherHtml(activeKey, name) {
   return `
     <div class="seg" data-seg="${name}">
@@ -379,83 +379,7 @@ const warningsModule = {
 };
 
 /* =====================================================================
-   3. FLUGLISTE
-   ===================================================================== */
-
-const trafficModule = {
-  label: "Flugliste",
-  refreshMs: 5 * 60000,
-  state: { sortKey: "grassau" },
-  async render(el) {
-    const refPoint = POSITIONS[this.state.sortKey];
-    const res = await fetch(`${FLIGHTS_API}/aircraft`, { headers: { Accept: "application/json" } });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const payload = await res.json();
-
-    const shortlist = (Array.isArray(payload.ac) ? payload.ac : [])
-      .map(normalizeAircraft).filter(Boolean)
-      .filter((a) => a.altitude !== 0 && a.callsign)
-      .map((a) => ({ ...a, sortDistanceKm: haversineKm(refPoint, a) }))
-      .sort((a, b) => a.sortDistanceKm - b.sortDistanceKm)
-      .slice(0, 8);
-
-    const aircraft = await Promise.all(shortlist.map(async (item) => {
-      let destinationCity = null;
-      try {
-        const r = await fetch(`${FLIGHTS_API}/route?callsign=${encodeURIComponent(item.callsign)}`, { headers: { Accept: "application/json" } });
-        if (r.ok) {
-          const d = await r.json();
-          const route = d?.route || null;
-          destinationCity = route ? cityOnly(extractFirst(route?.destination?.municipality, route?.arrival?.municipality, route?.destination?.name, route?.arrival?.name)) : null;
-        }
-      } catch (error) { /* Zielort optional -- Zeile bleibt trotzdem nützlich */ }
-      return { ...item, destinationCity };
-    }));
-
-    const rows = aircraft.length ? aircraft.map((item) => {
-      const altitudeM = item.altitude !== null ? Math.round(item.altitude * 0.3048) : null;
-      const speedKmh = item.speed !== null ? Math.round(item.speed * 1.852) : null;
-      const idLine = item.callsign || item.registration || "—";
-      const typeLine = [item.type, item.registration].filter(Boolean).join(" · ") || "Typ unbekannt";
-      return `
-        <div class="flight-card">
-          ${thumbHtml(item)}
-          <div class="flight-card-body">
-            <div class="flight-card-top">
-              <span class="flight-id">${escapeHtml(idLine)}</span>
-              ${starHtml(item.isSpecial)}
-            </div>
-            <div class="flight-meta">${escapeHtml(typeLine)}</div>
-            <div class="flight-stats">
-              <span>${altitudeM !== null ? fmtNum(altitudeM) + " M" : "–"}</span>
-              <span>${speedKmh !== null ? speedKmh + " KM/H" : "–"}</span>
-              <span>${trackArrow(item.track)} ${item.track !== null ? Math.round(item.track).toString().padStart(3, "0") : "---"}</span>
-            </div>
-          </div>
-          <div class="flight-dest">
-            <div class="flight-dest-city">${escapeHtml(item.destinationCity || "–")}</div>
-            <div class="flight-dest-label">${item.destinationCity ? "ZIEL" : "unbekannt"}</div>
-          </div>
-        </div>
-      `;
-    }).join("") : `<div class="empty-panel"><p class="empty-sub">No aircraft in range.</p></div>`;
-
-    el.innerHTML = `
-      <div class="panel">
-        <div class="panel-head-row">
-          <p class="label" style="margin:0;">Alle Bewegungen im Umkreis</p>
-          ${positionSwitcherHtml(this.state.sortKey, "traffic")}
-        </div>
-        <div class="stack-list" style="margin-top:10px;">${rows}</div>
-        <p class="panel-foot">${aircraft.length} of ${payload.total ?? "?"} tracked &middot; sortiert nach ${refPoint.label}</p>
-      </div>
-    `;
-    bindPositionSwitcher(el, "traffic", (key) => { this.state.sortKey = key; this.render(el); });
-  },
-};
-
-/* =====================================================================
-   4. FLUGRADAR (A.L.V.I.N.)
+   3. FLUGRADAR (A.L.V.I.N.)
    ===================================================================== */
 
 const alvinModule = {
@@ -559,7 +483,7 @@ const alvinModule = {
 };
 
 /* =====================================================================
-   5. MILITÄRFLUGZEUGE
+   4. MILITÄRFLUGZEUGE
    ===================================================================== */
 
 const militaryModule = {
@@ -725,7 +649,7 @@ const militaryModule = {
 };
 
 /* =====================================================================
-   6. GLEITSCHIRM & SEGELFLUG
+   5. GLEITSCHIRM & SEGELFLUG
    ===================================================================== */
 
 const paraglidingModule = {
@@ -833,7 +757,7 @@ const paraglidingModule = {
 };
 
 /* =====================================================================
-   7. GLEITSCHIRM LIVE
+   6. GLEITSCHIRM LIVE
    ===================================================================== */
 
 const paraglidersLiveModule = {
@@ -901,7 +825,7 @@ const paraglidersLiveModule = {
 };
 
 /* =====================================================================
-   8. CHIEMSEE
+   7. CHIEMSEE
    ===================================================================== */
 
 const chiemseeModule = {
@@ -981,7 +905,7 @@ const chiemseeModule = {
 };
 
 /* =====================================================================
-   9. SCHNEEBERICHT
+   8. SCHNEEBERICHT
    ===================================================================== */
 
 const snowModule = {
@@ -1064,7 +988,7 @@ const snowModule = {
 };
 
 /* =====================================================================
-   10. TRAINING
+   9. TRAINING
    ===================================================================== */
 
 const trainingModule = {
@@ -1176,7 +1100,7 @@ const trainingModule = {
 };
 
 /* =====================================================================
-   11. PIZZA-BILANZ
+   10. PIZZA-BILANZ
    ===================================================================== */
 
 const pizzaModule = {
@@ -1254,7 +1178,6 @@ const pizzaModule = {
 const SCREEN_MODULES = [
   { id: "weather", ...weatherModule },
   { id: "warnings", ...warningsModule },
-  { id: "traffic", ...trafficModule },
   { id: "alvin", ...alvinModule },
   { id: "military", ...militaryModule },
   { id: "paragliding", ...paraglidingModule },

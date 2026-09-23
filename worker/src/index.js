@@ -2647,7 +2647,6 @@ const DEFAULT_CHANNELS = [
   { name: "Radrennen", file: "racing.html", category: "R.U.D.I." },
   // WICHTIG (Fix, auf Nutzerwunsch): neue Seiten aus dieser
   // Sitzung ergänzt.
-  { name: "Flugliste", file: "traffic.html", category: "R.U.D.I." },
   { name: "Chiemsee", file: "chiemsee.html", category: "R.U.D.I." },
   { name: "Wetterwarnung", file: "warnings.html", category: "R.U.D.I." },
 ];
