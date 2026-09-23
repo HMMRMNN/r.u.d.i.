@@ -115,13 +115,18 @@
     // Echte <table> statt Flex-Zeilen -- Spalten bleiben sauber
     // ausgerichtet, unabhängig von unterschiedlich langen Einträgen
     // in der ersten Spalte (Browser-Tabellenlayout übernimmt das).
-    function dataTable(heading, headCells, rows) {
+    // opts.grow: Panel füllt die restliche Spaltenhöhe (letztes Panel
+    // einer Spalte), damit beide Spalten unten bündig abschließen --
+    // unabhängig davon, welche Seite gerade mehr Inhalt hat.
+    function dataTable(heading, headCells, rows, opts = {}) {
       const head = `<tr>${headCells.map((c) => `<th>${c}</th>`).join("")}</tr>`;
       const body = rows.map((cells) => `<tr>${cells.map((c) => `<td class="mono">${c}</td>`).join("")}</tr>`).join("");
+      const panelStyle = opts.grow ? ' style="flex:1; min-height:0; overflow:hidden;"' : "";
       return `
-        <div class="panel">
+        <div class="panel"${panelStyle}>
           <p class="col-label">${heading}</p>
           <table class="data-table"><thead>${head}</thead><tbody>${body}</tbody></table>
+          ${opts.trailing || ""}
         </div>
       `;
     }
@@ -204,6 +209,23 @@
 
       const windRows = flyingSlots.map((s) => [`${s.hour}:00`, `${s.wind10} km/h ${s.dir}`, `${s.wind80} km/h`, `${s.cloud}%`]);
 
+      const disclaimerHtml = '<p class="disclaimer">Fly/XC/Start: paraglidable.com &middot; Wind: Open-Meteo &ndash; kein Ersatz f&uuml;r die offizielle Flugwetterberatung.</p>';
+      const hasSpots = pgToday && pgToday.length;
+      const lastBlockOpts = hasSpots ? {} : { grow: true, trailing: disclaimerHtml };
+
+      const firstBlock = renderHolfuyTable(holfuyData, lastBlockOpts)
+        || dataTable("Wind-Vorhersage (Modell)", ["Zeit", "Wind 10m", "Wind 80m", "Bewölkung"], windRows, lastBlockOpts);
+
+      const secondBlock = hasSpots
+        ? dataTable("Startplätze &ndash; heute", ["Startplatz", "Fly", "XC", "Start"],
+            [...pgToday].sort((a, b) => b.forecast.fly - a.forecast.fly).slice(0, 4).map((spot) => [
+              escapeHtml(spot.name),
+              `${Math.round(spot.forecast.fly * 100)}%`,
+              `${Math.round(spot.forecast.XC * 100)}%`,
+              `${Math.round(spot.forecast.takeoff * 100)}%`,
+            ]), { grow: true, trailing: disclaimerHtml })
+        : "";
+
       canvas.innerHTML = `
         <div class="masthead">
           <span class="mast-left mono">R.U.D.I. &middot; Gleitschirm &amp; Segelflug</span>
@@ -219,7 +241,7 @@
               <p class="stat-line mono">Sonne ${sunrise}&ndash;${sunset}</p>
             </div>
 
-            <div class="panel">
+            <div class="panel" style="flex:1; min-height:0; overflow:hidden;">
               <div class="info-row">
                 <div>
                   <p class="col-label" style="margin-bottom:2px;">F&ouml;hn-Heuristik</p>
@@ -238,24 +260,14 @@
           </div>
 
           <div class="split-col wide">
-            ${renderHolfuyTable(holfuyData) || dataTable("Wind-Vorhersage (Modell)", ["Zeit", "Wind 10m", "Wind 80m", "Bewölkung"], windRows)}
-
-            ${pgToday && pgToday.length ? dataTable("Startplätze &ndash; heute", ["Startplatz", "Fly", "XC", "Start"],
-              [...pgToday].sort((a, b) => b.forecast.fly - a.forecast.fly).slice(0, 4).map((spot) => [
-                escapeHtml(spot.name),
-                `${Math.round(spot.forecast.fly * 100)}%`,
-                `${Math.round(spot.forecast.XC * 100)}%`,
-                `${Math.round(spot.forecast.takeoff * 100)}%`,
-              ])
-            ) : ""}
-
-            <p class="disclaimer">Fly/XC/Start: paraglidable.com &middot; Wind: Open-Meteo &ndash; kein Ersatz f&uuml;r die offizielle Flugwetterberatung.</p>
+            ${firstBlock}
+            ${secondBlock}
           </div>
         </div>
       `;
     }
 
-    function renderHolfuyTable(holfuyData) {
+    function renderHolfuyTable(holfuyData, opts = {}) {
       if (!holfuyData || !Array.isArray(holfuyData.stations)) return null;
       const valid = holfuyData.stations.filter((s) => !s.error && s.wind !== null && s.wind !== undefined).slice(0, 4);
       if (!valid.length) return null;
@@ -268,7 +280,7 @@
         s.temperature !== null && s.temperature !== undefined ? `${Math.round(s.temperature)}°` : "-",
       ]);
 
-      return dataTable("Startplätze &ndash; Live", ["Startplatz", "Wind", "Böe", "Richtung", "Temp"], rows);
+      return dataTable("Startplätze &ndash; Live", ["Startplatz", "Wind", "Böe", "Richtung", "Temp"], rows, opts);
     }
 
     function deriveFoehnIndicator(hourly, foehnData) {
