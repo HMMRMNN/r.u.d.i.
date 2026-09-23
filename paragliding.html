@@ -23,7 +23,7 @@
        streng monochrom, invertiert (schwarzer Hintergrund). Gleiche
        Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
     --------------------------------------------------------------- */
-    :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); --line-soft: rgba(255,255,255,0.14); }
+    :root { --black:#ffffff; --white:#000000; --line: var(--black); --line-soft: var(--black); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
@@ -45,14 +45,14 @@
 
     .split { display: flex; gap: 20px; flex: 1; min-height: 0; }
     .split-col.narrow { flex: 0 0 210px; display: flex; flex-direction: column; gap: 12px; }
-    .split-col.wide { flex: 1; display: flex; flex-direction: column; min-width: 0; gap: 10px; }
+    .split-col.wide { flex: 1; display: flex; flex-direction: column; min-width: 0; gap: 10px; overflow: hidden; }
 
     .panel { border: 1px solid var(--line); padding: 12px 14px; }
 
     .rating-value { margin-top: 4px; font-size: 28px; font-weight: 200; letter-spacing: -0.02em; }
 
     .info-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-    .info-row + .info-row { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+    .info-row + .info-row { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line-soft); }
     .info-value { font-size: 13px; font-weight: 600; text-align: right; }
     .info-hint { margin-top: 2px; font-size: 9.5px; opacity: 0.55; }
 
@@ -62,7 +62,7 @@
       opacity: 0.5; padding: 0 0 5px; border-bottom: 1px solid var(--line);
     }
     table.data-table th:first-child { text-align: left; }
-    table.data-table td { text-align: right; padding: 5px 0; border-bottom: 1px solid var(--line-soft); font-size: 11.5px; }
+    table.data-table td { text-align: right; padding: 5px 0; border-bottom: 1px dashed var(--line-soft); font-size: 11.5px; }
     table.data-table td:first-child { text-align: left; font-size: 12.5px; }
     table.data-table tr:last-child td { border-bottom: none; }
 
@@ -240,58 +240,24 @@
           <div class="split-col wide">
             ${renderHolfuyTable(holfuyData) || dataTable("Wind-Vorhersage (Modell)", ["Zeit", "Wind 10m", "Wind 80m", "Bewölkung"], windRows)}
 
-            ${pgToday && pgToday.length ? dataTable("Startplätze &ndash; heute", ["Startplatz", "Fly", "XC", "Start"], pgToday.map((spot) => [
-              escapeHtml(spot.name),
-              `${Math.round(spot.forecast.fly * 100)}%`,
-              `${Math.round(spot.forecast.XC * 100)}%`,
-              `${Math.round(spot.forecast.takeoff * 100)}%`,
-            ])) : ""}
+            ${pgToday && pgToday.length ? dataTable("Startplätze &ndash; heute", ["Startplatz", "Fly", "XC", "Start"],
+              [...pgToday].sort((a, b) => b.forecast.fly - a.forecast.fly).slice(0, 4).map((spot) => [
+                escapeHtml(spot.name),
+                `${Math.round(spot.forecast.fly * 100)}%`,
+                `${Math.round(spot.forecast.XC * 100)}%`,
+                `${Math.round(spot.forecast.takeoff * 100)}%`,
+              ])
+            ) : ""}
 
-            ${renderMultiDayOutlook(pgData)}
-
-            <p class="disclaimer">
-              Fly/XC/Start: KI-Prognose paraglidable.com. Wind/Bew&ouml;lkung: Open-Meteo.
-              Kein Ersatz f&uuml;r eine offizielle Flugwetterberatung &ndash; eigene
-              Einsch&auml;tzung vor jedem Flug zwingend erforderlich.
-            </p>
+            <p class="disclaimer">Fly/XC/Start: paraglidable.com &middot; Wind: Open-Meteo &ndash; kein Ersatz f&uuml;r die offizielle Flugwetterberatung.</p>
           </div>
         </div>
       `;
     }
 
-    function renderMultiDayOutlook(pgData) {
-      if (!pgData) return "";
-
-      // Nur die nächsten Wochenend-Tage (Sa/So) -- nicht die ganze Woche
-      const dates = Object.keys(pgData).sort().filter((dateStr) => {
-        const day = new Date(dateStr + "T12:00:00").getDay();
-        return day === 0 || day === 6;
-      }).slice(0, 2);
-
-      if (!dates.length) return "";
-
-      const rows = dates.map((dateStr) => {
-        const spots = pgData[dateStr];
-        const hochplatte = spots.find((s) => s.name.toLowerCase().includes("hochplatte"));
-        if (!hochplatte) return null;
-
-        const d = new Date(dateStr + "T12:00:00");
-        const dayLabel = d.toLocaleDateString("de-DE", { weekday: "long" }).toUpperCase();
-        const dateLabel = d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
-        const fly = Math.round(hochplatte.forecast.fly * 100);
-        const xc = Math.round(hochplatte.forecast.XC * 100);
-
-        return [`${dayLabel} <span style="opacity:0.55; font-weight:400;">${dateLabel}</span>`, `${fly}%`, `${xc}%`];
-      }).filter(Boolean);
-
-      if (!rows.length) return "";
-
-      return dataTable("Hochplatte &ndash; Wochenende", ["Tag", "Fly", "XC"], rows);
-    }
-
     function renderHolfuyTable(holfuyData) {
       if (!holfuyData || !Array.isArray(holfuyData.stations)) return null;
-      const valid = holfuyData.stations.filter((s) => !s.error && s.wind !== null && s.wind !== undefined);
+      const valid = holfuyData.stations.filter((s) => !s.error && s.wind !== null && s.wind !== undefined).slice(0, 4);
       if (!valid.length) return null;
 
       const rows = valid.map((s) => [

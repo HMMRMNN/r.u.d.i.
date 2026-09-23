@@ -22,7 +22,7 @@
      monochrom, invertiert (schwarzer Hintergrund). Gleiche
      Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
   --------------------------------------------------------------- */
-  :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); }
+  :root { --black:#ffffff; --white:#000000; --line: var(--black); }
   * { box-sizing: border-box; }
   html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
   body {

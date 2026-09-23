@@ -21,7 +21,7 @@
        Hintergrund). Gleiche Daten/Fetch-Logik wie bisher, nur
        Layout/Optik neu.
     --------------------------------------------------------------- */
-    :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); --line-soft: rgba(255,255,255,0.14); }
+    :root { --black:#ffffff; --white:#000000; --line: var(--black); --line-soft: var(--black); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
@@ -55,7 +55,7 @@
 
     .goal-head-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; }
     .goal-bar-wrap { position: relative; margin-top: 7px; }
-    .goal-bar-track { height: 3px; background: rgba(255,255,255,0.18); }
+    .goal-bar-track { height: 5px; border: 1px solid var(--black); box-sizing: border-box; }
     .goal-bar-fill { height: 100%; background: var(--black); }
     .goal-target {
       position: absolute; bottom: -6px; width: 0; height: 0; margin-left: -4px;
@@ -69,7 +69,7 @@
 
     .duo { display: flex; gap: 24px; }
     .duo-col { flex: 1; min-width: 0; }
-    .duo-col + .duo-col { padding-left: 24px; border-left: 1px solid var(--line-soft); }
+    .duo-col + .duo-col { padding-left: 24px; border-left: 1px dashed var(--line-soft); }
     .form-value-big { font-size: 18px; font-weight: 300; margin-top: 2px; }
     .kv-row { display: flex; justify-content: space-between; gap: 10px; font-size: 10.5px; padding: 2px 0; }
     .kv-row .k { opacity: 0.55; }
@@ -78,7 +78,7 @@
 
     .ride-list { display: flex; flex-direction: column; overflow-y: hidden; }
     .ride-entry { padding: 8px 0; }
-    .ride-entry + .ride-entry { border-top: 1px solid var(--line-soft); }
+    .ride-entry + .ride-entry { border-top: 1px dashed var(--line-soft); }
     .ride-entry-main { display: flex; justify-content: space-between; align-items: baseline; }
     .ride-entry-km { font-size: 15px; font-weight: 600; }
     .ride-entry-unit { font-size: 10px; font-weight: 400; opacity: 0.6; }

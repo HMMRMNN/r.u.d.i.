@@ -23,7 +23,7 @@
        streng monochrom, invertiert (schwarzer Hintergrund). Gleiche
        Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
     --------------------------------------------------------------- */
-    :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); --line-soft: rgba(255,255,255,0.14); }
+    :root { --black:#ffffff; --white:#000000; --line: var(--black); --line-soft: var(--black); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
@@ -39,25 +39,26 @@
     .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
     .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
 
-    .col-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 8px; }
-    .stat-line { margin-top: 8px; font-size: 12px; letter-spacing: 0.02em; opacity: 0.7; }
-    .stat-line + .stat-line { margin-top: 4px; opacity: 0.55; }
+    .col-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 6px; }
+    .stat-line { margin-top: 6px; font-size: 12px; letter-spacing: 0.02em; opacity: 0.7; }
+    .stat-line + .stat-line { margin-top: 3px; opacity: 0.55; }
 
     .split { display: flex; gap: 20px; flex: 1; min-height: 0; }
-    .split-col.narrow { flex: 0 0 230px; display: flex; flex-direction: column; gap: 12px; }
+    .split-col.narrow { flex: 0 0 230px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; min-height: 0; }
     .split-col.wide { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
-    .panel { border: 1px solid var(--line); padding: 12px 14px; }
-    .panel + .panel { margin-top: 12px; }
+    .panel { border: 1px solid var(--line); padding: 10px 14px; }
+    .panel + .panel { margin-top: 10px; }
 
     .dual-hero { display: flex; gap: 24px; }
     .dual-hero-item { flex: 1; }
-    .dual-hero-value { font-size: 40px; font-weight: 200; line-height: 0.9; letter-spacing: -0.03em; }
+    .dual-hero-value { font-size: 36px; font-weight: 200; line-height: 0.9; letter-spacing: -0.03em; }
     .dual-hero-unit { font-size: 14px; font-weight: 300; opacity: 0.7; }
 
     .info-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-    .info-row + .info-row { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
-    .info-value { font-size: 13px; font-weight: 600; text-align: right; }
+    .info-row + .info-row { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line-soft); }
+    .info-row > div:first-child { flex: 1; min-width: 0; }
+    .info-value { font-size: 13px; font-weight: 600; text-align: right; white-space: nowrap; flex-shrink: 0; }
     .info-hint { margin-top: 2px; font-size: 9.5px; opacity: 0.55; }
 
     .resorts-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
@@ -69,7 +70,7 @@
       opacity: 0.5; padding: 0 0 6px; border-bottom: 1px solid var(--line);
     }
     table.data-table th:first-child { text-align: left; }
-    table.data-table td { text-align: right; padding: 7px 0; border-bottom: 1px solid var(--line-soft); }
+    table.data-table td { text-align: right; padding: 7px 0; border-bottom: 1px dashed var(--line-soft); }
     table.data-table td:first-child { text-align: left; }
     table.data-table tr:last-child td { border-bottom: none; }
 
@@ -213,18 +214,18 @@
       const rating = avgSnow >= 40 ? "GUT" : avgSnow >= 15 ? "MÄSSIG" : "SCHLECHT";
 
       const freezingBelowAllResorts = resortData.every((r) => r.freezingLevel < r.elevation - 100);
-      const foehnLabel = !freezingBelowAllResorts ? "NICHT AUSZUSCHLIESSEN" : "KEIN HINWEIS";
+      const foehnLabel = !freezingBelowAllResorts ? "M&Ouml;GLICH" : "KEIN HINWEIS";
       const foehnHint = !freezingBelowAllResorts
-        ? "Frostgrenze nahe/&uuml;ber Gipfelh&ouml;he (Modellwert)"
-        : "Frostgrenze deutlich unter Gipfelh&ouml;he (Modellwert)";
+        ? "Frostgrenze nahe Gipfelh&ouml;he"
+        : "Frostgrenze unter Gipfelh&ouml;he";
 
       const avalancheLabel = avalancheData?.available && avalancheData?.dangerLevel
         ? `STUFE ${avalancheData.dangerLevel}`
         : avalancheData?.reason?.includes("Saison")
-          ? "SAISON BEENDET"
-          : "SIEHE LWD BAYERN";
+          ? "BEENDET"
+          : "SIEHE LWD";
       const avalancheHint = avalancheData?.available
-        ? "Gilt nur f&uuml;r Hochfelln/Kampenwand (Region West, verifiziert)"
+        ? "Nur Hochfelln/Kampenwand"
         : "lawinenwarndienst.bayern.de";
 
       const sunrise = new Date(dataArray[0].daily.sunrise[0]).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
@@ -267,7 +268,7 @@
             <div class="panel">
               <div class="info-row">
                 <div>
-                  <p class="col-label" style="margin-bottom:2px;">Lawinenwarnstufe (West)</p>
+                  <p class="col-label" style="margin-bottom:2px;">Lawinenstufe (West)</p>
                   <p class="info-hint">${avalancheHint}</p>
                 </div>
                 <p class="info-value">${avalancheLabel}</p>
@@ -283,7 +284,7 @@
           </div>
 
           <div class="split-col wide">
-            <div class="panel" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+            <div class="panel" style="flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden;">
               <div class="resorts-head">
                 <p class="col-label" style="margin:0;">Skigebiete Chiemgau</p>
                 <span class="rating-line mono">${ratingDot(rating)} ${rating}</span>
@@ -295,16 +296,9 @@
               </table>
 
               <p class="disclaimer">
-                <strong>* Winklmoos-Steinplatte &amp; Unternberg: Zuordnung zur
-                Lawinenregion (West/Ost) nicht verifiziert &ndash; die
-                Warnstufe oben gilt nachweislich NICHT f&uuml;r diese beiden
-                Gebiete.</strong> Vor jeder Tour dort separat den vollst&auml;ndigen
-                Lagebericht auf lawinenwarndienst.bayern.de pr&uuml;fen.
-                Schneeh&ouml;he, Wind &amp; Neuschnee: Wettermodell-Sch&auml;tzung
-                (Open-Meteo) an gesch&auml;tzten Gipfelkoordinaten &ndash;
-                <strong>keine offizielle Pistenmeldung</strong>. Ersetzt nie
-                die eigenst&auml;ndige Tourenplanung und den vollst&auml;ndigen
-                Lawinenlagebericht.
+                <strong>* Winklmoos-Steinplatte &amp; Unternberg: Warnstufe gilt hier NICHT</strong>
+                &ndash; separat auf lawinenwarndienst.bayern.de pr&uuml;fen.
+                Schnee/Wind: Modellsch&auml;tzung, keine offizielle Pistenmeldung.
               </p>
             </div>
           </div>
