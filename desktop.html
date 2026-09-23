@@ -431,7 +431,6 @@
         <p class="nav-group-label">LUFTFAHRT</p>
         <button class="nav-item" data-page="flightradar"><span class="nav-dot"></span>Flugradar</button>
         <button class="nav-item" data-page="military"><span class="nav-dot"></span>Militärflugzeuge</button>
-        <button class="nav-item" data-page="approach"><span class="nav-dot"></span>Anflug-Radar</button>
       </div>
 
       <div class="nav-group">
@@ -492,7 +491,6 @@
           <div class="panel stat-card"><p class="panel-label">Wetterwarnung</p><div class="empty-note">Lädt…</div></div>
           <div class="panel stat-card"><p class="panel-label">Gleitschirm-Bedingungen</p><div class="empty-note">Lädt…</div></div>
           <div class="panel stat-card"><p class="panel-label">Lawinenwarnstufe</p><div class="empty-note">Lädt…</div></div>
-          <div class="panel stat-card"><p class="panel-label">Nächster Anflug</p><div class="empty-note">Lädt…</div></div>
           <div class="panel stat-card"><p class="panel-label">Besondere Flugzeuge</p><div class="empty-note">Lädt…</div></div>
         </div>
       </section>
@@ -570,45 +568,6 @@
             <p class="panel-label">Details</p>
             <div class="grid" id="militaryGrid" style="grid-template-columns: repeat(2, 1fr); gap:14px;">
               <div class="panel empty-note">Lädt…</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ======================= ANFLUG-RADAR ======================= -->
-      <section class="page" id="page-approach">
-        <div class="page-head corners">
-          <span class="corner corner-tl"></span><span class="corner corner-tr"></span>
-          <span class="corner corner-bl"></span><span class="corner corner-br"></span>
-          <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-            <div>
-              <p class="page-eyebrow mono">LIVE · Flugbahn-Vorausberechnung</p>
-              <h1 class="page-title">Anflug-Radar<span class="cursor-blink" style="color:var(--ink-soft);">_</span></h1>
-            </div>
-            <span class="mono" id="approachStamp" style="font-size:11px; color:var(--ink-soft);">Stand: lädt…</span>
-          </div>
-          <div class="page-desc-row">
-            <div class="page-desc-bar"></div>
-            <p class="page-desc">Wer als nächstes vorbeikommt, mit vorausberechneter Ankunftszeit.</p>
-          </div>
-        </div>
-        <div class="flight-select-row">
-          <button class="toggle-btn active" data-center-group="approach" data-center="grassau">Grassau</button>
-          <button class="toggle-btn" data-center-group="approach" data-center="ismaning">Ismaning</button>
-        </div>
-        <div class="radar-layout">
-          <div class="panel radar-map-wrap">
-            <p class="panel-label">Wer kommt als Nächstes</p>
-            <div id="approachMap"><div class="empty-note">Lädt…</div></div>
-          </div>
-          <div class="panel flight-side-panel">
-            <div id="approachDetailSlot" class="flight-detail-slot"></div>
-            <p class="panel-label">Anflüge</p>
-            <div class="flight-table-wrap">
-              <table class="flight-table">
-                <thead><tr><th></th><th></th><th>Kennung / Typ</th><th>Ziel</th><th style="text-align:right">Höhe</th><th style="text-align:right">Richtung</th><th style="text-align:right">Ankunft</th></tr></thead>
-                <tbody id="approachTableBody"><tr><td colspan="7" class="empty-note">Lädt…</td></tr></tbody>
-              </table>
             </div>
           </div>
         </div>
@@ -857,7 +816,6 @@
       ismaning: { lat: 48.226, lon: 11.674, label: "Ismaning" },
     };
     let activeCenter = "grassau";
-    let activeApproachCenter = "grassau";
 
     // ---------------------------------------------------------------
     // Navigation
@@ -954,15 +912,6 @@
         loadFlightRadar();
       });
     });
-    document.querySelectorAll('.toggle-btn[data-center-group="approach"]').forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll('.toggle-btn[data-center-group="approach"]').forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        activeApproachCenter = btn.dataset.center;
-        loadApproach();
-      });
-    });
-
     // ---------------------------------------------------------------
     // Hilfsfunktionen
     // ---------------------------------------------------------------
@@ -1422,118 +1371,6 @@
         console.error(error);
         grid.innerHTML = `<div class="panel empty-note">Daten gerade nicht verfügbar.</div>`;
         const stampEl = document.getElementById("militaryStamp");
-        if (stampEl) stampEl.textContent = "Stand: nicht verfügbar";
-      }
-    }
-
-    // ---------------------------------------------------------------
-    // Anflug-Radar
-    // ---------------------------------------------------------------
-    function projectPosition(lat, lon, trackDeg, groundSpeedKt, minutesAhead) {
-      const speedKmh = groundSpeedKt * 1.852;
-      const distanceKm = speedKmh * (minutesAhead / 60);
-      const trackRad = (trackDeg * Math.PI) / 180;
-      const dLatKm = distanceKm * Math.cos(trackRad), dLonKm = distanceKm * Math.sin(trackRad);
-      return { lat: lat + dLatKm / 111, lon: lon + dLonKm / (111 * Math.cos((lat * Math.PI) / 180)) };
-    }
-    function findClosestApproach(item, target) {
-      let best = { distanceKm: Infinity, minutesAhead: null };
-      if (item.speed === null || item.track === null || item.speed < 30) return best;
-      for (let m = 1; m <= 60; m++) {
-        const p = projectPosition(item.lat, item.lon, item.track, item.speed, m);
-        const d = haversineKm(target, p);
-        if (d < best.distanceKm) best = { distanceKm: d, minutesAhead: m };
-      }
-      return best;
-    }
-    async function loadApproach() {
-      try {
-        const response = await fetch(`${API_BASE}/aircraft`, { headers: { Accept: "application/json" }, cache: "no-store" });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const payload = await response.json();
-        const target = CENTERS[activeApproachCenter];
-        const candidates = (Array.isArray(payload.ac) ? payload.ac : [])
-          .map(normalizeAircraft).filter(Boolean)
-          .filter((a) => a.altitude !== 0 && a.callsign && a.speed !== null && a.track !== null)
-          .filter((a) => a.altitude === null || a.altitude <= 3000 / 0.3048);
-        const approaches = candidates.map((item) => ({ ...item, approach: findClosestApproach(item, target) }))
-          .filter((item) => item.approach.distanceKm <= 60)
-          .sort((a, b) => a.approach.minutesAhead - b.approach.minutesAhead).slice(0, 8);
-
-        const fetchedAtHeader = response.headers.get("X-MARVIN-Fetched-At");
-        const stamp = fetchedAtHeader ? new Date(fetchedAtHeader) : new Date();
-        const stampEl = document.getElementById("approachStamp");
-        if (stampEl) stampEl.textContent = `Stand: ${stamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })} Uhr`;
-
-        const W = 440, H = 440, maxR = 200, scale = maxR / 60;
-        let svg = `<svg viewBox="${-W/2} ${-H/2} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-        svg += renderMapLayer(target, scale, maxR);
-        [20, 40, 60].forEach((km) => {
-          const r = km * scale;
-          svg += `<circle cx="0" cy="0" r="${r}" fill="none" stroke="#27272a" stroke-width="1"/>`;
-          svg += `<text x="4" y="${-r-3}" font-size="9" fill="#71717a" font-family="JetBrains Mono, monospace">${km}km</text>`;
-        });
-        svg += `<path d="M-6,0 L6,0 M0,-6 L0,6" stroke="#ffffff" stroke-width="2"/>`;
-        approaches.forEach((item, i) => {
-          const p = project(item.lat, item.lon, target, scale);
-          const dist = Math.sqrt(p.x**2 + p.y**2);
-          const cp = dist > maxR ? {x: p.x/dist*maxR, y: p.y/dist*maxR} : p;
-          const rot = item.track ?? 0;
-          const isEmergency = Boolean(item.squawk && EMERGENCY_SQUAWKS[item.squawk]);
-          const color = isEmergency ? "#E2685C" : item.isSpecial ? "#ffffff" : "#6FA8DC";
-          svg += renderAircraftTrail(item, target, scale);
-          svg += `<g class="radar-marker" data-idx="${i}" style="cursor:pointer;">
-            <circle cx="${cp.x.toFixed(1)}" cy="${cp.y.toFixed(1)}" r="12" fill="transparent"/>
-            ${isEmergency ? `<circle cx="${cp.x.toFixed(1)}" cy="${cp.y.toFixed(1)}" r="10" fill="none" stroke="#E2685C" stroke-width="1.5"/>` : ""}
-            <g transform="translate(${cp.x.toFixed(1)} ${cp.y.toFixed(1)}) rotate(${rot})"><path d="M0,-9 L5.5,6 L0,3 L-5.5,6 Z" fill="${color}" stroke="#000000" stroke-width="1"/></g>
-          </g>`;
-          svg += `<text x="${cp.x+11}" y="${cp.y+3}" font-size="9" font-weight="700" fill="#ffffff" font-family="JetBrains Mono, monospace">${i+1}</text>`;
-        });
-        svg += `</svg>`;
-        const mapEl = document.getElementById("approachMap");
-        mapEl.innerHTML = svg;
-        mapEl.querySelectorAll(".radar-marker").forEach((marker) => {
-          marker.addEventListener("click", () => openFlightDetail(approaches[Number(marker.dataset.idx)], "approachDetailSlot"));
-        });
-
-        const tbody = document.getElementById("approachTableBody");
-        if (!approaches.length) { tbody.innerHTML = `<tr><td colspan="7" class="empty-note">Kein Flugzeug nähert sich gerade ${escapeHtml(target.label)}.</td></tr>`; return; }
-        tbody.innerHTML = approaches.map((item, i) => {
-          const bearing = bearingDeg(target, item);
-          const idLine = item.callsign || item.registration || "—";
-          const etaMin = item.approach.minutesAhead;
-          const eta = new Date(Date.now() + etaMin * 60000).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
-          const url = thumbUrl(item);
-          const altM = item.altitude !== null ? Math.round(item.altitude * 0.3048).toLocaleString("de-DE") : "–";
-          return `<tr class="flight-row" data-idx="${i}" style="cursor:pointer;">
-            <td class="mono" style="font-weight:700;">${i+1}</td>
-            <td class="flight-thumb-cell"><div class="flight-thumb">${url ? `<img src="${escapeHtml(url)}" alt="" onerror="this.parentElement.innerHTML=''"/>` : ""}</div></td>
-            <td><div class="flight-id">${escapeHtml(idLine)}${squawkBadgeHtml(item)}</div><div class="flight-meta">${escapeHtml(item.type || "")}</div></td>
-            <td class="flight-meta" id="app-dest-${i}">Lädt…</td>
-            <td class="num-cell">${altM} m</td>
-            <td class="num-cell">${compassLabel(bearing)} · ${Math.round(item.approach.distanceKm)}km</td>
-            <td class="num-cell">${eta} <span style="color:var(--ink-soft)">(${etaMin} min)</span></td>
-          </tr>`;
-        }).join("");
-        tbody.querySelectorAll(".flight-row").forEach((row) => {
-          row.addEventListener("click", () => openFlightDetail(approaches[Number(row.dataset.idx)], "approachDetailSlot"));
-        });
-
-        // Zielort für jede Anflug-Zeile nachladen (max. 8 Zeilen, daher
-        // unproblematisch, alle direkt anzufragen).
-        approaches.forEach(async (item, i) => {
-          const el = document.getElementById(`app-dest-${i}`);
-          if (!el) return;
-          if (!item.callsign) { el.textContent = "–"; return; }
-          try {
-            const routed = await enrichWithRoute(item);
-            el.textContent = routed.destinationCity || "–";
-          } catch (e) { el.textContent = "–"; }
-        });
-      } catch (error) {
-        console.error(error);
-        document.getElementById("approachMap").innerHTML = `<div class="empty-note">Daten gerade nicht verfügbar.</div>`;
-        const stampEl = document.getElementById("approachStamp");
         if (stampEl) stampEl.textContent = "Stand: nicht verfügbar";
       }
     }
@@ -2782,7 +2619,7 @@
         cards.avalanche = `<div class="panel stat-card"><p class="panel-label">Lawinenwarnstufe</p><div class="empty-note">Außerhalb der Saison / n. verfügbar</div></div>`;
       }
 
-      // ---- Live-Flugverkehr: nächster Anflug + besondere Flugzeuge in der Luft ----
+      // ---- Live-Flugverkehr: besondere Flugzeuge in der Luft ----
       // (Live-Momentaufnahme, kein Tages-Log -- ein historisches "was war
       // heute alles in der Luft" bräuchte serverseitiges Tracking über
       // den Tag, das der Worker aktuell nicht anbietet.)
@@ -2795,19 +2632,6 @@
           .map(normalizeAircraft).filter(Boolean).filter((a) => a.altitude !== 0 && a.callsign)
           .map((a) => ({ ...a, distKm: haversineKm(center, a) })).filter((a) => a.distKm <= 150);
 
-        const approachCandidates = nearby.filter((a) => a.speed !== null && a.track !== null && (a.altitude === null || a.altitude <= 3000 / 0.3048));
-        const approaches = approachCandidates.map((a) => ({ ...a, approach: findClosestApproach(a, center) }))
-          .filter((a) => a.approach.distanceKm <= 60).sort((a, b) => a.approach.minutesAhead - b.approach.minutesAhead);
-        if (approaches.length) {
-          const next = approaches[0];
-          const idLine = next.callsign || next.registration || "—";
-          cards.approach = `<div class="panel stat-card"><p class="panel-label">Nächster Anflug</p>
-            <div class="stat-value" style="font-size:20px;">${escapeHtml(idLine)}</div>
-            <p class="stat-meta">in ${next.approach.minutesAhead} min · ${compassLabel(bearingDeg(center, next))} · ${Math.round(next.approach.distanceKm)} km</p></div>`;
-        } else {
-          cards.approach = `<div class="panel stat-card"><p class="panel-label">Nächster Anflug</p><div class="empty-note">Aktuell kein Anflug in Sicht</div></div>`;
-        }
-
         const special = nearby.filter((a) => a.isSpecial || a.isMilitary).sort((a, b) => a.distKm - b.distKm);
         if (special.length) {
           const closest = special[0];
@@ -2819,11 +2643,10 @@
           cards.special = `<div class="panel stat-card"><p class="panel-label">Besondere Flugzeuge</p><div class="stat-value">0</div><p class="stat-meta">Nichts Besonderes gerade in der Luft</p></div>`;
         }
       } catch (e) {
-        cards.approach = `<div class="panel stat-card"><p class="panel-label">Nächster Anflug</p><div class="empty-note">Gerade nicht verfügbar</div></div>`;
         cards.special = `<div class="panel stat-card"><p class="panel-label">Besondere Flugzeuge</p><div class="empty-note">Gerade nicht verfügbar</div></div>`;
       }
 
-      statsEl.innerHTML = [cards.weather, cards.water, cards.wind, cards.warning, cards.paragliding, cards.avalanche, cards.approach, cards.special]
+      statsEl.innerHTML = [cards.weather, cards.water, cards.wind, cards.warning, cards.paragliding, cards.avalanche, cards.special]
         .map((c) => c || `<div class="panel stat-card"><p class="panel-label">—</p><div class="empty-note">Gerade nicht verfügbar</div></div>`).join("");
 
       const parts = [];
@@ -2838,7 +2661,6 @@
     // Start
     // ---------------------------------------------------------------
     pageLoaders.military = { loaded: false, fn: loadMilitary };
-    pageLoaders.approach = { loaded: false, fn: loadApproach };
     pageLoaders.weather = { loaded: false, fn: loadWeather };
     pageLoaders.chiemsee = { loaded: false, fn: loadChiemsee };
     pageLoaders.paragliding = { loaded: false, fn: loadParagliding };

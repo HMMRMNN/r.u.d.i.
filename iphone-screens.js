@@ -1,7 +1,7 @@
 "use strict";
 
 /* =====================================================================
-   R.U.D.I. iPhone-Ansicht -- Render-Module für alle 12 Screens.
+   R.U.D.I. iPhone-Ansicht -- Render-Module für alle 11 Screens.
 
    Jedes Modul holt sich die IDENTISCHEN Daten von den IDENTISCHEN
    Endpunkten wie die jeweilige Original-E-Ink-Seite (weather.html,
@@ -129,7 +129,7 @@ const POSITIONS = {
 };
 
 // Kleiner Positions-Umschalter (Grassau/Ismaning), wiederverwendet von
-// traffic/approach/military -- identische Auswahl wie in den Original-
+// traffic/military -- identische Auswahl wie in den Original-
 // Seiten, nur als Segmented-Control statt <select> fürs Fingertippen.
 function positionSwitcherHtml(activeKey, name) {
   return `
@@ -455,131 +455,7 @@ const trafficModule = {
 };
 
 /* =====================================================================
-   4. ANFLUG-RADAR
-   ===================================================================== */
-
-const approachModule = {
-  label: "Anflug-Radar",
-  refreshMs: 5 * 60000,
-  state: { targetKey: "grassau" },
-  async render(el) {
-    const APPROACH_RADIUS_KM = 60, MAX_ALTITUDE_M = 3000, LOOKAHEAD_MINUTES = 60, RINGS_KM = [20, 40, 60];
-    const target = POSITIONS[this.state.targetKey];
-
-    function project(lat, lon, center, scale) {
-      const kmPerDegLat = 111, kmPerDegLon = 111 * Math.cos((center.lat * Math.PI) / 180);
-      return { x: (lon - center.lon) * kmPerDegLon * scale, y: -(lat - center.lat) * kmPerDegLat * scale };
-    }
-    function bearingDeg(from, to) {
-      const lat1 = radians(from.lat), lat2 = radians(to.lat), dLon = radians(to.lon - from.lon);
-      const y = Math.sin(dLon) * Math.cos(lat2);
-      const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-      return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
-    }
-    function compassLabel(deg) {
-      const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-      return dirs[Math.round((deg % 360) / 45) % 8];
-    }
-    function projectPosition(lat, lon, trackDeg, speedKt, minutesAhead) {
-      const speedKmh = speedKt * 1.852, distanceKm = speedKmh * (minutesAhead / 60), trackRad = radians(trackDeg);
-      return {
-        lat: lat + distanceKm * Math.cos(trackRad) / 111,
-        lon: lon + distanceKm * Math.sin(trackRad) / (111 * Math.cos(radians(lat))),
-      };
-    }
-    function findClosestApproach(item) {
-      let best = { distanceKm: Infinity, minutesAhead: null };
-      if (item.speed === null || item.track === null || item.speed < 30) return best;
-      for (let m = 1; m <= LOOKAHEAD_MINUTES; m++) {
-        const p = projectPosition(item.lat, item.lon, item.track, item.speed, m);
-        const d = haversineKm(target, p);
-        if (d < best.distanceKm) best = { distanceKm: d, minutesAhead: m };
-      }
-      return best;
-    }
-
-    const res = await fetch(`${FLIGHTS_API}/aircraft`, { headers: { Accept: "application/json" } });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const payload = await res.json();
-
-    const candidates = (Array.isArray(payload.ac) ? payload.ac : [])
-      .map(normalizeAircraft).filter(Boolean)
-      .filter((a) => a.altitude !== 0 && a.callsign && a.speed !== null && a.track !== null)
-      .filter((a) => a.altitude === null || a.altitude <= MAX_ALTITUDE_M / 0.3048);
-
-    const approaches = candidates
-      .map((item) => ({ ...item, approach: findClosestApproach(item) }))
-      .filter((item) => item.approach.distanceKm <= APPROACH_RADIUS_KM)
-      .sort((a, b) => a.approach.minutesAhead - b.approach.minutesAhead)
-      .slice(0, 6);
-
-    // Radar-SVG im Ink-Farbschema (weiß auf transparent statt schwarz).
-    const W = 240, H = 240, maxR = Math.min(W, H) / 2 - 14, scale = maxR / APPROACH_RADIUS_KM;
-    let svg = `<svg viewBox="${-W / 2} ${-H / 2} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-    RINGS_KM.forEach((km) => {
-      const r = km * scale;
-      svg += `<circle cx="0" cy="0" r="${r}" fill="none" stroke="var(--ink-ghost)" stroke-width="1" stroke-dasharray="2 3"/>`;
-      svg += `<text x="3" y="${-r - 2}" font-size="7" fill="var(--ink-faint)" font-family="var(--mono)">${km}KM</text>`;
-    });
-    const edge = maxR + 8;
-    ["N", "E", "S", "W"].forEach((label, i) => {
-      const positions = [[0, -edge], [edge, 4], [0, edge + 8], [-edge, 4]];
-      svg += `<text x="${positions[i][0]}" y="${positions[i][1]}" font-size="9" font-weight="700" text-anchor="middle" fill="var(--ink-dim)" font-family="var(--mono)">${label}</text>`;
-    });
-    svg += `<path d="M-5 0 L5 0 M0 -5 L0 5" stroke="var(--ink-dim)" stroke-width="1.5"/>`;
-    approaches.forEach((item, i) => {
-      const p = project(item.lat, item.lon, target, scale);
-      const dist = Math.sqrt(p.x ** 2 + p.y ** 2);
-      const clamped = dist > maxR ? { x: (p.x / dist) * maxR, y: (p.y / dist) * maxR } : p;
-      const rot = item.track ?? 0;
-      svg += `<g transform="translate(${clamped.x} ${clamped.y}) rotate(${rot})"><path d="M0,-9 L5,6 L0,2 L-5,6 Z" fill="var(--ink)" stroke="var(--bg)" stroke-width="1"/></g>`;
-      svg += `<text x="${clamped.x + 11}" y="${clamped.y + 4}" font-size="9" font-weight="700" text-anchor="middle" fill="var(--ink)" font-family="var(--mono)">${i + 1}</text>`;
-    });
-    svg += `</svg>`;
-
-    const rows = approaches.length ? approaches.map((item, i) => {
-      const idLine = item.callsign || item.registration || "—";
-      const typeLine = [item.type, item.registration].filter(Boolean).join(" · ") || "Typ unbekannt";
-      const etaMinutes = item.approach.minutesAhead;
-      const etaLabel = etaMinutes <= 1 ? "GLEICH" : `IN ${etaMinutes} MIN`;
-      const bearing = bearingDeg(target, item);
-      const eta = new Date(Date.now() + etaMinutes * 60000).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
-      return `
-        <div class="flight-card">
-          <div class="row-num">${i + 1}</div>
-          ${thumbHtml(item)}
-          <div class="flight-card-body">
-            <div class="flight-card-top"><span class="flight-id">${escapeHtml(idLine)}</span>${starHtml(item.isSpecial)}</div>
-            <div class="flight-meta">${escapeHtml(typeLine)}</div>
-            <div class="flight-stats"><span>${compassLabel(bearing)} · ${item.approach.distanceKm.toFixed(0)}KM</span></div>
-          </div>
-          <div class="flight-dest">
-            <div class="flight-dest-city">${eta}</div>
-            <div class="flight-dest-label">${etaLabel}</div>
-          </div>
-        </div>
-      `;
-    }).join("") : `<div class="empty-panel"><p class="empty-sub">Kein Flugzeug nähert sich gerade ${escapeHtml(target.label)}.</p></div>`;
-
-    el.innerHTML = `
-      <div class="panel">
-        <div class="panel-head-row">
-          <p class="label" style="margin:0;">Wer kommt als nächstes vorbei</p>
-          ${positionSwitcherHtml(this.state.targetKey, "approach")}
-        </div>
-        <div class="radar-box">${svg}</div>
-      </div>
-      <div class="panel">
-        <div class="stack-list">${rows}</div>
-        <p class="panel-foot">${approaches.length} approaching ${target.label} · radius ${APPROACH_RADIUS_KM}km · below ${MAX_ALTITUDE_M}m</p>
-      </div>
-    `;
-    bindPositionSwitcher(el, "approach", (key) => { this.state.targetKey = key; this.render(el); });
-  },
-};
-
-/* =====================================================================
-   5. FLUGRADAR (A.L.V.I.N.)
+   4. FLUGRADAR (A.L.V.I.N.)
    ===================================================================== */
 
 const alvinModule = {
@@ -683,7 +559,7 @@ const alvinModule = {
 };
 
 /* =====================================================================
-   6. MILITÄRFLUGZEUGE
+   5. MILITÄRFLUGZEUGE
    ===================================================================== */
 
 const militaryModule = {
@@ -849,7 +725,7 @@ const militaryModule = {
 };
 
 /* =====================================================================
-   7. GLEITSCHIRM & SEGELFLUG
+   6. GLEITSCHIRM & SEGELFLUG
    ===================================================================== */
 
 const paraglidingModule = {
@@ -957,7 +833,7 @@ const paraglidingModule = {
 };
 
 /* =====================================================================
-   8. GLEITSCHIRM LIVE
+   7. GLEITSCHIRM LIVE
    ===================================================================== */
 
 const paraglidersLiveModule = {
@@ -1025,7 +901,7 @@ const paraglidersLiveModule = {
 };
 
 /* =====================================================================
-   9. CHIEMSEE
+   8. CHIEMSEE
    ===================================================================== */
 
 const chiemseeModule = {
@@ -1105,7 +981,7 @@ const chiemseeModule = {
 };
 
 /* =====================================================================
-   10. SCHNEEBERICHT
+   9. SCHNEEBERICHT
    ===================================================================== */
 
 const snowModule = {
@@ -1188,7 +1064,7 @@ const snowModule = {
 };
 
 /* =====================================================================
-   11. TRAINING
+   10. TRAINING
    ===================================================================== */
 
 const trainingModule = {
@@ -1300,7 +1176,7 @@ const trainingModule = {
 };
 
 /* =====================================================================
-   12. PIZZA-BILANZ
+   11. PIZZA-BILANZ
    ===================================================================== */
 
 const pizzaModule = {
@@ -1379,7 +1255,6 @@ const SCREEN_MODULES = [
   { id: "weather", ...weatherModule },
   { id: "warnings", ...warningsModule },
   { id: "traffic", ...trafficModule },
-  { id: "approach", ...approachModule },
   { id: "alvin", ...alvinModule },
   { id: "military", ...militaryModule },
   { id: "paragliding", ...paraglidingModule },
