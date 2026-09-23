@@ -14,9 +14,14 @@
 
 <!-- Echte Kartenbasis fuers Flugradar (Leaflet + CARTO Dark-Matter-Kacheln,
      kein API-Key noetig) -- ersetzt dort den abstrakten Radar-Scope durch
-     eine echte Live-Tracker-Karte (Flightradar24-Stil). -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+     eine echte Live-Tracker-Karte (Flightradar24-Stil). Lokal aus
+     vendor/leaflet/ eingebunden statt von einem externen CDN (unpkg) --
+     manche Netzwerke/Browser blockieren unbekannte Skript-CDNs, was die
+     ganze Seite mit "Flugdaten nicht verfügbar" abstürzen ließ, obwohl
+     die Flugdaten selbst da waren. Die Kartenkacheln kommen weiterhin
+     live von CARTO (kein Weg drumrum ohne eigenen Tile-Server). -->
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+<script src="vendor/leaflet/leaflet.js"></script>
 
 <style>
   /* ---------------------------------------------------------------
@@ -1203,6 +1208,7 @@
 
     function initLiveMap() {
       if (liveMap) return;
+      if (typeof L === "undefined") throw new Error("Leaflet (vendor/leaflet/leaflet.js) ist nicht geladen.");
       liveMap = L.map("liveMap", { attributionControl: true, zoomControl: true }).setView([47.7756, 12.4552], 9);
       L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
         maxZoom: 18,
@@ -1341,7 +1347,20 @@
           .map(normalizeAircraft).filter(Boolean).filter((a) => a.altitude !== 0 && a.callsign)
           .map((a) => ({ ...a, distKm: haversineKm(center, a) })).filter((a) => a.distKm <= 100)
           .sort((a, b) => a.distKm - b.distKm);
-        renderLiveMap(aircraft, center);
+        // Eigener try/catch fürs Kartenrendering: falls Leaflet aus
+        // irgendeinem Grund nicht verfügbar ist (z.B. vendor/leaflet/ noch
+        // nicht deployt, Browser-Erweiterung blockt), soll wenigstens die
+        // Flugliste unten trotzdem mit den echten Daten weiterlaufen,
+        // statt die ganze Seite auf "nicht verfügbar" zu setzen.
+        try {
+          renderLiveMap(aircraft, center);
+        } catch (mapError) {
+          console.error("Live-Karte konnte nicht gerendert werden:", mapError);
+          const mapEl = document.getElementById("liveMap");
+          if (mapEl && !mapEl.querySelector(".leaflet-container")) {
+            mapEl.innerHTML = `<div class="empty-note" style="padding:16px;">Karte gerade nicht verfügbar.</div>`;
+          }
+        }
         renderFlightStrip(aircraft);
         document.getElementById("flightDetailFloat").classList.remove("visible");
 
