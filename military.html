@@ -15,16 +15,16 @@
 
   <style>
     /* ---------------------------------------------------------------
-       Gleiches Design-System wie weather.html (v2): keine Boxen/Rahmen
-       um Inhalte -- Struktur entsteht durch Typografie-Hierarchie und
-       Weißraum, nur die äußere Frame-Kontur bleibt als durchgezogene
-       Linie. Streng monochrom, invertiert (schwarzer Hintergrund). Die
-       Foto-/Silhouetten-Box bleibt bewusst weiß (fester Bestandteil der
+       Design-System wie control.html/iphone.html: klar umrissene
+       Panels (dünner Rahmen) statt freier Typografie -- jedes Flugzeug
+       bekommt eine eigene Karte. Inter + JetBrains Mono, streng
+       monochrom, invertiert (schwarzer Hintergrund). Die Foto-/
+       Silhouetten-Box bleibt bewusst weiß (fester Bestandteil der
        Dither-Pipeline, siehe ditherImageToCanvas/renderSilhouetteToCanvas
        unten -- unverändert). Gleiche Daten/Fetch-Logik wie bisher, nur
        Layout/Optik neu.
     --------------------------------------------------------------- */
-    :root { --black:#ffffff; --white:#000000; }
+    :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); --line-soft: rgba(255,255,255,0.14); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
@@ -36,7 +36,7 @@
     .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
     .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
-    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
+    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
     .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
     .mast-right { display: flex; align-items: center; gap: 10px; }
     .live-tag { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
@@ -50,29 +50,29 @@
     }
     .position-select option { background: #000000; color: #ffffff; }
 
-    .aircraft-list { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; min-height: 0; }
-    .aircraft { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+    .aircraft-list { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; min-height: 0; }
+    .aircraft { display: flex; flex-direction: column; min-width: 0; min-height: 0; border: 1px solid var(--line); }
 
     /* Foto statt Tail -- gedithert (siehe ditherToCanvas), damit es
        auf 1-Bit-E-Ink sauber bleibt statt zu einem Graufleck zu werden.
-       Bewusst weißer Kasten (Teil der Dither-Pipeline) -- liest sich wie
-       ein Foto-Passepartout auf der dunklen Seite. */
-    .photo-box { display: grid; place-items: center; width: 100%; height: 122px; min-height: 122px; background: #ffffff; overflow: hidden; position: relative; }
+       Bewusst weißer Kasten (Teil der Dither-Pipeline), bündig mit dem
+       Kartenrahmen -- liest sich wie ein Foto-Passepartout. */
+    .photo-box { display: grid; place-items: center; width: 100%; height: 118px; min-height: 118px; background: #ffffff; overflow: hidden; position: relative; border-bottom: 1px solid var(--line); }
     .category-estimate-label {
       position: absolute; bottom: 4px; left: 4px; right: 4px;
       font-family: "JetBrains Mono", monospace; font-size: 7.5px; color: #000000;
       text-align: center; letter-spacing: 0.04em; text-transform: uppercase;
     }
-    .photo-box canvas { display: block; width: 100%; max-width: 182px; max-height: 122px; image-rendering: pixelated; }
+    .photo-box canvas { display: block; width: 100%; max-width: 178px; max-height: 118px; image-rendering: pixelated; }
     .photo-fallback { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-align: center; line-height: 1.4; color: #000000; }
 
-    .route-block { min-width: 0; margin-top: 10px; }
-    .aircraft-type { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.1; }
+    .route-block { min-width: 0; padding: 9px 10px 0; }
+    .aircraft-type { margin: 0; font-size: 15px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.1; }
     .operator-line { margin: 3px 0 0; font-size: 10px; opacity: 0.6; line-height: 1.25; }
 
-    .details { min-width: 0; margin-top: 10px; }
-    .detail-group { margin-top: 7px; }
-    .detail-group:first-child { margin-top: 0; }
+    .details { min-width: 0; padding: 9px 10px 10px; }
+    .detail-group { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line-soft); }
+    .detail-group:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 
     .meta { margin: 0; font-size: 10px; opacity: 0.6; line-height: 1.25; overflow-wrap: anywhere; }
     .meta strong { opacity: 1; font-weight: 600; }

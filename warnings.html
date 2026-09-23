@@ -15,13 +15,14 @@
 
 <style>
   /* ---------------------------------------------------------------
-     Gleiches Design-System wie weather.html (v2): keine Boxen/Rahmen
-     um Inhalte -- Struktur entsteht durch Typografie-Hierarchie und
-     Weißraum, nur die äußere Frame-Kontur bleibt als durchgezogene
-     Linie. Streng monochrom, invertiert (schwarzer Hintergrund).
-     Gleiche Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
+     Design-System wie control.html/iphone.html: klar umrissene
+     Panels (dünner Rahmen) statt freier Typografie -- jede Warnung
+     bekommt eine eigene Box, Dringlichkeit über Rahmenbreite/-helligkeit
+     statt nur Schriftgewicht. Inter + JetBrains Mono, streng
+     monochrom, invertiert (schwarzer Hintergrund). Gleiche
+     Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
   --------------------------------------------------------------- */
-  :root { --black:#ffffff; --white:#000000; }
+  :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); }
   * { box-sizing: border-box; }
   html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
   body {
@@ -38,16 +39,19 @@
   .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
   .status-line { font-size: 12px; opacity: 0.6; margin-bottom: 20px; }
 
+  .panel { border: 1px solid var(--line); padding: 12px 14px; }
+
   .calm-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; }
   .calm-text { font-size: 26px; font-weight: 300; }
   .calm-sub { font-size: 12px; opacity: 0.55; }
 
-  .warnings-list { display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
-  .warning-entry { }
+  .warnings-list { display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+  .warning-entry { border: 1px solid var(--black); padding: 12px 14px; }
+  .warning-entry.level-3, .warning-entry.level-4 { border-width: 2px; }
   .warning-top-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  .warning-event { font-size: 19px; font-weight: 500; margin: 0; }
+  .warning-event { font-size: 18px; font-weight: 500; margin: 0; }
   .warning-level { font-size: 10.5px; letter-spacing: 0.06em; opacity: 0.6; white-space: nowrap; flex-shrink: 0; }
-  .warning-headline { margin: 4px 0 0; font-size: 12.5px; opacity: 0.75; line-height: 1.35; }
+  .warning-headline { margin: 5px 0 0; font-size: 12.5px; opacity: 0.75; line-height: 1.35; }
   .warning-time { margin: 6px 0 0; font-size: 10px; opacity: 0.5; }
 
   .empty { font-size: 13px; opacity: 0.6; }
@@ -126,7 +130,7 @@
           ${warnings.map((w) => {
             const sev = SEVERITY_MAP[w.severity] || { level: 0, label: w.severity || "Unbekannt" };
             return `
-              <div class="warning-entry">
+              <div class="warning-entry level-${sev.level}">
                 <div class="warning-top-row">
                   <p class="warning-event" style="font-weight:${400 + sev.level * 75};">${escapeHtml(w.event || "Warnung")}</p>
                   <span class="warning-level mono">${escapeHtml(sev.label)}</span>

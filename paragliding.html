@@ -15,13 +15,15 @@
 
   <style>
     /* ---------------------------------------------------------------
-       Gleiches Design-System wie weather.html (v2): keine Boxen/Rahmen
-       um Inhalte -- Struktur entsteht durch Typografie-Hierarchie und
-       Weißraum, nur die äußere Frame-Kontur bleibt als durchgezogene
-       Linie. Streng monochrom, invertiert (schwarzer Hintergrund).
-       Gleiche Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
+       Design-System wie control.html/iphone.html: klar umrissene
+       Panels (dünner Rahmen) und echte <table>-Elemente für
+       tabellarische Daten -- sorgt für sauber ausgerichtete Spalten
+       (der reine Flex-/Typografie-Ansatz vorher lief bei
+       unterschiedlich langen Zeilen "krumm"). Inter + JetBrains Mono,
+       streng monochrom, invertiert (schwarzer Hintergrund). Gleiche
+       Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
     --------------------------------------------------------------- */
-    :root { --black:#ffffff; --white:#000000; }
+    :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); --line-soft: rgba(255,255,255,0.14); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
@@ -33,7 +35,7 @@
     .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
     .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
-    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
+    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
     .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
     .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
 
@@ -41,26 +43,30 @@
     .stat-line { margin-top: 6px; font-size: 12px; letter-spacing: 0.02em; opacity: 0.7; }
     .stat-line + .stat-line { margin-top: 3px; opacity: 0.55; }
 
-    .split { display: flex; gap: 44px; flex: 1; min-height: 0; }
-    .split-col.narrow { flex: 0 0 210px; display: flex; flex-direction: column; }
-    .split-col.wide { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .split { display: flex; gap: 20px; flex: 1; min-height: 0; }
+    .split-col.narrow { flex: 0 0 210px; display: flex; flex-direction: column; gap: 12px; }
+    .split-col.wide { flex: 1; display: flex; flex-direction: column; min-width: 0; gap: 10px; }
 
-    .rating-value { margin-top: 4px; font-size: 30px; font-weight: 200; letter-spacing: -0.02em; }
+    .panel { border: 1px solid var(--line); padding: 12px 14px; }
 
-    .info-block { margin-top: 14px; }
-    .info-value { font-size: 14px; font-weight: 600; margin-top: 2px; }
-    .info-hint { margin-top: 2px; font-size: 10px; opacity: 0.55; }
+    .rating-value { margin-top: 4px; font-size: 28px; font-weight: 200; letter-spacing: -0.02em; }
 
-    .section-block + .section-block { margin-top: 16px; }
-    .data-head { display: flex; gap: 14px; padding-bottom: 4px; }
-    .data-head .col-h { font-size: 9px; opacity: 0.45; text-transform: uppercase; letter-spacing: 0.06em; }
-    .data-head .col-h:first-child { flex: 1; }
-    .data-head .col-h:not(:first-child) { width: 66px; text-align: right; flex-shrink: 0; }
-    .data-row { display: flex; gap: 14px; align-items: baseline; padding: 3px 0; font-size: 12.5px; }
-    .data-row .cell:first-child { flex: 1; }
-    .data-row .cell:not(:first-child) { width: 66px; text-align: right; flex-shrink: 0; font-size: 11px; opacity: 0.75; }
+    .info-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .info-row + .info-row { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+    .info-value { font-size: 13px; font-weight: 600; text-align: right; }
+    .info-hint { margin-top: 2px; font-size: 9.5px; opacity: 0.55; }
 
-    .disclaimer { margin-top: auto; padding-top: 10px; font-size: 9.5px; line-height: 1.4; opacity: 0.5; }
+    table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    table.data-table th {
+      text-align: right; font-size: 9px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase;
+      opacity: 0.5; padding: 0 0 5px; border-bottom: 1px solid var(--line);
+    }
+    table.data-table th:first-child { text-align: left; }
+    table.data-table td { text-align: right; padding: 5px 0; border-bottom: 1px solid var(--line-soft); font-size: 11.5px; }
+    table.data-table td:first-child { text-align: left; font-size: 12.5px; }
+    table.data-table tr:last-child td { border-bottom: none; }
+
+    .disclaimer { font-size: 9.5px; line-height: 1.4; opacity: 0.5; }
 
     .footer {
       position: absolute; left: 34px; right: 34px; bottom: 14px;
@@ -106,18 +112,16 @@
       return dirs[Math.round(deg / 45) % 8];
     }
 
-    // Typografische Zeilen-"Tabelle" ohne Rahmen/Linien -- erste Spalte
-    // flexibel (Label), weitere Spalten feste Breite, rechtsbündig mono.
+    // Echte <table> statt Flex-Zeilen -- Spalten bleiben sauber
+    // ausgerichtet, unabhängig von unterschiedlich langen Einträgen
+    // in der ersten Spalte (Browser-Tabellenlayout übernimmt das).
     function dataTable(heading, headCells, rows) {
-      const head = `<div class="data-head">${headCells.map((c) => `<span class="col-h">${c}</span>`).join("")}</div>`;
-      const body = rows.map((cells) => `
-        <div class="data-row">${cells.map((c) => `<span class="cell mono">${c}</span>`).join("")}</div>
-      `).join("");
+      const head = `<tr>${headCells.map((c) => `<th>${c}</th>`).join("")}</tr>`;
+      const body = rows.map((cells) => `<tr>${cells.map((c) => `<td class="mono">${c}</td>`).join("")}</tr>`).join("");
       return `
-        <div class="section-block">
+        <div class="panel">
           <p class="col-label">${heading}</p>
-          ${head}
-          ${body}
+          <table class="data-table"><thead>${head}</thead><tbody>${body}</tbody></table>
         </div>
       `;
     }
@@ -208,22 +212,28 @@
 
         <div class="split">
           <div class="split-col narrow">
-            <p class="col-label">Flugtauglichkeit${usingFallbackRating ? " (Notfall)" : ""}</p>
-            <p class="rating-value">${rating.label}</p>
-
-            <p class="stat-line mono">Niederschlag ${precipSum.toFixed(1)} mm &middot; Wind max. ${windMax} km/h</p>
-            <p class="stat-line mono">Sonne ${sunrise}&ndash;${sunset}</p>
-
-            <div class="info-block">
-              <p class="col-label">F&ouml;hn-Heuristik (unvalidiert)</p>
-              <p class="info-value">${foehn.label}</p>
-              <p class="info-hint">${foehn.hint}</p>
+            <div class="panel">
+              <p class="col-label">Flugtauglichkeit${usingFallbackRating ? " (Notfall)" : ""}</p>
+              <p class="rating-value">${rating.label}</p>
+              <p class="stat-line mono">Niederschlag ${precipSum.toFixed(1)} mm &middot; Wind max. ${windMax} km/h</p>
+              <p class="stat-line mono">Sonne ${sunrise}&ndash;${sunset}</p>
             </div>
 
-            <div class="info-block">
-              <p class="col-label">Beste Zeit</p>
-              <p class="info-value">${rating.bestWindow}</p>
-              <p class="info-hint">Windscherung: ${rating.shear}</p>
+            <div class="panel">
+              <div class="info-row">
+                <div>
+                  <p class="col-label" style="margin-bottom:2px;">F&ouml;hn-Heuristik</p>
+                  <p class="info-hint">${foehn.hint}</p>
+                </div>
+                <p class="info-value">${foehn.label}</p>
+              </div>
+              <div class="info-row">
+                <div>
+                  <p class="col-label" style="margin-bottom:2px;">Beste Zeit</p>
+                  <p class="info-hint">Windscherung: ${rating.shear}</p>
+                </div>
+                <p class="info-value">${rating.bestWindow}</p>
+              </div>
             </div>
           </div>
 

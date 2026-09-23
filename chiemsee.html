@@ -15,13 +15,13 @@
 
   <style>
     /* ---------------------------------------------------------------
-       Gleiches Design-System wie weather.html (v2): keine Boxen/Rahmen
-       um Inhalte -- Struktur entsteht durch Typografie-Hierarchie und
-       Weißraum, nur die äußere Frame-Kontur bleibt als durchgezogene
-       Linie. Streng monochrom, invertiert (schwarzer Hintergrund).
-       Gleiche Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
+       Design-System wie control.html/iphone.html: klar umrissene
+       Panels (dünner Rahmen) statt freier Typografie. Inter +
+       JetBrains Mono, streng monochrom, invertiert (schwarzer
+       Hintergrund). Gleiche Daten/Fetch-Logik wie bisher, nur
+       Layout/Optik neu.
     --------------------------------------------------------------- */
-    :root { --black:#ffffff; --white:#000000; }
+    :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
@@ -33,14 +33,16 @@
     .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
     .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
-    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 26px; }
+    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; }
     .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
     .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
 
     .col-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 6px; }
 
-    /* ---- Zwei Spalten (Wasser/Wind) -- Trennung durch Lücke statt Linie. ---- */
-    .split { display: flex; gap: 48px; flex: 1; min-height: 0; }
+    .panel { border: 1px solid var(--line); padding: 14px 16px; }
+
+    /* ---- Zwei Spalten (Wasser/Wind) -- eigenes Panel je Spalte. ---- */
+    .split { display: flex; gap: 16px; flex: 1; min-height: 0; }
     .split-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
     .metric-hero { display: flex; align-items: flex-end; gap: 10px; margin-top: 4px; }
@@ -85,11 +87,11 @@
       </div>
 
       <div class="split">
-        <div class="split-col" id="waterCol">
+        <div class="split-col panel" id="waterCol">
           <p class="col-label">Wassertemperatur</p>
           <div class="empty mono">Loading&hellip;</div>
         </div>
-        <div class="split-col" id="windCol">
+        <div class="split-col panel" id="windCol">
           <p class="col-label">Wind jetzt</p>
           <div class="empty mono">Loading&hellip;</div>
         </div>

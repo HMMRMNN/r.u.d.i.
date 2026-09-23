@@ -15,13 +15,13 @@
 
   <style>
     /* ---------------------------------------------------------------
-       Gleiches Design-System wie weather.html (v2): keine Boxen/Rahmen
-       um Inhalte -- Struktur entsteht durch Typografie-Hierarchie und
-       Weißraum, nur die äußere Frame-Kontur bleibt als durchgezogene
-       Linie. Streng monochrom, invertiert (schwarzer Hintergrund).
-       Gleiche Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
+       Design-System wie control.html/iphone.html: klar umrissene
+       Panels (dünner Rahmen) statt freier Typografie. Inter +
+       JetBrains Mono, streng monochrom, invertiert (schwarzer
+       Hintergrund). Gleiche Daten/Fetch-Logik wie bisher, nur
+       Layout/Optik neu.
     --------------------------------------------------------------- */
-    :root { --black:#ffffff; --white:#000000; }
+    :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); --line-soft: rgba(255,255,255,0.14); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
@@ -36,23 +36,25 @@
     .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
     .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
     .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
-    .status-line { font-size: 12px; opacity: 0.6; margin-bottom: 16px; }
+    .status-line { font-size: 12px; opacity: 0.6; margin-bottom: 10px; }
 
     .col-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 6px; }
 
-    .split { display: flex; gap: 44px; flex: 1; min-height: 0; }
+    .panel { border: 1px solid var(--line); padding: 10px 14px; }
+    .panel + .panel { margin-top: 8px; }
+
+    .split { display: flex; gap: 16px; flex: 1; min-height: 0; }
     .split-col.wide { flex: 1; display: flex; flex-direction: column; min-width: 0; }
     .split-col.narrow { flex: 0 0 220px; display: flex; flex-direction: column; overflow: hidden; }
 
-    .bilanz-row { display: flex; gap: 28px; }
+    .bilanz-row { display: flex; gap: 24px; }
     .bilanz-item { flex: 1; }
-    .bilanz-value { font-size: 30px; font-weight: 200; letter-spacing: -0.02em; margin-top: 2px; }
-    .bilanz-unit { font-size: 13px; font-weight: 300; opacity: 0.7; }
-    .bilanz-sub { margin-top: 2px; font-size: 10px; opacity: 0.5; }
+    .bilanz-value { font-size: 26px; font-weight: 200; letter-spacing: -0.02em; margin-top: 2px; }
+    .bilanz-unit { font-size: 12px; font-weight: 300; opacity: 0.7; }
+    .bilanz-sub { margin-top: 2px; font-size: 9.5px; opacity: 0.5; }
 
-    .section-block { margin-top: 16px; }
-    .goal-head-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
-    .goal-bar-wrap { position: relative; margin-top: 8px; }
+    .goal-head-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; }
+    .goal-bar-wrap { position: relative; margin-top: 7px; }
     .goal-bar-track { height: 3px; background: rgba(255,255,255,0.18); }
     .goal-bar-fill { height: 100%; background: var(--black); }
     .goal-target {
@@ -60,22 +62,25 @@
       border-left: 4px solid transparent; border-right: 4px solid transparent;
       border-bottom: 5px solid var(--black); opacity: 0.7;
     }
-    .goal-foot-row { margin-top: 9px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-    .goal-foot { font-size: 10.5px; opacity: 0.55; }
-    .pizza-inline { display: flex; align-items: center; gap: 6px; font-size: 10.5px; opacity: 0.75; flex-shrink: 0; }
+    .goal-foot-row { margin-top: 7px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .goal-foot { font-size: 10px; opacity: 0.55; }
+    .pizza-inline { display: flex; align-items: center; gap: 6px; font-size: 10px; opacity: 0.75; flex-shrink: 0; }
     .pizza-inline svg { flex-shrink: 0; }
 
-    .duo { display: flex; gap: 36px; }
+    .duo { display: flex; gap: 24px; }
     .duo-col { flex: 1; min-width: 0; }
-    .form-value-big { font-size: 20px; font-weight: 300; margin-top: 2px; }
-    .kv-row { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; padding: 2px 0; }
+    .duo-col + .duo-col { padding-left: 24px; border-left: 1px solid var(--line-soft); }
+    .form-value-big { font-size: 18px; font-weight: 300; margin-top: 2px; }
+    .kv-row { display: flex; justify-content: space-between; gap: 10px; font-size: 10.5px; padding: 2px 0; }
     .kv-row .k { opacity: 0.55; }
     .kv-row .v { font-weight: 600; }
-    .spark { display: block; margin-top: 6px; color: var(--black); }
+    .spark { display: block; margin-top: 5px; color: var(--black); }
 
-    .ride-list { display: flex; flex-direction: column; gap: 10px; overflow-y: hidden; }
+    .ride-list { display: flex; flex-direction: column; overflow-y: hidden; }
+    .ride-entry { padding: 8px 0; }
+    .ride-entry + .ride-entry { border-top: 1px solid var(--line-soft); }
     .ride-entry-main { display: flex; justify-content: space-between; align-items: baseline; }
-    .ride-entry-km { font-size: 16px; font-weight: 600; }
+    .ride-entry-km { font-size: 15px; font-weight: 600; }
     .ride-entry-unit { font-size: 10px; font-weight: 400; opacity: 0.6; }
     .ride-entry-speed { font-size: 11px; opacity: 0.7; }
     .ride-entry-meta { margin-top: 2px; font-size: 10px; opacity: 0.5; }
@@ -274,26 +279,28 @@
         : `<div class="duo-col"><p class="col-label">Leistung</p><div class="kv-row"><span class="k">Keine Leistungsdaten</span></div></div>`;
 
       const left = `
-        <p class="col-label">Bilanz</p>
-        <div class="bilanz-row">
-          <div class="bilanz-item">
-            <p class="col-label" style="opacity:0.6;">Diese Woche</p>
-            <div class="bilanz-value">${data.week.km}<span class="bilanz-unit"> km</span></div>
-            <div class="bilanz-sub mono">${data.week.elevation} hm &middot; ${data.week.hours} h &middot; ${data.week.count} Fahrten</div>
-          </div>
-          <div class="bilanz-item">
-            <p class="col-label" style="opacity:0.6;">Diesen Monat</p>
-            <div class="bilanz-value">${data.month.km}<span class="bilanz-unit"> km</span></div>
-            <div class="bilanz-sub mono">${data.month.elevation} hm &middot; ${data.month.hours} h &middot; ${data.month.count} Fahrten</div>
-          </div>
-          <div class="bilanz-item">
-            <p class="col-label" style="opacity:0.6;">Dieses Jahr</p>
-            <div class="bilanz-value">${data.year.km}<span class="bilanz-unit"> km</span></div>
-            <div class="bilanz-sub mono">${data.year.elevation} hm &middot; ${data.year.hours} h &middot; ${data.year.count} Fahrten</div>
+        <div class="panel">
+          <p class="col-label">Bilanz</p>
+          <div class="bilanz-row">
+            <div class="bilanz-item">
+              <p class="col-label" style="opacity:0.6;">Diese Woche</p>
+              <div class="bilanz-value">${data.week.km}<span class="bilanz-unit"> km</span></div>
+              <div class="bilanz-sub mono">${data.week.elevation} hm &middot; ${data.week.hours} h &middot; ${data.week.count} Fahrten</div>
+            </div>
+            <div class="bilanz-item">
+              <p class="col-label" style="opacity:0.6;">Diesen Monat</p>
+              <div class="bilanz-value">${data.month.km}<span class="bilanz-unit"> km</span></div>
+              <div class="bilanz-sub mono">${data.month.elevation} hm &middot; ${data.month.hours} h &middot; ${data.month.count} Fahrten</div>
+            </div>
+            <div class="bilanz-item">
+              <p class="col-label" style="opacity:0.6;">Dieses Jahr</p>
+              <div class="bilanz-value">${data.year.km}<span class="bilanz-unit"> km</span></div>
+              <div class="bilanz-sub mono">${data.year.elevation} hm &middot; ${data.year.hours} h &middot; ${data.year.count} Fahrten</div>
+            </div>
           </div>
         </div>
 
-        <div class="section-block">
+        <div class="panel">
           <div class="goal-head-row">
             <span class="col-label" style="margin:0;">Jahresziel</span>
             <span class="mono"><strong>${yearKm}</strong> von ${goalKm} km &middot; ${Math.round(pct)}%</span>
@@ -308,7 +315,7 @@
           </div>
         </div>
 
-        <div class="section-block duo">
+        <div class="panel duo">
           ${formPanel}
           ${powerPanel}
         </div>
@@ -316,7 +323,7 @@
 
       const rides = (data.recent || []).length
         ? `<div class="ride-list">${data.recent.map((r) => `
-            <div>
+            <div class="ride-entry">
               <div class="ride-entry-main">
                 <span class="ride-entry-km">${r.km}<span class="ride-entry-unit"> km</span></span>
                 <span class="ride-entry-speed mono">${r.speed != null ? r.speed + " km/h" : ""}</span>
@@ -326,7 +333,7 @@
         : `<p style="font-size:11px; opacity:0.6;">Noch keine Fahrten erfasst</p>`;
 
       mainEl.querySelector(".split-col.wide").innerHTML = left;
-      mainEl.querySelector(".split-col.narrow").innerHTML = `<p class="col-label">Letzte Fahrten</p>${rides}`;
+      mainEl.querySelector(".split-col.narrow").innerHTML = `<div class="panel" style="flex:1; display:flex; flex-direction:column; min-height:0;"><p class="col-label">Letzte Fahrten</p>${rides}</div>`;
     }
 
     load();
