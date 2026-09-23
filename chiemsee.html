@@ -1,104 +1,110 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#ffffff" />
-<title>Chiemsee</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <title>Chiemsee</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link
-  href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
-  rel="stylesheet"
-/>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
 
-<style>
-  :root { --black: #000; --white: #fff; }
-  * { box-sizing: border-box; -webkit-font-smoothing: none; }
-  html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--white); color: var(--black); font-family: "Work Sans", Arial, Helvetica, sans-serif; }
-  .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
-  .header {
-    display: flex; align-items: flex-start; justify-content: space-between;
-    padding: 14px 20px 8px; border-bottom: 1px solid var(--black);
-  }
-  .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
-  .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
-  .live-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin: 0; }
-  .live-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--black); margin-right: 5px; vertical-align: middle; }
+  <style>
+    /* ---------------------------------------------------------------
+       Gleiches Design-System wie weather.html (v2): keine Boxen/Rahmen
+       um Inhalte -- Struktur entsteht durch Typografie-Hierarchie und
+       Weißraum, nur die äußere Frame-Kontur bleibt als durchgezogene
+       Linie. Streng monochrom, invertiert (schwarzer Hintergrund).
+       Gleiche Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
+    --------------------------------------------------------------- */
+    :root { --black:#ffffff; --white:#000000; }
+    * { box-sizing: border-box; }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
+    body {
+      display: grid; place-items: center; font-family: "Inter", Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
+    }
+    .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
 
-  .main-layout { display: flex; height: 358px; }
-  .col { flex: 1; padding: 12px 20px; display: flex; flex-direction: column; min-width: 0; }
-  .col + .col { border-left: 1px solid var(--black); }
+    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+    .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
-  .metric-label { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 4px; }
-  .metric-row { display: flex; align-items: baseline; gap: 8px; }
-  .metric-value { font-size: 40px; font-weight: 800; line-height: 1; margin: 0; }
-  .metric-unit { font-size: 16px; font-weight: 600; }
-  .metric-meta { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; margin: 4px 0 0; }
+    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 26px; }
+    .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
+    .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
 
-  .chart-wrap { flex: 1; margin-top: 10px; min-height: 0; }
-  .chart-wrap svg { width: 100%; height: 100%; display: block; }
+    .col-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 6px; }
 
-  .wind-row { display: flex; align-items: baseline; gap: 12px; }
-  .wind-arrow { font-size: 24px; }
-  .wind-gust { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; margin-top: 4px; }
+    /* ---- Zwei Spalten (Wasser/Wind) -- Trennung durch Lücke statt Linie. ---- */
+    .split { display: flex; gap: 48px; flex: 1; min-height: 0; }
+    .split-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
-  .rating-badge {
-    margin-top: 8px; padding: 7px 10px; border: 1px solid var(--black); border-radius: 4px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .rating-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--black); flex-shrink: 0; }
-  .rating-dot.medium { background: repeating-linear-gradient(45deg, #000 0 2px, #fff 2px 4px); }
-  .rating-dot.low { background: var(--white); border: 1.5px solid var(--black); }
-  .rating-text { font-size: 11px; font-weight: 700; margin: 0; }
+    .metric-hero { display: flex; align-items: flex-end; gap: 10px; margin-top: 4px; }
+    .metric-hero-value { font-size: 84px; font-weight: 200; line-height: 0.85; letter-spacing: -0.03em; }
+    .metric-hero-unit { font-size: 22px; font-weight: 300; padding-bottom: 10px; opacity: 0.7; }
+    .metric-hero-arrow { font-size: 30px; padding-bottom: 8px; opacity: 0.85; }
+    .metric-note { margin-top: 6px; font-size: 11px; opacity: 0.6; }
+    .metric-note + .metric-note { margin-top: 3px; opacity: 0.5; }
 
-  .outlook { margin-top: 10px; flex: 1; display: flex; flex-direction: column; border-top: 1px solid var(--black); padding-top: 8px; min-height: 0; }
-  .outlook-label { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 6px; }
-  .outlook-row { display: flex; align-items: center; justify-content: space-between; padding: 3px 0; }
-  .outlook-day { font-size: 11px; font-weight: 700; width: 38px; }
-  .outlook-arrow { font-size: 13px; width: 24px; text-align: center; }
-  .outlook-speed { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 700; width: 56px; text-align: right; }
-  .outlook-bar-wrap { flex: 1; height: 8px; border: 1px solid var(--black); margin: 0 8px; }
-  .outlook-bar { height: 100%; background: var(--black); }
+    .chart-wrap { flex: 1; margin-top: 14px; min-height: 0; }
+    .chart-wrap svg { width: 100%; height: 100%; display: block; }
 
-  .footer {
-    position: absolute; left: 20px; right: 20px; bottom: 10px;
-    display: flex; align-items: center; justify-content: space-between; gap: 14px;
-    padding-top: 7px; border-top: 1px solid var(--black);
-    font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
-  }
-  .empty { padding: 20px 0; text-align: center; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; }
-</style>
+    .rating-line { margin-top: 10px; font-size: 13px; display: flex; align-items: baseline; gap: 8px; }
+    .rating-dot { font-size: 11px; }
+
+    .outlook { margin-top: 16px; }
+    .outlook-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+    .outlook-day { font-size: 10.5px; opacity: 0.6; width: 30px; flex-shrink: 0; }
+    .outlook-arrow { font-size: 12px; width: 18px; text-align: center; opacity: 0.8; flex-shrink: 0; }
+    /* rgba statt opacity auf dem Wrapper -- opacity würde auf den
+       Kind-Balken durchschlagen und den Kontrast zum vollen Füllstand
+       kaputt machen. */
+    .outlook-bar-wrap { flex: 1; height: 2px; background: rgba(255,255,255,0.18); position: relative; }
+    .outlook-bar { height: 100%; background: var(--black); }
+    .outlook-speed { font-size: 11px; width: 52px; text-align: right; flex-shrink: 0; opacity: 0.75; }
+
+    .footer {
+      position: absolute; left: 34px; right: 34px; bottom: 14px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; opacity: 0.45;
+    }
+    .empty { padding: 20px 0; font-size: 12px; opacity: 0.6; }
+  </style>
 </head>
-<body>
-  <div class="frame">
-    <header class="header">
-      <div>
-        <p class="brand">Chiemsee</p>
-        <p class="subtitle">Wassertemperatur &amp; Wind</p>
-      </div>
-      <p class="live-badge"><span class="live-dot"></span>LIVE</p>
-    </header>
 
-    <div class="main-layout">
-      <div class="col" id="waterCol">
-        <p class="metric-label">Wassertemperatur</p>
-        <div class="empty">Loading...</div>
+<body>
+  <main class="frame">
+    <div class="canvas">
+      <div class="masthead">
+        <span class="mast-left mono">R.U.D.I. &middot; Chiemsee</span>
+        <span class="mast-right mono" id="mastDate">&ndash;</span>
       </div>
-      <div class="col" id="windCol">
-        <p class="metric-label">Wind jetzt</p>
-        <div class="empty">Loading...</div>
+
+      <div class="split">
+        <div class="split-col" id="waterCol">
+          <p class="col-label">Wassertemperatur</p>
+          <div class="empty mono">Loading&hellip;</div>
+        </div>
+        <div class="split-col" id="windCol">
+          <p class="col-label">Wind jetzt</p>
+          <div class="empty mono">Loading&hellip;</div>
+        </div>
       </div>
     </div>
 
-    <footer class="footer">
-      <span id="footerNote">Loading…</span>
+    <footer class="footer mono">
+      <span id="footerNote">Loading&hellip;</span>
       <span id="updatedAt">Updating</span>
     </footer>
-  </div>
+  </main>
 
   <script>
+    "use strict";
+
     const RUDI_WORKER = "https://rudi.marvinradar.workers.dev";
     const CHIEMSEE_LAT = 47.875;
     const CHIEMSEE_LON = 12.45;
@@ -108,6 +114,7 @@
     const windCol = document.getElementById("windCol");
     const footerNote = document.getElementById("footerNote");
     const updatedAt = document.getElementById("updatedAt");
+    const mastDate = document.getElementById("mastDate");
 
     function escapeHtml(str) {
       return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -122,20 +129,22 @@
       return dirs[Math.round((deg % 360) / 45) % 8];
     }
     function windRating(speedKmh, gustKmh) {
-      if (gustKmh >= 35 || speedKmh >= 28) return { level: "low", text: "Zu stark zum Fahren" };
-      if (speedKmh >= 16) return { level: "medium", text: "Gut für Geübte" };
-      if (speedKmh >= 6) return { level: "high", text: "Gut geeignet (SUP & Segeln)" };
-      return { level: "medium", text: "Sehr ruhig, kaum Wind" };
+      if (gustKmh >= 35 || speedKmh >= 28) return { dot: "○", text: "Zu stark zum Fahren" };
+      if (speedKmh >= 16) return { dot: "◐", text: "Gut für Geübte" };
+      if (speedKmh >= 6) return { dot: "●", text: "Gut geeignet (SUP & Segeln)" };
+      return { dot: "◐", text: "Sehr ruhig, kaum Wind" };
     }
 
     /**
      * Linien-Graph mit Min/Max-Band als reines SVG. Zeigt den
      * Tages-Temperaturverlauf seit 1. Januar (Mittelwert als Linie,
      * Tagesspanne als helles Band), mit Monatsmarken zur Orientierung.
+     * Farben nutzen currentColor -- auf dem invertierten (schwarzen)
+     * Hintergrund entsprechend weiß statt hartcodiert schwarz.
      */
     function renderTempChart(history) {
       if (!history || history.length < 2) return "";
-      const W = 260, H = 90, padX = 4, padY_top = 12, padY_bottom = 16;
+      const W = 300, H = 130, padX = 4, padY_top = 14, padY_bottom = 16;
       const allValues = history.flatMap((h) => [h.meanC, h.maxC, h.minC]);
       const minT = Math.min(...allValues), maxT = Math.max(...allValues);
       const range = Math.max(maxT - minT, 0.5);
@@ -146,8 +155,6 @@
       const meanPoints = history.map((h, i) => ({ x: xFor(i), y: yFor(h.meanC) }));
       const meanPath = meanPoints.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
 
-      // Min/Max-Band als gefüllte Fläche (oben die Max-Kurve, unten
-      // rückwärts die Min-Kurve) -- zeigt die Tagesschwankung.
       const maxPath = history.map((h, i) => `${i === 0 ? "M" : "L"}${xFor(i).toFixed(1)},${yFor(h.maxC).toFixed(1)}`).join(" ");
       const minPathReversed = [...history].reverse().map((h, i) => {
         const origIdx = history.length - 1 - i;
@@ -155,7 +162,6 @@
       }).join(" ");
       const bandPath = `${maxPath} ${minPathReversed} Z`;
 
-      // Monatsmarken: an jedem Monatswechsel eine dünne Linie + Label.
       let monthMarks = "";
       let lastMonth = null;
       history.forEach((h, i) => {
@@ -163,8 +169,8 @@
         if (month !== lastMonth) {
           const x = xFor(i);
           const monthLabel = new Date(2000, Number(month) - 1, 1).toLocaleDateString("de-DE", { month: "short" });
-          monthMarks += `<line x1="${x}" y1="${padY_top}" x2="${x}" y2="${H - padY_bottom}" stroke="#000" stroke-width="0.5" stroke-dasharray="1 2"/>`;
-          monthMarks += `<text x="${x}" y="${H - 3}" font-size="7" font-family="Roboto Mono, monospace" text-anchor="start">${monthLabel}</text>`;
+          monthMarks += `<line x1="${x}" y1="${padY_top}" x2="${x}" y2="${H - padY_bottom}" stroke="currentColor" stroke-width="0.5" stroke-dasharray="1 2" opacity="0.3"/>`;
+          monthMarks += `<text x="${x}" y="${H - 3}" font-size="8" font-family="JetBrains Mono, monospace" text-anchor="start" fill="currentColor" opacity="0.55">${monthLabel}</text>`;
           lastMonth = month;
         }
       });
@@ -173,12 +179,12 @@
       const lastY = yFor(last.meanC);
 
       return `
-        <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-          <path d="${bandPath}" fill="#000" opacity="0.12" stroke="none"/>
+        <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" color="var(--black)">
+          <path d="${bandPath}" fill="currentColor" opacity="0.15" stroke="none"/>
           ${monthMarks}
-          <path d="${meanPath}" fill="none" stroke="#000" stroke-width="1.8" stroke-linejoin="round"/>
-          <circle cx="${xFor(history.length - 1)}" cy="${lastY}" r="2.5" fill="#000"/>
-          <text x="${xFor(history.length - 1)}" y="${lastY - 6}" font-size="9" font-family="Roboto Mono, monospace" font-weight="700" text-anchor="end">${last.meanC.toFixed(1)}°</text>
+          <path d="${meanPath}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+          <circle cx="${xFor(history.length - 1)}" cy="${lastY}" r="2.5" fill="currentColor"/>
+          <text x="${xFor(history.length - 1)}" y="${lastY - 8}" font-size="11" font-family="JetBrains Mono, monospace" font-weight="700" text-anchor="end" fill="currentColor">${last.meanC.toFixed(1)}°</text>
         </svg>
       `;
     }
@@ -200,22 +206,21 @@
           history = historyData.history;
         }
 
-        const rangeNote = history && history.length > 1
-          ? `Verlauf seit ${escapeHtml(history[0].date)}`
-          : "";
+        const rangeNote = history && history.length > 1 ? `Verlauf seit ${escapeHtml(history[0].date)}` : "";
 
         waterCol.innerHTML = `
-          <p class="metric-label">Wassertemperatur</p>
-          <div class="metric-row">
-            <p class="metric-value">${data.temperatureC.toFixed(1)}<span class="metric-unit">°C</span></p>
+          <p class="col-label">Wassertemperatur</p>
+          <div class="metric-hero">
+            <span class="metric-hero-value">${data.temperatureC.toFixed(1)}</span>
+            <span class="metric-hero-unit">&deg;C</span>
           </div>
-          <p class="metric-meta">Station ${escapeHtml(data.station)} · ${escapeHtml(data.measuredAt)}</p>
-          <div class="chart-wrap">${history ? renderTempChart(history) : '<div class="empty">Verlauf gerade nicht verfügbar.</div>'}</div>
-          ${rangeNote ? `<p class="metric-meta">${rangeNote}</p>` : ""}
+          <p class="metric-note mono">Station ${escapeHtml(data.station)} &middot; ${escapeHtml(data.measuredAt)}</p>
+          <div class="chart-wrap">${history ? renderTempChart(history) : '<div class="empty mono">Verlauf gerade nicht verfügbar.</div>'}</div>
+          ${rangeNote ? `<p class="metric-note mono">${rangeNote}</p>` : ""}
         `;
       } catch (error) {
         console.error(error);
-        waterCol.innerHTML = `<p class="metric-label">Wassertemperatur</p><div class="empty">Wert gerade nicht verfügbar.</div>`;
+        waterCol.innerHTML = `<p class="col-label">Wassertemperatur</p><div class="empty mono">Wert gerade nicht verfügbar.</div>`;
       }
     }
 
@@ -243,40 +248,43 @@
           const barPct = Math.round((speedVal / maxDailySpeed) * 100);
           return `
             <div class="outlook-row">
-              <span class="outlook-day">${escapeHtml(dayLabel)}</span>
+              <span class="outlook-day mono">${escapeHtml(dayLabel)}</span>
               <span class="outlook-arrow">${windArrow(data.daily.wind_direction_10m_dominant[i])}</span>
               <div class="outlook-bar-wrap"><div class="outlook-bar" style="width:${barPct}%"></div></div>
-              <span class="outlook-speed">${speedVal} km/h</span>
+              <span class="outlook-speed mono">${speedVal} km/h</span>
             </div>
           `;
         }).join("");
 
         windCol.innerHTML = `
-          <p class="metric-label">Wind jetzt</p>
-          <div class="wind-row">
-            <p class="metric-value">${speed}<span class="metric-unit">km/h</span></p>
-            <span class="wind-arrow">${windArrow(dir)}</span>
+          <p class="col-label">Wind jetzt</p>
+          <div class="metric-hero">
+            <span class="metric-hero-value">${speed}</span>
+            <span class="metric-hero-unit">km/h</span>
+            <span class="metric-hero-arrow">${windArrow(dir)}</span>
           </div>
-          <p class="metric-meta">Aus ${compassLabel(dir)} · Böen bis ${gust} km/h</p>
-          <div class="rating-badge">
-            <span class="rating-dot ${rating.level}"></span>
-            <p class="rating-text">${escapeHtml(rating.text)}</p>
-          </div>
+          <p class="metric-note mono">Aus ${compassLabel(dir)} &middot; Böen bis ${gust} km/h</p>
+          <div class="rating-line"><span class="rating-dot">${rating.dot}</span><span>${escapeHtml(rating.text)}</span></div>
           <div class="outlook">
-            <p class="outlook-label">5-Tage-Wind-Aussicht (Tagesmaximum)</p>
+            <p class="col-label">5-Tage-Wind-Aussicht (Tagesmaximum)</p>
             ${outlookRows}
           </div>
         `;
       } catch (error) {
         console.error(error);
-        windCol.innerHTML = `<p class="metric-label">Wind jetzt</p><div class="empty">Wert gerade nicht verfügbar.</div>`;
+        windCol.innerHTML = `<p class="col-label">Wind jetzt</p><div class="empty mono">Wert gerade nicht verfügbar.</div>`;
       }
     }
 
     async function loadDisplay() {
+      const now = new Date();
+      const dayName = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" }).toUpperCase();
+      const fullDate = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
+      mastDate.textContent = `${dayName} · ${fullDate}`;
+
       await Promise.all([loadWaterTemp(), loadWind()]);
       footerNote.textContent = "Wasser: GKD Bayern (Stock) · Wind: Open-Meteo";
-      updatedAt.textContent = new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+      updatedAt.textContent = `Updated ${now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}`;
     }
 
     loadDisplay();

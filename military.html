@@ -3,102 +3,111 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#000000" />
   <title>Militärflugzeuge</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet"
   />
 
   <style>
-    :root { --black:#000000; --white:#ffffff; --gray:#777777; }
+    /* ---------------------------------------------------------------
+       Gleiches Design-System wie weather.html (v2): keine Boxen/Rahmen
+       um Inhalte -- Struktur entsteht durch Typografie-Hierarchie und
+       Weißraum, nur die äußere Frame-Kontur bleibt als durchgezogene
+       Linie. Streng monochrom, invertiert (schwarzer Hintergrund). Die
+       Foto-/Silhouetten-Box bleibt bewusst weiß (fester Bestandteil der
+       Dither-Pipeline, siehe ditherImageToCanvas/renderSilhouetteToCanvas
+       unten -- unverändert). Gleiche Daten/Fetch-Logik wie bisher, nur
+       Layout/Optik neu.
+    --------------------------------------------------------------- */
+    :root { --black:#ffffff; --white:#000000; }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
-      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      display: grid; place-items: center; font-family: "Inter", Arial, Helvetica, sans-serif;
       -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
     }
-    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+    .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
 
-    .header {
-      position: absolute; top: 14px; left: 20px; right: 20px;
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--black);
-    }
-    .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
-    .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
-    .live-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
-    .header-right { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+    .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
+
+    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
+    .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
+    .mast-right { display: flex; align-items: center; gap: 10px; }
+    .live-tag { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
     .position-select {
       appearance: none; -webkit-appearance: none;
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8.5px;
-      letter-spacing: 0.04em; color: var(--black); background: var(--white);
-      border: 1px solid var(--black); border-radius: 3px; padding: 2px 14px 2px 5px;
-      background-image: linear-gradient(45deg, transparent 50%, var(--black) 50%), linear-gradient(135deg, var(--black) 50%, transparent 50%);
-      background-position: right 6px center, right 3px center; background-size: 3px 3px, 3px 3px; background-repeat: no-repeat;
+      font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.04em;
+      color: var(--black); background: transparent; border: 1px solid rgba(255,255,255,0.3);
+      padding: 3px 16px 3px 6px; opacity: 0.75;
+      background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+      background-position: right 7px center, right 4px center; background-size: 3px 3px, 3px 3px; background-repeat: no-repeat;
     }
+    .position-select option { background: #000000; color: #ffffff; }
 
-    .aircraft-list { position: absolute; top: 58px; left: 20px; right: 20px; bottom: 34px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
-    .aircraft { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 10px 10px 8px; text-align: left; }
-    .aircraft + .aircraft { border-left: 1px solid var(--black); }
+    .aircraft-list { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; min-height: 0; }
+    .aircraft { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 
     /* Foto statt Tail -- gedithert (siehe ditherToCanvas), damit es
-       auf 1-Bit-E-Ink sauber bleibt statt zu einem Graufleck zu werden. */
-    .photo-box { display: grid; place-items: center; width: 100%; height: 132px; min-height: 132px; padding: 0 2px 12px; border-bottom: 1px solid var(--black); overflow: hidden; position: relative; }
+       auf 1-Bit-E-Ink sauber bleibt statt zu einem Graufleck zu werden.
+       Bewusst weißer Kasten (Teil der Dither-Pipeline) -- liest sich wie
+       ein Foto-Passepartout auf der dunklen Seite. */
+    .photo-box { display: grid; place-items: center; width: 100%; height: 122px; min-height: 122px; background: #ffffff; overflow: hidden; position: relative; }
     .category-estimate-label {
-      position: absolute; bottom: 14px; left: 4px; right: 4px;
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 7.5px;
+      position: absolute; bottom: 4px; left: 4px; right: 4px;
+      font-family: "JetBrains Mono", monospace; font-size: 7.5px; color: #000000;
       text-align: center; letter-spacing: 0.04em; text-transform: uppercase;
     }
     .photo-box canvas { display: block; width: 100%; max-width: 182px; max-height: 122px; image-rendering: pixelated; }
-    .photo-fallback { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-align: center; line-height: 1.4; }
+    .photo-fallback { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-align: center; line-height: 1.4; color: #000000; }
 
-    .route-block { min-width: 0; padding: 9px 0 8px; border-bottom: 1px solid var(--black); }
-    .aircraft-type { margin: 0; font-family: "Work Sans", Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; }
-    .operator-line { margin: 4px 0 0; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10.5px; line-height: 1.2; }
+    .route-block { min-width: 0; margin-top: 10px; }
+    .aircraft-type { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.1; }
+    .operator-line { margin: 3px 0 0; font-size: 10px; opacity: 0.6; line-height: 1.25; }
 
-    .details { min-width: 0; padding-top: 8px; }
-    .detail-group { padding: 0 0 7px; }
-    .detail-group + .detail-group { padding-top: 7px; border-top: 1px solid var(--black); }
+    .details { min-width: 0; margin-top: 10px; }
+    .detail-group { margin-top: 7px; }
+    .detail-group:first-child { margin-top: 0; }
 
-    .meta { margin: 0; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; line-height: 1.15; letter-spacing: -0.01em; overflow-wrap: anywhere; }
-    .meta + .meta { margin-top: 2px; }
-    .meta.phase-meta { text-transform: uppercase; letter-spacing: 0.04em; }
+    .meta { margin: 0; font-size: 10px; opacity: 0.6; line-height: 1.25; overflow-wrap: anywhere; }
+    .meta strong { opacity: 1; font-weight: 600; }
+    .meta + .meta { margin-top: 1px; }
+    .meta.phase-meta { text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.45; }
 
     .footer {
-      position: absolute; left: 20px; right: 20px; bottom: 10px;
+      position: absolute; left: 34px; right: 34px; bottom: 14px;
       display: flex; align-items: center; justify-content: space-between; gap: 14px;
-      padding-top: 7px; border-top: 1px solid var(--black);
-      font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+      font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; opacity: 0.45;
     }
-    .empty { position: absolute; inset: 58px 20px 34px; display: grid; place-items: center; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 13px; text-align: center; line-height: 1.2; }
+    .empty { font-size: 13px; opacity: 0.6; line-height: 1.3; }
   </style>
 </head>
 
 <body>
   <main class="frame">
-    <header class="header">
-      <div>
-        <p class="brand">MILITÄRFLUGZEUGE</p>
-        <p class="subtitle">Live-Erfassung &amp; Fotos</p>
+    <div class="canvas">
+      <div class="masthead">
+        <span class="mast-left mono">R.U.D.I. &middot; Milit&auml;rflugzeuge</span>
+        <div class="mast-right">
+          <select id="positionSelect" class="position-select" aria-label="Position">
+            <option value="grassau">Grassau</option>
+            <option value="ismaning">Ismaning</option>
+          </select>
+          <span class="live-tag mono">Live</span>
+        </div>
       </div>
-      <div class="header-right">
-        <select id="positionSelect" class="position-select" aria-label="Position">
-          <option value="grassau">Grassau</option>
-          <option value="ismaning">Ismaning</option>
-        </select>
-        <p class="live-badge">Live</p>
-      </div>
-    </header>
 
-    <section class="aircraft-list" id="aircraftList">
-      <div class="empty">Loading aircraft...</div>
-    </section>
+      <section class="aircraft-list" id="aircraftList">
+        <div class="empty mono">Loading aircraft...</div>
+      </section>
+    </div>
 
-    <footer class="footer">
+    <footer class="footer mono">
       <span id="footerCity">Loading location…</span>
       <span id="updatedAt">Updating</span>
     </footer>
@@ -360,7 +369,7 @@
           if (isEstimate && categoryLabel) {
             const label = document.createElement("div");
             label.className = "category-estimate-label";
-            label.textContent = `\u2248 ${categoryLabel}`;
+            label.textContent = `≈ ${categoryLabel}`;
             container.appendChild(label);
           }
         } catch (error) {
@@ -455,7 +464,7 @@
         }
       } catch (error) {
         console.error(error);
-        aircraftList.innerHTML = '<div class="empty">Aircraft data unavailable.</div>';
+        aircraftList.innerHTML = '<div class="empty mono">Aircraft data unavailable.</div>';
         updatedAt.textContent = "Update failed";
       }
     }
@@ -483,7 +492,7 @@
 
     function renderAircraft(aircraft) {
       if (!aircraft.length) {
-        aircraftList.innerHTML = '<div class="empty">Gerade keine Militärflugzeuge in der Nähe.</div>';
+        aircraftList.innerHTML = '<div class="empty mono">Gerade keine Militärflugzeuge in der Nähe.</div>';
         return;
       }
 
@@ -500,19 +509,19 @@
             </div>
             <div class="route-block">
               <p class="aircraft-type" id="type-${index}">${escapeHtml(item.type || "Identifiziere…")}</p>
-              <p class="operator-line" id="operator-${index}">${escapeHtml(item.operator)}</p>
-              <p class="operator-line" id="country-${index}"></p>
+              <p class="operator-line mono" id="operator-${index}">${escapeHtml(item.operator)}</p>
+              <p class="operator-line mono" id="country-${index}"></p>
             </div>
             <div class="details">
-              <div class="detail-group"><p class="meta"><strong>${escapeHtml(item.callsign)}</strong> · ${escapeHtml(item.registration || "—")}</p></div>
+              <div class="detail-group"><p class="meta mono"><strong>${escapeHtml(item.callsign)}</strong> · ${escapeHtml(item.registration || "—")}</p></div>
               <div class="detail-group">
-                ${altitudeMeters !== null ? `<p class="meta">${escapeHtml(formatNumber(altitudeMeters))} m</p>` : ''}
-                ${speedKmh !== null ? `<p class="meta">${escapeHtml(formatNumber(speedKmh))} km/h</p>` : ''}
-                <p class="meta">${escapeHtml(`${Math.round(item.track)}°`)}</p>
+                ${altitudeMeters !== null ? `<p class="meta mono">${escapeHtml(formatNumber(altitudeMeters))} m</p>` : ''}
+                ${speedKmh !== null ? `<p class="meta mono">${escapeHtml(formatNumber(speedKmh))} km/h</p>` : ''}
+                <p class="meta mono">${escapeHtml(`${Math.round(item.track)}°`)}</p>
               </div>
               <div class="detail-group">
-                ${distanceFromHQ ? `<p class="meta">${escapeHtml(distanceFromHQ)}</p>` : ''}
-                <p class="meta phase-meta">${escapeHtml(flightPhase)}</p>
+                ${distanceFromHQ ? `<p class="meta mono">${escapeHtml(distanceFromHQ)}</p>` : ''}
+                <p class="meta phase-meta mono">${escapeHtml(flightPhase)}</p>
               </div>
             </div>
           </article>

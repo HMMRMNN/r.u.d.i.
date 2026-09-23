@@ -3,80 +3,92 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#ffffff" />
+<meta name="theme-color" content="#000000" />
 <title>Wetterwarnung</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link
-  href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap"
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
   rel="stylesheet"
 />
 
 <style>
-  :root { --black: #000; --white: #fff; }
-  * { box-sizing: border-box; -webkit-font-smoothing: none; }
-  html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--white); color: var(--black); font-family: "Work Sans", Arial, Helvetica, sans-serif; }
-  .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
-  .header {
-    display: flex; align-items: flex-start; justify-content: space-between;
-    padding: 14px 20px 8px; border-bottom: 1px solid var(--black);
+  /* ---------------------------------------------------------------
+     Gleiches Design-System wie weather.html (v2): keine Boxen/Rahmen
+     um Inhalte -- Struktur entsteht durch Typografie-Hierarchie und
+     Weißraum, nur die äußere Frame-Kontur bleibt als durchgezogene
+     Linie. Streng monochrom, invertiert (schwarzer Hintergrund).
+     Gleiche Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
+  --------------------------------------------------------------- */
+  :root { --black:#ffffff; --white:#000000; }
+  * { box-sizing: border-box; }
+  html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
+  body {
+    display: grid; place-items: center; font-family: "Inter", Arial, Helvetica, sans-serif;
+    -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
   }
-  .brand { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; }
-  .subtitle { margin: 4px 0 0; font-size: 11px; line-height: 1.1; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
-  .live-badge { text-align: right; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin: 0; }
-  .live-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--black); margin-right: 5px; vertical-align: middle; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
 
-  .calm-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 358px; gap: 14px; }
-  .calm-mark { font-size: 64px; line-height: 1; }
-  .calm-text { font-size: 18px; font-weight: 700; }
-  .calm-sub { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; }
+  .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+  .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
-  .warnings-list { height: 358px; overflow: hidden; padding: 14px 20px 0; }
-  .warning-card { border: 1.5px solid var(--black); border-radius: 4px; padding: 12px 14px; margin-bottom: 10px; }
-  .warning-card.level-4, .warning-card.level-3 { border-width: 3px; }
-  .warning-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-  .warning-event { font-size: 16px; font-weight: 800; margin: 0; }
-  .warning-level { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; }
-  .warning-headline { font-size: 12px; margin: 4px 0 0; line-height: 1.3; }
-  .warning-time { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 9px; margin: 8px 0 0; }
+  .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
+  .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
+  .status-line { font-size: 12px; opacity: 0.6; margin-bottom: 20px; }
+
+  .calm-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; }
+  .calm-text { font-size: 26px; font-weight: 300; }
+  .calm-sub { font-size: 12px; opacity: 0.55; }
+
+  .warnings-list { display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+  .warning-entry { }
+  .warning-top-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .warning-event { font-size: 19px; font-weight: 500; margin: 0; }
+  .warning-level { font-size: 10.5px; letter-spacing: 0.06em; opacity: 0.6; white-space: nowrap; flex-shrink: 0; }
+  .warning-headline { margin: 4px 0 0; font-size: 12.5px; opacity: 0.75; line-height: 1.35; }
+  .warning-time { margin: 6px 0 0; font-size: 10px; opacity: 0.5; }
+
+  .empty { font-size: 13px; opacity: 0.6; }
 
   .footer {
-    position: absolute; left: 20px; right: 20px; bottom: 10px;
+    position: absolute; left: 34px; right: 34px; bottom: 14px;
     display: flex; align-items: center; justify-content: space-between; gap: 14px;
-    padding-top: 7px; border-top: 1px solid var(--black);
-    font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+    font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; opacity: 0.45;
   }
-  .empty { padding: 40px 0; text-align: center; font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-size: 11px; }
 </style>
 </head>
 <body>
-  <div class="frame">
-    <header class="header">
-      <div>
-        <p class="brand">Wetterwarnung</p>
-        <p class="subtitle">Landkreis Traunstein</p>
+  <main class="frame">
+    <div class="canvas">
+      <div class="masthead">
+        <span class="mast-left mono">R.U.D.I. &middot; Wetterwarnung</span>
+        <span class="mast-right mono" id="mastDate">&ndash;</span>
       </div>
-      <p class="live-badge"><span class="live-dot"></span>LIVE</p>
-    </header>
+      <p class="status-line mono">Landkreis Traunstein</p>
 
-    <div id="content">
-      <div class="empty">Loading...</div>
+      <div id="content" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+        <div class="empty mono">Loading&hellip;</div>
+      </div>
     </div>
 
-    <footer class="footer">
-      <span id="footerNote">Loading…</span>
+    <footer class="footer mono">
+      <span id="footerNote">Loading&hellip;</span>
       <span id="updatedAt">Updating</span>
     </footer>
-  </div>
+  </main>
 
   <script>
+    "use strict";
+
     const RUDI_WORKER = "https://rudi.marvinradar.workers.dev";
     const REFRESH_INTERVAL_MS = 900000; // 15 Min -- DWD aktualisiert laut eigener Doku alle 30 Min
 
     const contentEl = document.getElementById("content");
     const footerNote = document.getElementById("footerNote");
     const updatedAt = document.getElementById("updatedAt");
+    const mastDate = document.getElementById("mastDate");
 
     function escapeHtml(str) {
       return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -102,9 +114,8 @@
     function renderCalm() {
       contentEl.innerHTML = `
         <div class="calm-state">
-          <span class="calm-mark">✓</span>
           <p class="calm-text">Keine Warnungen</p>
-          <p class="calm-sub">Landkreis Traunstein, Stand siehe unten</p>
+          <p class="calm-sub mono">Landkreis Traunstein &middot; Stand siehe unten</p>
         </div>
       `;
     }
@@ -115,13 +126,13 @@
           ${warnings.map((w) => {
             const sev = SEVERITY_MAP[w.severity] || { level: 0, label: w.severity || "Unbekannt" };
             return `
-              <div class="warning-card level-${sev.level}">
-                <div class="warning-top">
-                  <p class="warning-event">${escapeHtml(w.event || "Warnung")}</p>
-                  <span class="warning-level">${escapeHtml(sev.label)}</span>
+              <div class="warning-entry">
+                <div class="warning-top-row">
+                  <p class="warning-event" style="font-weight:${400 + sev.level * 75};">${escapeHtml(w.event || "Warnung")}</p>
+                  <span class="warning-level mono">${escapeHtml(sev.label)}</span>
                 </div>
                 <p class="warning-headline">${escapeHtml(w.headline || "")}</p>
-                <p class="warning-time">${formatTimeRange(w.onset, w.expires)}</p>
+                <p class="warning-time mono">${formatTimeRange(w.onset, w.expires)}</p>
               </div>
             `;
           }).join("")}
@@ -130,6 +141,11 @@
     }
 
     async function loadDisplay() {
+      const now = new Date();
+      const dayName = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" }).toUpperCase();
+      const fullDate = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
+      mastDate.textContent = `${dayName} · ${fullDate}`;
+
       try {
         const response = await fetch(`${RUDI_WORKER}/warnings/traunstein`, {
           headers: { Accept: "application/json" }, cache: "no-store",
@@ -145,10 +161,10 @@
         footerNote.textContent = `Quelle: DWD · ${data.count ?? 0} aktive Warnung(en)`;
       } catch (error) {
         console.error(error);
-        contentEl.innerHTML = `<div class="empty">Warnungen gerade nicht verfügbar.</div>`;
+        contentEl.innerHTML = `<div class="empty mono">Warnungen gerade nicht verfügbar.</div>`;
         footerNote.textContent = "Update failed";
       }
-      updatedAt.textContent = new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+      updatedAt.textContent = now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
     }
 
     loadDisplay();
