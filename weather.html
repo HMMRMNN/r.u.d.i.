@@ -9,21 +9,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet"
   />
 
   <style>
     /* ---------------------------------------------------------------
-       TESTLAUF: gleiches Design-System wie control.html/iphone.html
-       (Inter/JetBrains Mono, Eckenklammern, Mono-Labels in
-       Großbuchstaben, scharfe statt runde Kanten) -- aber streng
-       monochrom (reines #000/#fff, keine Grautöne als Farbwert) statt
-       der Zinc-Palette, weil das E-Ink-Display am Ende ohnehin nur
-       1-Bit Schwarz/Weiß darstellen kann (siehe update-screenshot.yml:
-       Kontrastanhebung + harter Schwellwert). Opacity für dezentere
-       Texte bleibt wie bisher erlaubt -- das rundet beim Threshold
-       zuverlässig sauber, wie die bisherige Version bereits zeigt.
+       Kompletter Neuentwurf (v2): weg von "Box mit Rahmen um alles" --
+       Struktur entsteht durch Typografie-Hierarchie (Größe/Gewicht)
+       und Weißraum statt vieler Trennlinien. Nur die äußere Frame-
+       Kontur bleibt als einzige durchgezogene Linie. Streng monochrom
+       (reines #000/#fff), aktuell invertiert (schwarzer Hintergrund).
+       Gleiche Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
     --------------------------------------------------------------- */
     :root { --black:#ffffff; --white:#000000; }
     * { box-sizing: border-box; }
@@ -35,99 +32,57 @@
     .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
 
     .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+    .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
-    /* HUD-Eckenklammern -- gleiches Motiv wie control.html/iphone.html. */
-    .corner { position: absolute; width: 12px; height: 12px; border: 1.5px solid var(--black); pointer-events: none; }
-    .corner-tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-    .corner-tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
-    .corner-bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
-    .corner-br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+    /* ---- Masthead: keine Box, keine Trennlinie -- nur eine leise,
+       kleine Zeile, die den früheren Header komplett ersetzt. ---- */
+    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 26px; }
+    .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
+    .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
 
-    .header {
-      position: absolute; top: 16px; left: 22px; right: 22px;
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--black);
-    }
-    .eyebrow { margin: 0; font-size: 11px; font-weight: 500; letter-spacing: 0.24em; text-transform: uppercase; }
-    .subtitle { margin: 5px 0 0; font-size: 10px; line-height: 1.1; opacity: 0.55; }
-    .date-badge { text-align: right; }
-    .date-badge .day { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
-    .date-badge .full { font-size: 9px; opacity: 0.55; margin-top: 2px; }
+    /* ---- Hero: der einzige wirklich große Wert auf der Seite. ---- */
+    .hero { display: flex; align-items: flex-end; gap: 16px; }
+    .hero-temp { font-size: 136px; font-weight: 200; line-height: 0.82; letter-spacing: -0.04em; }
+    .hero-side { padding-bottom: 14px; }
+    .hero-cond { font-size: 22px; font-weight: 400; }
+    .hero-range { margin-top: 4px; font-size: 12px; opacity: 0.55; }
 
-    .main {
-      position: absolute; top: 62px; left: 22px; right: 22px; bottom: 36px;
-      display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px;
-    }
+    .stat-line { margin-top: 10px; font-size: 12px; letter-spacing: 0.02em; opacity: 0.7; }
+    .stat-line + .stat-line { margin-top: 4px; opacity: 0.55; }
 
-    .panel { border: 1px solid var(--black); padding: 12px 14px; min-width: 0; min-height: 0; overflow: hidden; }
-    .panel-label { margin: 0 0 10px; font-size: 9px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.55; }
+    /* ---- 5-Tage-Ausblick: reine Typo-Reihe, keine Kästen. ---- */
+    .outlook { margin-top: 16px; }
+    .outlook-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 8px; }
+    .outlook-row { display: flex; gap: 28px; }
+    .outlook-item { flex: 1; }
+    .outlook-day { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55; }
+    .outlook-temp { margin-top: 5px; font-size: 26px; font-weight: 300; letter-spacing: -0.02em; }
+    .outlook-cond { margin-top: 3px; font-size: 10px; opacity: 0.6; }
 
-    /* ---- Jetzt-Panel ---- */
-    .temp-row { display: flex; align-items: baseline; gap: 10px; }
-    .temp-big { font-size: 54px; font-weight: 300; line-height: 1; letter-spacing: -0.03em; }
-    .temp-cond { font-size: 12px; opacity: 0.7; }
-    .temp-range { margin-top: 2px; font-size: 11px; opacity: 0.55; }
-    .kv-list { margin-top: 10px; display: grid; gap: 5px; }
-    .kv { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding-bottom: 4px; border-bottom: 1px solid var(--black); }
-    .kv span:first-child { opacity: 0.55; }
-    .kv span:last-child { font-weight: 500; }
+    /* ---- Untere Zone: EIN Block, volle Breite -- bewusst nur die
+       Aktivitäten (Rezeptideen entfernt, damit unten nichts abgeschnitten
+       wird statt beides reinzuquetschen). ---- */
+    .lower { margin-top: 14px; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
+    .col-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 6px; }
 
-    /* ---- Ausblick-Panel ---- */
-    .chip-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-    .chip { border: 1px solid var(--black); padding: 7px 5px; text-align: center; }
-    .chip-day { font-size: 8.5px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.6; }
-    .chip-temp { margin-top: 5px; font-size: 19px; font-weight: 300; letter-spacing: -0.01em; }
-    .chip-cond { margin-top: 4px; font-size: 8px; line-height: 1.2; opacity: 0.7; }
-    .clothing-row { margin-top: 10px; display: flex; justify-content: space-between; gap: 8px; font-size: 10px; padding-top: 8px; border-top: 1px solid var(--black); }
-
-    /* ---- Aktivitäten-Panel ---- */
-    .activity-list { margin: 0; padding: 0; list-style: none; }
-    .activity-list li { display: flex; gap: 9px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--black); font-size: 11.5px; }
-    .activity-list li:last-child { border-bottom: none; }
-    .activity-list .num { font-size: 9px; opacity: 0.45; width: 12px; flex-shrink: 0; }
-
-    /* ---- Rezepte-Panel ---- */
-    .stack-list { display: flex; flex-direction: column; gap: 7px; height: 100%; }
-    .stack-item { border: 1px solid var(--black); padding: 7px 9px; flex: 1; overflow: hidden; }
-    .stack-title { font-size: 11.5px; font-weight: 600; line-height: 1.2; }
-    .stack-desc {
-      font-size: 9px; margin-top: 3px; opacity: 0.7; line-height: 1.3;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-    }
+    .activity-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .activity-list li { display: flex; gap: 12px; align-items: baseline; font-size: 14px; line-height: 1.2; white-space: nowrap; }
+    .activity-list .num { font-size: 10px; opacity: 0.45; width: 16px; flex-shrink: 0; }
 
     .footer {
-      position: absolute; left: 22px; right: 22px; bottom: 12px;
+      position: absolute; left: 34px; right: 34px; bottom: 14px;
       display: flex; align-items: center; justify-content: space-between; gap: 14px;
-      padding-top: 8px; border-top: 1px solid var(--black);
-      font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; opacity: 0.7;
+      font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; opacity: 0.45;
     }
-    .empty {
-      position: absolute; inset: 62px 22px 36px; display: grid; place-items: center;
-      font-size: 13px; text-align: center;
-    }
+    .empty { position: absolute; inset: 30px 34px 40px; display: grid; place-items: center; font-size: 13px; text-align: center; }
   </style>
 </head>
 
 <body>
   <main class="frame">
-    <span class="corner corner-tl"></span><span class="corner corner-tr"></span>
-    <span class="corner corner-bl"></span><span class="corner corner-br"></span>
-
-    <header class="header">
-      <div>
-        <p class="eyebrow">Wetter &amp; Familie</p>
-        <p class="subtitle mono">Heute, Ausblick &amp; Aktivit&auml;ten</p>
-      </div>
-      <div class="date-badge mono">
-        <div class="day" id="dayName">&ndash;</div>
-        <div class="full" id="fullDate">&ndash;</div>
-      </div>
-    </header>
-
-    <section class="main" id="main">
+    <div class="canvas" id="canvas">
       <div class="empty mono">Loading&hellip;</div>
-    </section>
-
+    </div>
     <footer class="footer mono">
       <span>Grassau, Germany</span>
       <span id="updatedAt">Updating</span>
@@ -153,65 +108,8 @@
 
     function weatherLabel(code) { return WEATHER_LABELS[Number(code)] || "Unbekannt"; }
 
-    // Inspirationsliste kindgerechter Gerichte fürs Kleinkind – überwiegend,
-    // aber nicht ausschließlich für den Thermomix geeignet. Bewusst kurz
-    // und ohne vollständiges Rezept gehalten: soll nur Ideen liefern, keine
-    // exakten Mengen/Stufen/Zeiten vorgeben (siehe frühere Überlegung:
-    // keine ungeeigneten/scharfen Vorschläge riskieren, keine erfundenen
-    // TM-Einstellungen als vermeintlich verifizierte Fakten ausgeben).
-    // Keine Aufteilung nach Mahlzeit (Frühstück/Mittag/Abend) – flache Liste.
-    const RECIPE_IDEAS = [
-      { name: "Tomatensuppe", desc: "Tomaten, Zwiebel, etwas Sahne, fein p&uuml;riert" },
-      { name: "Bolognese", desc: "Faschiertes, Tomaten, Gem&uuml;se fein gehackt, mit Nudeln" },
-      { name: "K&uuml;rbissuppe", desc: "K&uuml;rbis, Kartoffel, etwas Kokosmilch, cremig p&uuml;riert" },
-      { name: "Brokkoli-K&auml;se-Suppe", desc: "Brokkoli, Kartoffel, milder K&auml;se, s&auml;mig" },
-      { name: "K&auml;se-Sp&auml;tzle", desc: "Sp&auml;tzleteig, mit K&auml;se untergehoben" },
-      { name: "Milchreis", desc: "Rundkornreis, Milch, leicht ges&uuml;&szlig;t, mit Zimt" },
-      { name: "Gem&uuml;se-Risotto", desc: "Reis, buntes Gem&uuml;se fein gew&uuml;rfelt, cremig gegart" },
-      { name: "Linsen-Curry (mild)", desc: "Rote Linsen, Kokosmilch, ohne Sch&auml;rfe" },
-      { name: "Hackb&auml;llchen in Tomatensauce", desc: "Kleine B&auml;llchen, milde Sauce, dazu Kartoffelp&uuml;ree" },
-      { name: "Ofengem&uuml;se-Sticks", desc: "Karotte, Zucchini, S&uuml;&szlig;kartoffel, weich im Ofen gegart" },
-      { name: "Gem&uuml;se-Frikadellen", desc: "Karotte, Zucchini, Haferflocken, in der Pfanne gebraten" },
-      { name: "Apfelmus", desc: "&Auml;pfel weich gegart, fein p&uuml;riert, ohne Zuckerzusatz" },
-      { name: "Grie&szlig;brei", desc: "Milch, Grie&szlig;, mild ges&uuml;&szlig;t, mit Fruchtmus" },
-      { name: "Blumenkohl-K&auml;se-Auflauf", desc: "Blumenkohl gegart, milde K&auml;sesauce, &uuml;berbacken" },
-      { name: "Gem&uuml;se-Couscous", desc: "Couscous, fein gew&uuml;rfeltes Gem&uuml;se, mild gew&uuml;rzt" },
-      { name: "Pfannkuchen", desc: "D&uuml;nner Teig, in der Pfanne gebacken, mit Apfelmus" },
-      { name: "Vollkorn-Pizza mit Gem&uuml;se", desc: "Teig, mildem Belag, im Ofen &uuml;berbacken" },
-      { name: "S&uuml;&szlig;kartoffel-P&uuml;ree", desc: "S&uuml;&szlig;kartoffel, etwas Butter, cremig gest&auml;mpft" },
-      { name: "Zucchini-Puffer", desc: "Zucchini fein geraspelt, in der Pfanne goldbraun gebraten" },
-      { name: "Kartoffel-M&ouml;hren-Eintopf", desc: "Kartoffel, Karotte, mild gew&uuml;rzt, st&uuml;ckig oder p&uuml;riert" },
-      { name: "H&auml;hnchen-Gem&uuml;se-Auflauf", desc: "Zartes H&auml;hnchen, Brokkoli, wenig K&auml;se &uuml;berbacken" },
-      { name: "Blumenkohlsuppe", desc: "Blumenkohl, Kartoffel, etwas Muskat, fein p&uuml;riert" },
-      { name: "S&uuml;&szlig;kartoffelsuppe", desc: "S&uuml;&szlig;kartoffel, Karotte, mild gew&uuml;rzt" },
-      { name: "Spinat-Kartoffel-Suppe", desc: "Blattspinat, Kartoffel, etwas Sahne, fein p&uuml;riert" },
-      { name: "Maissuppe", desc: "Mais, Kartoffel, etwas Sahne, leicht s&uuml;&szlig;lich" },
-      { name: "Tomaten-K&auml;se-Nudeln", desc: "Nudeln, milde Tomatensauce, geriebener K&auml;se" },
-      { name: "Fr&uuml;hst&uuml;cksmuffins herzhaft", desc: "Ei, Gem&uuml;se, wenig K&auml;se, im Muffinblech gebacken" },
-      { name: "Hirsebrei", desc: "Hirse, Milch, mild ges&uuml;&szlig;t, mit Obst" },
-      { name: "Polenta mit Gem&uuml;se", desc: "Maisgrie&szlig; cremig gekocht, mit weichem Gem&uuml;se" },
-      { name: "Fischst&auml;bchen selbstgemacht", desc: "Fisch, milde Panade, im Ofen statt frittiert" },
-      { name: "Kichererbsenbratlinge", desc: "Kichererbsen, Karotte, mild gew&uuml;rzt, gebraten" },
-      { name: "Kartoffelpuffer", desc: "Kartoffel fein geraspelt, in der Pfanne goldbraun" },
-      { name: "Ofen-Gem&uuml;sepuffer", desc: "Buntes Gem&uuml;se, Haferflocken, im Ofen statt in Fett gebacken" },
-      { name: "Bananen-Hafer-Pfannkuchen", desc: "Nur Banane, Ei, Haferflocken, ohne Zuckerzusatz" },
-      { name: "Vollkorn-Br&ouml;tchen", desc: "Einfacher Teig, als kleine Portionen gebacken" },
-      { name: "Birnen-Kompott", desc: "Birnen weich gegart, leicht ges&uuml;&szlig;t, mit Zimt" },
-      { name: "Vanillepudding", desc: "Milch, Vanille, hausgemacht statt Fertigpulver" },
-      { name: "Hausgemachte Tomatensauce", desc: "Tomaten, Zwiebel, Karotte, fein p&uuml;riert, als Basis" },
-      { name: "Gem&uuml;se-Muffins s&uuml;&szlig;", desc: "Karotte oder Zucchini im Teig versteckt, mild ges&uuml;&szlig;t" },
-      { name: "Mini-Gem&uuml;se-Quiche", desc: "M&uuml;rbteig, mit mildem Gem&uuml;se-Belag, im Ofen gebacken" },
-    ];
-
-    const mainEl = document.getElementById("main");
+    const canvas = document.getElementById("canvas");
     const updatedAt = document.getElementById("updatedAt");
-    const dayName = document.getElementById("dayName");
-    const fullDate = document.getElementById("fullDate");
-
-    function dayOfYear(date) {
-      const start = new Date(date.getFullYear(), 0, 0);
-      return Math.floor((date - start) / 86400000);
-    }
 
     function deriveActivities(tempMax, precipSum, weathercode) {
       const isRainy = precipSum > 1 || [51,53,55,61,63,65,80,81,82,95,96,99].includes(weathercode);
@@ -251,15 +149,15 @@
         updatedAt.textContent = `Updated ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}`;
       } catch (error) {
         console.error(error);
-        mainEl.innerHTML = '<div class="empty mono">Wetterdaten nicht verf&uuml;gbar.</div>';
+        canvas.innerHTML = '<div class="empty mono">Wetterdaten nicht verf&uuml;gbar.</div>';
         updatedAt.textContent = "Update failed";
       }
     }
 
     function render(data) {
       const now = new Date();
-      dayName.textContent = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" }).toUpperCase();
-      fullDate.textContent = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
+      const dayName = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" }).toUpperCase();
+      const fullDate = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
 
       const daily = data.daily;
       const hourly = data.hourly;
@@ -285,78 +183,48 @@
         return {
           name: d.toLocaleDateString("de-DE", { weekday: "short", timeZone: "Europe/Berlin" }).toUpperCase(),
           cond: weatherLabel(daily.weathercode[i]),
-          tMin: Math.round(daily.temperature_2m_min[i]),
           tMax: Math.round(daily.temperature_2m_max[i]),
         };
       });
 
       const plan = deriveActivities(tMax, precipSum, weathercode);
-      const doy = dayOfYear(now);
-      const n = RECIPE_IDEAS.length;
-      const recipe1 = RECIPE_IDEAS[doy % n];
-      const recipe2 = RECIPE_IDEAS[(doy + Math.floor(n / 3)) % n];
-      const recipe3 = RECIPE_IDEAS[(doy + Math.floor((2 * n) / 3)) % n];
       const needsJacket = tMax < 15 || precipSum > 0.5;
       const needsSunscreen = uvMax >= 4;
 
-      mainEl.innerHTML = `
-        <div class="panel">
-          <p class="panel-label">Jetzt</p>
-          <div class="temp-row">
-            <div class="temp-big">${tLive}&deg;</div>
-            <div>
-              <div class="temp-cond">${condition}</div>
-              <div class="temp-range mono">${tMin}&deg;&ndash;${tMax}&deg;C heute</div>
-            </div>
-          </div>
-          <div class="kv-list mono">
-            <div class="kv"><span>UV-Index</span><span>${uvMax.toFixed(1)}</span></div>
-            <div class="kv"><span>Regen</span><span>${precipSum.toFixed(1)} mm</span></div>
-            <div class="kv"><span>Wind max.</span><span>${windMax} km/h</span></div>
-            <div class="kv"><span>Sonne auf/unter</span><span>${sunrise} / ${sunset}</span></div>
-          </div>
+      canvas.innerHTML = `
+        <div class="masthead">
+          <span class="mast-left mono">R.U.D.I. &middot; Wetter &amp; Familie</span>
+          <span class="mast-right mono">${dayName} &middot; ${fullDate}</span>
         </div>
 
-        <div class="panel">
-          <p class="panel-label">5-Tage-Ausblick</p>
-          <div class="chip-row">
+        <div class="hero">
+          <div class="hero-temp">${tLive}&deg;</div>
+          <div class="hero-side">
+            <div class="hero-cond">${condition}</div>
+            <div class="hero-range mono">Heute ${tMin}&deg;&ndash;${tMax}&deg;C</div>
+          </div>
+        </div>
+        <div class="stat-line mono">UV ${uvMax.toFixed(1)} &middot; Regen ${precipSum.toFixed(1)}mm &middot; Wind ${windMax}km/h &middot; Sonne ${sunrise}&ndash;${sunset}</div>
+        <div class="stat-line mono">${needsJacket ? "Jacke nötig" : "Leicht reicht"} &middot; ${needsSunscreen ? "Sonnencreme nötig" : "Kein starker Sonnenschutz nötig"}</div>
+
+        <div class="outlook">
+          <div class="outlook-label">5-Tage-Ausblick</div>
+          <div class="outlook-row">
             ${outlookDays.map((d) => `
-              <div class="chip">
-                <div class="chip-day mono">${d.name}</div>
-                <div class="chip-temp">${d.tMax}&deg;</div>
-                <div class="chip-cond">${d.cond}</div>
+              <div class="outlook-item">
+                <div class="outlook-day">${d.name}</div>
+                <div class="outlook-temp">${d.tMax}&deg;</div>
+                <div class="outlook-cond">${d.cond}</div>
               </div>
             `).join("")}
           </div>
-          <div class="clothing-row mono">
-            <span>${needsJacket ? "Jacke mitnehmen" : "Leicht reicht"}</span>
-            <span>${needsSunscreen ? "Sonnencreme nötig" : "Kein starker Schutz nötig"}</span>
-          </div>
         </div>
 
-        <div class="panel">
-          <p class="panel-label">Aktivit&auml;ten heute</p>
+        <div class="lower">
+          <div class="col-label">Aktivit&auml;ten heute</div>
           <ul class="activity-list">
-            ${plan.activities.map((a, i) => `<li><span class="num mono">${i + 1}</span><span>${a}</span></li>`).join("")}
+            ${plan.activities.map((a, i) => `<li><span class="num mono">${String(i + 1).padStart(2, "0")}</span><span>${a}</span></li>`).join("")}
           </ul>
-        </div>
-
-        <div class="panel">
-          <p class="panel-label">Rezeptideen</p>
-          <div class="stack-list">
-            <div class="stack-item">
-              <div class="stack-title">${recipe1.name}</div>
-              <div class="stack-desc">${recipe1.desc}</div>
-            </div>
-            <div class="stack-item">
-              <div class="stack-title">${recipe2.name}</div>
-              <div class="stack-desc">${recipe2.desc}</div>
-            </div>
-            <div class="stack-item">
-              <div class="stack-title">${recipe3.name}</div>
-              <div class="stack-desc">${recipe3.desc}</div>
-            </div>
-          </div>
         </div>
       `;
     }
