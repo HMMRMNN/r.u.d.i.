@@ -2645,10 +2645,8 @@ const DEFAULT_CHANNELS = [
   // in KV eingetragen war. Bei einem /channels/reset wäre sie
   // verschwunden. Jetzt fest ergänzt.
   { name: "Radrennen", file: "racing.html", category: "R.U.D.I." },
-  // WICHTIG (Fix, auf Nutzerwunsch): vier neue Seiten aus dieser
+  // WICHTIG (Fix, auf Nutzerwunsch): neue Seiten aus dieser
   // Sitzung ergänzt.
-  { name: "Flugliste", file: "traffic.html", category: "R.U.D.I." },
-  { name: "Anflug-Radar", file: "approach.html", category: "R.U.D.I." },
   { name: "Chiemsee", file: "chiemsee.html", category: "R.U.D.I." },
   { name: "Wetterwarnung", file: "warnings.html", category: "R.U.D.I." },
 ];
