@@ -204,10 +204,15 @@
   .flight-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
   .flight-chip {
     flex: 0 0 210px; border: 1px solid var(--line); background: var(--panel); padding: 10px 12px; cursor: pointer;
-    display: flex; gap: 10px; align-items: center; transition: background-color .15s, border-color .15s;
+    display: flex; gap: 10px; align-items: center; border-left: 3px solid transparent;
+    transition: background-color .15s, border-color .15s, box-shadow .15s;
   }
   .flight-chip:hover { background: var(--panel-hover); }
-  .flight-chip.active { background: var(--panel-hover); border-color: var(--ink-soft); }
+  .flight-chip.active {
+    background: var(--panel-hover); border-color: var(--line); border-left-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent) inset;
+  }
+  .flight-chip.active .flight-chip-id { color: var(--accent); }
   .flight-chip-thumb {
     width: 36px; height: 36px; border: 1px solid var(--line); background: #000000; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; overflow: hidden;
@@ -987,6 +992,15 @@
       const dxKm = (lon - center.lon) * kmPerDegLon, dyKm = (lat - center.lat) * kmPerDegLat;
       return { x: dxKm * scalePxPerKm, y: -dyKm * scalePxPerKm };
     }
+    // Extrapoliert eine Position aus Kurs/Geschwindigkeit über die
+    // angegebene Zeit (negative Minuten = rückwärts, für Flugspuren).
+    function projectPosition(lat, lon, trackDeg, groundSpeedKt, minutesAhead) {
+      const speedKmh = groundSpeedKt * 1.852;
+      const distanceKm = speedKmh * (minutesAhead / 60);
+      const trackRad = (trackDeg * Math.PI) / 180;
+      const dLatKm = distanceKm * Math.cos(trackRad), dLonKm = distanceKm * Math.sin(trackRad);
+      return { lat: lat + dLatKm / 111, lon: lon + dLonKm / (111 * Math.cos((lat * Math.PI) / 180)) };
+    }
 
     // ---------------------------------------------------------------
     // Radar-Hintergrund: grob vereinfachter Chiemsee-Umriss + ein paar
@@ -1203,38 +1217,83 @@
 
     // ---- Live-Tracker-Karte (Leaflet) fürs Flugradar --------------------
     let liveMap = null;
+    let liveMapTrails = null;
     let liveMapMarkers = null;
     const liveMapMarkerByIdx = new Map();
+    let selectedFlightIdx = null;
 
     function initLiveMap() {
       if (liveMap) return;
       if (typeof L === "undefined") throw new Error("Leaflet (vendor/leaflet/leaflet.js) ist nicht geladen.");
-      liveMap = L.map("liveMap", { attributionControl: true, zoomControl: true }).setView([47.7756, 12.4552], 9);
+      liveMap = L.map("liveMap", { attributionControl: true, zoomControl: true }).setView([47.7756, 12.4552], 10);
+      // WICHTIG: {r} wird von Leaflet nur ersetzt, wenn detectRetina aktiv
+      // ist -- sonst bleibt "{r}" wörtlich in der URL stehen, jede
+      // Kachel-Anfrage geht ins Leere (404) und die Karte bleibt leer.
+      // Genau das war der Grund für "kaum etwas erkennbar".
       L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
         maxZoom: 18,
+        detectRetina: true,
+        subdomains: "abcd",
         attribution: "&copy; OpenStreetMap &copy; CARTO",
       }).addTo(liveMap);
+      // Reihenfolge wichtig: Trails zuerst hinzugefügt, damit sie unter
+      // den Flugzeug-Markern liegen statt sie zu verdecken.
+      liveMapTrails = L.layerGroup().addTo(liveMap);
       liveMapMarkers = L.layerGroup().addTo(liveMap);
     }
 
-    function planeDivIcon(color, rotationDeg, isEmergency) {
-      const ring = isEmergency ? `<circle cx="11" cy="11" r="9.5" fill="none" stroke="${color}" stroke-width="1.5"/>` : "";
+    // Kurze, ausfadende Spur der letzten Minuten -- eine echte Linie
+    // (mehrere aneinandergereihte Segmente mit sinkender Deckkraft, da
+    // ein einzelner Leaflet-Polyline-Stroke keinen Verlauf kann), aus
+    // Kurs/Geschwindigkeit rückwärts extrapoliert. Die API liefert keine
+    // echte Positionshistorie, das ist also eine plausible Annäherung.
+    function renderAircraftTrailLine(item, color) {
+      if (item.speed === null || item.track === null || item.speed < 30) return [];
+      const stepsBack = 6;
+      const points = [{ lat: item.lat, lon: item.lon }];
+      for (let m = 1; m <= stepsBack; m++) {
+        points.push(projectPosition(item.lat, item.lon, item.track, item.speed, -m));
+      }
+      const segments = [];
+      for (let i = 0; i < points.length - 1; i++) {
+        const opacity = 0.55 * (1 - i / (points.length - 1));
+        segments.push(L.polyline(
+          [[points[i].lat, points[i].lon], [points[i + 1].lat, points[i + 1].lon]],
+          { color, weight: 2.5, opacity, interactive: false, lineCap: "round" }
+        ));
+      }
+      return segments;
+    }
+
+    function planeDivIcon(color, rotationDeg, isEmergency, selected) {
+      const size = selected ? 30 : 22;
+      const c = size / 2;
+      const glow = selected ? `<circle cx="${c}" cy="${c}" r="${c - 2}" fill="${color}" opacity="0.22"/><circle cx="${c}" cy="${c}" r="${c - 6.5}" fill="none" stroke="${color}" stroke-width="1.5"/>` : "";
+      const ring = isEmergency ? `<circle cx="${c}" cy="${c}" r="${c - 2.5}" fill="none" stroke="${color}" stroke-width="1.5"/>` : "";
+      const arrowScale = selected ? 1.25 : 1;
       return L.divIcon({
-        className: "plane-marker",
-        html: `<svg width="22" height="22" viewBox="0 0 22 22">${ring}<g transform="translate(11 11) rotate(${rotationDeg})"><path d="M0,-8 L5.5,6 L0,2.5 L-5.5,6 Z" fill="${color}" stroke="#000000" stroke-width="1"/></g></svg>`,
-        iconSize: [22, 22], iconAnchor: [11, 11],
+        className: `plane-marker${selected ? " selected" : ""}`,
+        html: `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${glow}${ring}<g transform="translate(${c} ${c}) rotate(${rotationDeg}) scale(${arrowScale})"><path d="M0,-8 L5.5,6 L0,2.5 L-5.5,6 Z" fill="${color}" stroke="#000000" stroke-width="1"/></g></svg>`,
+        iconSize: [size, size], iconAnchor: [c, c],
       });
+    }
+
+    function markerColor(item) {
+      const isEmergency = Boolean(item.squawk && EMERGENCY_SQUAWKS[item.squawk]);
+      return { isEmergency, color: isEmergency ? "#E2685C" : item.isSpecial ? "#ffffff" : (item.isMilitary ? "#E2685C" : "#6FA8DC") };
     }
 
     function renderLiveMap(aircraft, center) {
       initLiveMap();
       liveMap.setView([center.lat, center.lon]);
       liveMapMarkers.clearLayers();
+      liveMapTrails.clearLayers();
       liveMapMarkerByIdx.clear();
+      selectedFlightIdx = null;
       aircraft.forEach((item, i) => {
-        const isEmergency = Boolean(item.squawk && EMERGENCY_SQUAWKS[item.squawk]);
-        const color = isEmergency ? "#E2685C" : item.isSpecial ? "#ffffff" : (item.isMilitary ? "#E2685C" : "#6FA8DC");
-        const marker = L.marker([item.lat, item.lon], { icon: planeDivIcon(color, item.track ?? 0, isEmergency) });
+        const { isEmergency, color } = markerColor(item);
+        renderAircraftTrailLine(item, color).forEach((seg) => seg.addTo(liveMapTrails));
+        const marker = L.marker([item.lat, item.lon], { icon: planeDivIcon(color, item.track ?? 0, isEmergency, false) });
         marker.on("click", () => selectFlight(i));
         marker.addTo(liveMapMarkers);
         liveMapMarkerByIdx.set(i, marker);
@@ -1247,8 +1306,24 @@
       if (!item) return;
       openFlightDetail(item, "flightDetailFloat");
       document.querySelectorAll(".flight-chip").forEach((chip) => chip.classList.toggle("active", Number(chip.dataset.idx) === idx));
+
+      if (selectedFlightIdx !== null && selectedFlightIdx !== idx) {
+        const prevItem = currentFlightList[selectedFlightIdx];
+        const prevMarker = liveMapMarkerByIdx.get(selectedFlightIdx);
+        if (prevItem && prevMarker) {
+          const { isEmergency, color } = markerColor(prevItem);
+          prevMarker.setIcon(planeDivIcon(color, prevItem.track ?? 0, isEmergency, false));
+          prevMarker.setZIndexOffset(0);
+        }
+      }
+      selectedFlightIdx = idx;
       const marker = liveMapMarkerByIdx.get(idx);
-      if (marker && liveMap) liveMap.panTo(marker.getLatLng());
+      if (marker && liveMap) {
+        const { isEmergency, color } = markerColor(item);
+        marker.setIcon(planeDivIcon(color, item.track ?? 0, isEmergency, true));
+        marker.setZIndexOffset(1000);
+        liveMap.panTo(marker.getLatLng());
+      }
     }
 
     function renderFlightStrip(aircraft) {
