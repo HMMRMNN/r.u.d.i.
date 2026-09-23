@@ -15,14 +15,17 @@
 
   <style>
     /* ---------------------------------------------------------------
-       Kompletter Neuentwurf (v2): weg von "Box mit Rahmen um alles" --
-       Struktur entsteht durch Typografie-Hierarchie (Größe/Gewicht)
-       und Weißraum statt vieler Trennlinien. Nur die äußere Frame-
-       Kontur bleibt als einzige durchgezogene Linie. Streng monochrom
-       (reines #000/#fff), aktuell invertiert (schwarzer Hintergrund).
-       Gleiche Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
+       Design-System wie control.html/iphone.html: klar umrissene
+       Panels (dünner Rahmen) und echte <table>-Elemente statt freier
+       Typografie -- angeglichen an die übrigen E-Ink-Seiten. Da das
+       Display nur reines Schwarz/Weiß kann (kein Dithering in der
+       Screenshot-Pipeline), sind Rahmen/Linien voll deckend (--line)
+       bzw. gestrichelt für interne Trenner (--line-soft), nie per
+       CSS-opacity -- blasse Linien verschwinden beim harten
+       Schwellwert der Pipeline komplett. Gleiche Daten/Fetch-Logik
+       wie bisher, nur Layout/Optik neu.
     --------------------------------------------------------------- */
-    :root { --black:#ffffff; --white:#000000; }
+    :root { --black:#ffffff; --white:#000000; --line: var(--black); --line-soft: var(--black); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
@@ -34,39 +37,41 @@
     .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
     .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
-    /* ---- Masthead: keine Box, keine Trennlinie -- nur eine leise,
-       kleine Zeile, die den früheren Header komplett ersetzt. ---- */
-    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 26px; }
+    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
     .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
     .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
 
-    /* ---- Hero: der einzige wirklich große Wert auf der Seite. ---- */
-    .hero { display: flex; align-items: flex-end; gap: 16px; }
+    .col-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 8px; }
+
+    .split { display: flex; gap: 20px; flex: 1; min-height: 0; }
+    .split-col.narrow { flex: 0 0 270px; display: flex; flex-direction: column; }
+    .split-col.wide { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+    .panel { border: 1px solid var(--line); padding: 12px 14px; }
+    .panel + .panel { margin-top: 12px; }
+
+    .hero { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
     .hero-temp { font-size: 136px; font-weight: 200; line-height: 0.82; letter-spacing: -0.04em; }
-    .hero-side { padding-bottom: 14px; }
-    .hero-cond { font-size: 22px; font-weight: 400; }
+    .hero-side { padding-bottom: 12px; }
+    .hero-cond { font-size: 18px; font-weight: 400; }
     .hero-range { margin-top: 4px; font-size: 12px; opacity: 0.55; }
 
-    .stat-line { margin-top: 10px; font-size: 12px; letter-spacing: 0.02em; opacity: 0.7; }
+    .stat-line { margin-top: 10px; font-size: 11.5px; letter-spacing: 0.02em; opacity: 0.7; line-height: 1.4; }
     .stat-line + .stat-line { margin-top: 4px; opacity: 0.55; }
 
-    /* ---- 5-Tage-Ausblick: reine Typo-Reihe, keine Kästen. ---- */
-    .outlook { margin-top: 16px; }
-    .outlook-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 8px; }
-    .outlook-row { display: flex; gap: 28px; }
-    .outlook-item { flex: 1; }
-    .outlook-day { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55; }
-    .outlook-temp { margin-top: 5px; font-size: 26px; font-weight: 300; letter-spacing: -0.02em; }
-    .outlook-cond { margin-top: 3px; font-size: 10px; opacity: 0.6; }
+    table.data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    table.data-table th {
+      text-align: right; font-size: 9px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase;
+      opacity: 0.5; padding: 0 0 6px; border-bottom: 1px solid var(--line);
+    }
+    table.data-table th:first-child { text-align: left; }
+    table.data-table td { text-align: right; padding: 6px 0; border-bottom: 1px dashed var(--line-soft); }
+    table.data-table td:first-child { text-align: left; }
+    table.data-table tr:last-child td { border-bottom: none; }
 
-    /* ---- Untere Zone: EIN Block, volle Breite -- bewusst nur die
-       Aktivitäten (Rezeptideen entfernt, damit unten nichts abgeschnitten
-       wird statt beides reinzuquetschen). ---- */
-    .lower { margin-top: 14px; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
-    .col-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 6px; }
-
-    .activity-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
-    .activity-list li { display: flex; gap: 12px; align-items: baseline; font-size: 14px; line-height: 1.2; white-space: nowrap; }
+    .activities-label { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line-soft); }
+    .activity-list { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .activity-list li { display: flex; gap: 12px; align-items: baseline; font-size: 13px; line-height: 1.2; }
     .activity-list .num { font-size: 10px; opacity: 0.45; width: 16px; flex-shrink: 0; }
 
     .footer {
@@ -191,40 +196,49 @@
       const needsJacket = tMax < 15 || precipSum > 0.5;
       const needsSunscreen = uvMax >= 4;
 
+      const outlookRows = outlookDays.map((d) => `
+        <tr>
+          <td>${d.name}</td>
+          <td>${d.cond}</td>
+          <td class="mono">${d.tMax}&deg;</td>
+        </tr>
+      `).join("");
+
       canvas.innerHTML = `
         <div class="masthead">
           <span class="mast-left mono">R.U.D.I. &middot; Wetter &amp; Familie</span>
           <span class="mast-right mono">${dayName} &middot; ${fullDate}</span>
         </div>
 
-        <div class="hero">
-          <div class="hero-temp">${tLive}&deg;</div>
-          <div class="hero-side">
-            <div class="hero-cond">${condition}</div>
-            <div class="hero-range mono">Heute ${tMin}&deg;&ndash;${tMax}&deg;C</div>
-          </div>
-        </div>
-        <div class="stat-line mono">UV ${uvMax.toFixed(1)} &middot; Regen ${precipSum.toFixed(1)}mm &middot; Wind ${windMax}km/h &middot; Sonne ${sunrise}&ndash;${sunset}</div>
-        <div class="stat-line mono">${needsJacket ? "Jacke nötig" : "Leicht reicht"} &middot; ${needsSunscreen ? "Sonnencreme nötig" : "Kein starker Sonnenschutz nötig"}</div>
-
-        <div class="outlook">
-          <div class="outlook-label">5-Tage-Ausblick</div>
-          <div class="outlook-row">
-            ${outlookDays.map((d) => `
-              <div class="outlook-item">
-                <div class="outlook-day">${d.name}</div>
-                <div class="outlook-temp">${d.tMax}&deg;</div>
-                <div class="outlook-cond">${d.cond}</div>
+        <div class="split">
+          <div class="split-col narrow">
+            <div class="panel">
+              <div class="hero">
+                <div class="hero-temp">${tLive}&deg;</div>
+                <div class="hero-side">
+                  <div class="hero-cond">${condition}</div>
+                  <div class="hero-range mono">Heute ${tMin}&deg;&ndash;${tMax}&deg;C</div>
+                </div>
               </div>
-            `).join("")}
+              <p class="stat-line mono">UV ${uvMax.toFixed(1)} &middot; Regen ${precipSum.toFixed(1)}mm<br>Wind ${windMax}km/h &middot; Sonne ${sunrise}&ndash;${sunset}</p>
+              <p class="stat-line mono">${needsJacket ? "Jacke nötig" : "Leicht reicht"}<br>${needsSunscreen ? "Sonnencreme nötig" : "Kein starker Sonnenschutz nötig"}</p>
+            </div>
           </div>
-        </div>
 
-        <div class="lower">
-          <div class="col-label">Aktivit&auml;ten heute</div>
-          <ul class="activity-list">
-            ${plan.activities.map((a, i) => `<li><span class="num mono">${String(i + 1).padStart(2, "0")}</span><span>${a}</span></li>`).join("")}
-          </ul>
+          <div class="split-col wide">
+            <div class="panel">
+              <p class="col-label">5-Tage-Ausblick</p>
+              <table class="data-table">
+                <thead><tr><th>Tag</th><th>Wetter</th><th>Max</th></tr></thead>
+                <tbody>${outlookRows}</tbody>
+              </table>
+
+              <p class="col-label activities-label">Aktivit&auml;ten heute</p>
+              <ul class="activity-list">
+                ${plan.activities.map((a, i) => `<li><span class="num mono">${String(i + 1).padStart(2, "0")}</span><span>${a}</span></li>`).join("")}
+              </ul>
+            </div>
+          </div>
         </div>
       `;
     }
