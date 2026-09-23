@@ -46,6 +46,7 @@
     .split { display: flex; gap: 20px; flex: 1; min-height: 0; }
     .split-col.narrow { flex: 0 0 270px; display: flex; flex-direction: column; }
     .split-col.wide { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .split-col > .panel { flex: 1; min-height: 0; overflow: hidden; }
 
     .panel { border: 1px solid var(--line); padding: 12px 14px; }
     .panel + .panel { margin-top: 12px; }
