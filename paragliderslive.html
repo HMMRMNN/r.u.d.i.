@@ -22,7 +22,7 @@
        Hintergrund). Gleiche Daten/Fetch-Logik wie bisher, nur
        Layout/Optik neu.
     --------------------------------------------------------------- */
-    :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); --line-soft: rgba(255,255,255,0.14); }
+    :root { --black:#ffffff; --white:#000000; --line: var(--black); --line-soft: var(--black); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
@@ -50,7 +50,7 @@
 
     .pilot-list { display: flex; flex-direction: column; overflow-y: hidden; }
     .pilot-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; }
-    .pilot-row + .pilot-row { border-top: 1px solid var(--line-soft); }
+    .pilot-row + .pilot-row { border-top: 1px dashed var(--line-soft); }
     .pilot-idx { width: 16px; font-size: 10.5px; opacity: 0.4; flex-shrink: 0; }
     .pilot-alt { font-size: 15px; font-weight: 600; flex: 1; }
     .pilot-alt-unit { font-size: 10px; font-weight: 400; opacity: 0.6; }

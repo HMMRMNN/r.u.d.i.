@@ -23,7 +23,7 @@
        streng monochrom, invertiert (schwarzer Hintergrund). Gleiche
        Daten/Fetch-Logik wie bisher, nur Layout/Optik neu.
     --------------------------------------------------------------- */
-    :root { --black:#ffffff; --white:#000000; --line: rgba(255,255,255,0.28); --line-soft: rgba(255,255,255,0.14); }
+    :root { --black:#ffffff; --white:#000000; --line: var(--black); --line-soft: var(--black); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
@@ -52,7 +52,7 @@
     .rating-value { margin-top: 4px; font-size: 28px; font-weight: 200; letter-spacing: -0.02em; }
 
     .info-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-    .info-row + .info-row { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+    .info-row + .info-row { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line-soft); }
     .info-value { font-size: 13px; font-weight: 600; text-align: right; }
     .info-hint { margin-top: 2px; font-size: 9.5px; opacity: 0.55; }
 
@@ -62,7 +62,7 @@
       opacity: 0.5; padding: 0 0 5px; border-bottom: 1px solid var(--line);
     }
     table.data-table th:first-child { text-align: left; }
-    table.data-table td { text-align: right; padding: 5px 0; border-bottom: 1px solid var(--line-soft); font-size: 11.5px; }
+    table.data-table td { text-align: right; padding: 5px 0; border-bottom: 1px dashed var(--line-soft); font-size: 11.5px; }
     table.data-table td:first-child { text-align: left; font-size: 12.5px; }
     table.data-table tr:last-child td { border-bottom: none; }
 
