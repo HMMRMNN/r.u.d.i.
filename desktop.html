@@ -63,7 +63,23 @@
   .topbar-brand { display: flex; align-items: center; gap: 10px; }
   .topbar-brand .dot { width: 8px; height: 8px; background: var(--ink); flex-shrink: 0; }
   .topbar-brand .name { color: var(--ink); text-transform: uppercase; letter-spacing: 0.2em; font-weight: 500; }
-  .topbar-right { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.15em; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.15em; }
+
+  /* ---- Automatischer Seitenwechsel (wie bei iphone.html), hier in
+     die Topbar integriert statt als eigenes HUD -- Desktop hat schon
+     eine persistente Kopfzeile. ---- */
+  .rotation { display: flex; align-items: center; gap: 8px; }
+  .rotation-btn {
+    width: 24px; height: 24px; border: 1px solid var(--line); background: var(--panel); color: var(--ink-soft);
+    font-family: "JetBrains Mono", monospace; font-size: 11px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: background-color .15s, color .15s;
+  }
+  .rotation-btn:hover { background: var(--panel-hover); color: var(--ink); }
+  .rotation-btn.playing { background: var(--ink); color: var(--accent-ink); border-color: var(--ink); }
+  .rotation-counter { min-width: 34px; text-align: center; color: var(--ink-soft); }
+  .rotation-progress { width: 64px; height: 2px; background: var(--line); overflow: hidden; }
+  .rotation-progress-fill { height: 100%; width: 0%; background: var(--ink); animation: rotFill 120s linear forwards; animation-play-state: paused; }
+  @keyframes rotFill { from { width: 0%; } to { width: 100%; } }
 
   @keyframes pulse-glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
   .live-dot {
@@ -441,6 +457,13 @@
           <span class="name">R.U.D.I. Dashboard</span>
         </div>
         <div class="topbar-right">
+          <div class="rotation">
+            <button class="rotation-btn" id="rotPrev" title="Vorherige Seite">&#8249;</button>
+            <button class="rotation-btn" id="rotPlay" title="Automatischen Wechsel an/aus">&#10074;&#10074;</button>
+            <button class="rotation-btn" id="rotNext" title="N&auml;chste Seite">&#8250;</button>
+            <span class="rotation-counter" id="rotCounter">1/11</span>
+            <div class="rotation-progress"><div class="rotation-progress-fill" id="rotProgress"></div></div>
+          </div>
           <span class="live-dot"></span>
           <span>Live-Daten</span>
         </div>
@@ -840,19 +863,88 @@
     // Navigation
     // ---------------------------------------------------------------
     const pageLoaders = {};
-    document.querySelectorAll(".nav-item[data-page]").forEach((btn) => {
+    const navButtons = Array.from(document.querySelectorAll(".nav-item[data-page]"));
+    const pageOrder = navButtons.map((b) => b.dataset.page);
+
+    // Zeigt eine Seite an -- von Hand (Sidebar-Klick, lädt nur beim
+    // allerersten Mal) UND vom automatischen Wechsel (lädt IMMER neu,
+    // damit die Daten beim Rotieren frisch bleiben statt nur einmalig
+    // beim ersten Besuch geladen zu werden).
+    function activatePage(pageId, { forceRefresh = false } = {}) {
+      const index = pageOrder.indexOf(pageId);
+      if (index < 0) return;
+      navButtons.forEach((b) => b.classList.toggle("active", b.dataset.page === pageId));
+      document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
+      document.getElementById(`page-${pageId}`).classList.add("active");
+      if (pageLoaders[pageId] && (forceRefresh || !pageLoaders[pageId].loaded)) {
+        pageLoaders[pageId].loaded = true;
+        pageLoaders[pageId].fn();
+      }
+      return index;
+    }
+
+    navButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
-        document.querySelectorAll(".nav-item[data-page]").forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        const pageId = btn.dataset.page;
-        document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
-        document.getElementById(`page-${pageId}`).classList.add("active");
-        if (pageLoaders[pageId] && !pageLoaders[pageId].loaded) {
-          pageLoaders[pageId].loaded = true;
-          pageLoaders[pageId].fn();
-        }
+        activatePage(btn.dataset.page);
+        stopRotation();
       });
     });
+
+    // ---------------------------------------------------------------
+    // Automatischer Seitenwechsel (wie bei iphone.html) -- 2 Minuten
+    // pro Seite, Play/Pause + manuell vor/zurück in der Topbar.
+    // ---------------------------------------------------------------
+    const ROTATE_MS = 120000;
+    let rotationIndex = 0;
+    let rotationTimer = null;
+    let rotationPlaying = false;
+
+    const rotPrev = document.getElementById("rotPrev");
+    const rotNext = document.getElementById("rotNext");
+    const rotPlay = document.getElementById("rotPlay");
+    const rotCounter = document.getElementById("rotCounter");
+    const rotProgress = document.getElementById("rotProgress");
+
+    function restartRotationProgress() {
+      rotProgress.style.animation = "none";
+      void rotProgress.offsetWidth; // Reflow erzwingen, sonst läuft die Animation nur weiter statt neu zu starten
+      rotProgress.style.animation = `rotFill ${ROTATE_MS / 1000}s linear forwards`;
+      rotProgress.style.animationPlayState = rotationPlaying ? "running" : "paused";
+    }
+
+    function goToRotationIndex(index) {
+      rotationIndex = ((index % pageOrder.length) + pageOrder.length) % pageOrder.length;
+      activatePage(pageOrder[rotationIndex], { forceRefresh: true });
+      rotCounter.textContent = `${rotationIndex + 1}/${pageOrder.length}`;
+      restartRotationProgress();
+    }
+    function rotateNext() { goToRotationIndex(rotationIndex + 1); }
+    function rotatePrev() { goToRotationIndex(rotationIndex - 1); }
+
+    function startRotation() {
+      clearInterval(rotationTimer);
+      rotationTimer = setInterval(rotateNext, ROTATE_MS);
+    }
+    function stopRotationTimerOnly() { clearInterval(rotationTimer); rotationTimer = null; }
+
+    function setRotationPlaying(value) {
+      rotationPlaying = value;
+      rotPlay.classList.toggle("playing", rotationPlaying);
+      rotPlay.innerHTML = rotationPlaying ? "&#10074;&#10074;" : "&#9654;";
+      if (rotationPlaying) startRotation(); else stopRotationTimerOnly();
+      rotProgress.style.animationPlayState = rotationPlaying ? "running" : "paused";
+    }
+    // Manuelle Sidebar-Klicks pausieren die Rotation (sonst springt sie
+    // mitten im Lesen wieder weiter) -- Play muss aktiv neu gestartet werden.
+    function stopRotation() {
+      if (rotationPlaying) setRotationPlaying(false);
+    }
+
+    rotPrev.addEventListener("click", () => { rotatePrev(); if (rotationPlaying) startRotation(); });
+    rotNext.addEventListener("click", () => { rotateNext(); if (rotationPlaying) startRotation(); });
+    rotPlay.addEventListener("click", () => setRotationPlaying(!rotationPlaying));
+
+    rotCounter.textContent = `1/${pageOrder.length}`;
 
     document.querySelectorAll('.toggle-btn[data-center-group="flightradar"]').forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -2759,6 +2851,8 @@
     loadFlightRadar();
     setInterval(loadOverview, REFRESH_INTERVAL_MS);
     setInterval(loadFlightRadar, REFRESH_INTERVAL_MS);
+
+    setRotationPlaying(true);
   </script>
 </body>
 </html>
