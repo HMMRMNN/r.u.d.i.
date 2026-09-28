@@ -34,7 +34,7 @@
     .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
     .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; }
-    .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
+    .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; font-family: "Work Sans", Arial, Helvetica, sans-serif; font-weight: 700; }
     .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
 
     .col-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 8px; }
@@ -80,7 +80,7 @@
   <main class="frame">
     <div class="canvas" id="canvas">
       <div class="masthead">
-        <span class="mast-left mono">R.U.D.I. &middot; Pizza-Bilanz</span>
+        <span class="mast-left">R.U.D.I. &middot; Pizza-Bilanz</span>
         <span class="mast-right mono" id="mastDate">&ndash;</span>
       </div>
       <div class="empty"><div class="headline">L&auml;dt&hellip;</div></div>
@@ -169,7 +169,7 @@
     function renderEmpty(data) {
       canvas.innerHTML = `
         <div class="masthead">
-          <span class="mast-left mono">R.U.D.I. &middot; Pizza-Bilanz</span>
+          <span class="mast-left">R.U.D.I. &middot; Pizza-Bilanz</span>
           <span class="mast-right mono">${mastDate.textContent}</span>
         </div>
         <div class="empty">
@@ -196,7 +196,7 @@
 
       canvas.innerHTML = `
         <div class="masthead">
-          <span class="mast-left mono">R.U.D.I. &middot; Pizza-Bilanz</span>
+          <span class="mast-left">R.U.D.I. &middot; Pizza-Bilanz</span>
           <span class="mast-right mono">${mastDate.textContent}</span>
         </div>
 
