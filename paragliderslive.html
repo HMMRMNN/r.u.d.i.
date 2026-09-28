@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#ffffff" />
   <title>Gleitschirm Live</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@200;300;400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap"
     rel="stylesheet"
   />
 
@@ -17,25 +17,25 @@
     /* ---------------------------------------------------------------
        Design-System wie control.html/iphone.html: klar umrissene
        Panels (dünner Rahmen) statt freier Typografie -- Karte und
-       Pilotenliste stecken jeweils in einem eigenen Panel. Inter +
-       JetBrains Mono, streng monochrom, invertiert (schwarzer
-       Hintergrund). Gleiche Daten/Fetch-Logik wie bisher, nur
+       Pilotenliste stecken jeweils in einem eigenen Panel. Work Sans +
+       Roboto Mono, streng monochrom, heller
+       Hintergrund. Gleiche Daten/Fetch-Logik wie bisher, nur
        Layout/Optik neu.
     --------------------------------------------------------------- */
-    :root { --black:#ffffff; --white:#000000; --line: var(--black); --line-soft: var(--black); }
+    :root { --black:#000000; --white:#ffffff; --line: var(--black); --line-soft: var(--black); }
     * { box-sizing: border-box; }
     html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
     body {
-      display: grid; place-items: center; font-family: "Inter", Arial, Helvetica, sans-serif;
+      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
       -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
     }
-    .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
+    .mono { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
 
     .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
     .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
     .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
-    .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; }
+    .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; font-family: "Work Sans", Arial, Helvetica, sans-serif; font-weight: 700; }
     .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
     .status-line { font-size: 15px; font-weight: 300; margin-top: 6px; margin-bottom: 14px; }
 
@@ -72,7 +72,7 @@
   <main class="frame">
     <div class="canvas">
       <div class="masthead">
-        <span class="mast-left mono">R.U.D.I. &middot; Gleitschirm Live</span>
+        <span class="mast-left">R.U.D.I. &middot; Gleitschirm Live</span>
         <span class="mast-right mono" id="mastDate">&ndash;</span>
       </div>
       <p class="status-line mono" id="subtitle">L&auml;dt&hellip;</p>
@@ -172,19 +172,19 @@
       // Entfernungsringe (5/10/15 km)
       [5, 10, 15].forEach((km) => {
         svg += `<circle cx="0" cy="0" r="${km * scale}" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" opacity="0.35" />`;
-        svg += `<text x="4" y="${-km * scale - 3}" font-size="8" font-family="JetBrains Mono, monospace" fill="currentColor" opacity="0.5">${km}km</text>`;
+        svg += `<text x="4" y="${-km * scale - 3}" font-size="8" font-family="Roboto Mono, monospace" fill="currentColor" opacity="0.5">${km}km</text>`;
       });
 
       // Zentrum (Grassau)
       svg += `<circle cx="0" cy="0" r="4" fill="currentColor" />`;
-      svg += `<text x="7" y="4" font-size="10" font-weight="700" font-family="Inter, sans-serif" fill="currentColor">${center.label}</text>`;
+      svg += `<text x="7" y="4" font-size="10" font-weight="700" font-family="Work Sans, sans-serif" fill="currentColor">${center.label}</text>`;
 
       // Bekannte Startplätze
       (data.launchSites || []).forEach((site) => {
         const p = project(site.lat, site.lon, center, scale);
         if (Math.abs(p.x) > W / 2 || Math.abs(p.y) > H / 2) return; // außerhalb der Karte
         svg += `<path d="M${p.x} ${p.y - 6} L${p.x + 5} ${p.y + 4} L${p.x - 5} ${p.y + 4} Z" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.8" />`;
-        svg += `<text x="${p.x + 8}" y="${p.y + 3}" font-size="8" font-family="JetBrains Mono, monospace" fill="currentColor" opacity="0.7">${site.name}</text>`;
+        svg += `<text x="${p.x + 8}" y="${p.y + 3}" font-size="8" font-family="Roboto Mono, monospace" fill="currentColor" opacity="0.7">${site.name}</text>`;
       });
 
       // Piloten als nummerierte Punkte
@@ -192,7 +192,7 @@
         const p = project(pilot.lat, pilot.lon, center, scale);
         const num = i + 1;
         svg += `<circle cx="${p.x}" cy="${p.y}" r="9" fill="var(--white)" stroke="currentColor" stroke-width="1.8" />`;
-        svg += `<text x="${p.x}" y="${p.y + 3.5}" font-size="9" font-weight="700" text-anchor="middle" font-family="JetBrains Mono, monospace" fill="currentColor">${num}</text>`;
+        svg += `<text x="${p.x}" y="${p.y + 3.5}" font-size="9" font-weight="700" text-anchor="middle" font-family="Roboto Mono, monospace" fill="currentColor">${num}</text>`;
       });
 
       svg += `</svg>`;
