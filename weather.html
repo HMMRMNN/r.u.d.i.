@@ -1,137 +1,109 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#ffffff" />
-<title>Wetter &amp; Familie</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Wetter &amp; Familie</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@200;300;400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
 
-<style>
-  /* ---------------------------------------------------------------
-     Eigenes Design nur fuer diese Seite: Mac-OS-9-"Platinum"-Optik
-     (Pinstripe-Titlebar, harte 2px-Rahmen, kein Grauverlauf -- das
-     Display kann nur reines Schwarz/Weiss, kein Dithering in der
-     Screenshot-Pipeline). Rubik Mono One fuer Zahlen/Headlines,
-     Space Grotesk als Lauftext -- Annaeherung an Chicago/Charcoal.
-  --------------------------------------------------------------- */
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  <style>
+    /* ---------------------------------------------------------------
+       Design-System wie control.html/iphone.html: klar umrissene
+       Panels (dünner Rahmen) und echte <table>-Elemente statt freier
+       Typografie -- angeglichen an die übrigen E-Ink-Seiten. Da das
+       Display nur reines Schwarz/Weiß kann (kein Dithering in der
+       Screenshot-Pipeline), sind Rahmen/Linien voll deckend (--line)
+       bzw. gestrichelt für interne Trenner (--line-soft), nie per
+       CSS-opacity -- blasse Linien verschwinden beim harten
+       Schwellwert der Pipeline komplett. Gleiche Daten/Fetch-Logik
+       wie bisher, nur Layout/Optik neu.
+    --------------------------------------------------------------- */
+    :root { --black:#000000; --white:#ffffff; --line: var(--black); --line-soft: var(--black); }
+    * { box-sizing: border-box; }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--white); color:var(--black); }
+    body {
+      display: grid; place-items: center; font-family: "Work Sans", Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
+    }
+    .mono { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; }
 
-  html, body {
-    width: 100%; height: 100%; overflow: hidden;
-    font-family: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    display: grid; place-items: center;
-    background: #fff; color: #000;
-    -webkit-font-smoothing: none; text-rendering: optimizeSpeed;
-  }
+    .frame { position: relative; width: 800px; height: 480px; overflow: hidden; background: var(--white); border: 1px solid var(--black); }
+    .canvas { position: absolute; top: 30px; left: 34px; right: 34px; bottom: 40px; display: flex; flex-direction: column; }
 
-  .frame {
-    position: relative; width: 800px; height: 480px;
-    overflow: hidden;
-    background: #ffffff;
-    border: 2px solid #000000;
-  }
+    .masthead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+    .mast-left { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; font-family: "Work Sans", Arial, Helvetica, sans-serif; font-weight: 700; }
+    .mast-right { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
 
-  .titlebar {
-    height: 18px;
-    position: relative;
-    border-bottom: 2px solid #000;
-    background: repeating-linear-gradient(180deg, #000 0px, #000 1px, #fff 1px, #fff 3px);
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 5px;
-  }
-  .titlebar-box { width: 10px; height: 10px; background: #fff; border: 1.5px solid #000; flex-shrink: 0; }
-  .titlebar-title-wrap { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: #fff; padding: 0 10px; }
-  .titlebar-title { font-family: "Rubik Mono One", monospace; font-size: 10px; color: #000; }
+    .col-label { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.5; margin-bottom: 8px; }
 
-  .content { padding: 10px 20px 8px; }
+    .split { display: flex; gap: 20px; flex: 1; min-height: 0; }
+    .split-col.narrow { flex: 0 0 270px; display: flex; flex-direction: column; }
+    .split-col.wide { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .split-col > .panel { flex: 1; min-height: 0; overflow: hidden; }
 
-  .toolbar { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 10px; }
-  .location { font-size: 17px; font-weight: 700; color: #000; }
-  .location-sub { font-size: 9.5px; color: #000; margin-top: 2px; font-weight: 400; }
+    .panel { border: 1px solid var(--line); padding: 12px 14px; }
+    .panel + .panel { margin-top: 12px; }
 
-  .hero-panel { display: flex; align-items: center; gap: 18px; border: 2px solid #000; padding: 8px 18px; margin-bottom: 8px; }
-  .weather-icon { width: 58px; height: 58px; flex-shrink: 0; }
-  .hero-temp-wrap { display: flex; align-items: flex-start; }
-  .hero-temp { font-family: "Rubik Mono One", monospace; font-size: 92px; color: #000; line-height: 0.85; letter-spacing: -0.02em; }
-  .hero-side { margin-left: 14px; padding-top: 10px; }
-  .hero-cond { font-size: 16px; font-weight: 700; color: #000; }
-  .hero-range { font-size: 11px; color: #000; margin-top: 3px; font-weight: 400; }
+    .hero { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+    .hero-temp { font-size: 136px; font-weight: 700; line-height: 0.82; letter-spacing: -0.04em; }
+    .hero-side { padding-bottom: 12px; }
+    .hero-cond { font-size: 18px; font-weight: 400; }
+    .hero-range { margin-top: 4px; font-size: 12px; opacity: 0.55; }
 
-  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); border: 2px solid #000; }
-  .stat-box { padding: 5px 10px; border-right: 1.5px solid #000; border-bottom: 1.5px solid #000; }
-  .stat-box:nth-child(4n) { border-right: none; }
-  .stat-box:nth-child(n+5) { border-bottom: none; }
-  .stat-label { font-size: 8.5px; font-weight: 600; color: #000; text-transform: uppercase; letter-spacing: 0.02em; }
-  .stat-value { font-size: 13px; font-weight: 700; color: #000; margin-top: 2px; }
-  .stat-value small { font-size: 9px; font-weight: 400; }
+    .stat-line { margin-top: 10px; font-size: 11.5px; letter-spacing: 0.02em; opacity: 0.7; line-height: 1.4; }
+    .stat-line + .stat-line { margin-top: 4px; opacity: 0.55; }
 
-  .sun-strip {
-    display: flex; justify-content: space-between; align-items: center;
-    border: 2px solid #000; border-top: none;
-    padding: 4px 14px; margin-bottom: 8px;
-    font-size: 10.5px; font-weight: 400; color: #000;
-  }
-  .sun-strip strong { font-weight: 700; }
+    table.data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    table.data-table th {
+      text-align: right; font-size: 9px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase;
+      opacity: 0.5; padding: 0 0 6px; border-bottom: 1px solid var(--line);
+    }
+    table.data-table th:first-child { text-align: left; }
+    table.data-table td { text-align: right; padding: 6px 0; border-bottom: 1px dashed var(--line-soft); }
+    table.data-table td:first-child { text-align: left; }
+    table.data-table tr:last-child td { border-bottom: none; }
 
-  .section-label {
-    font-family: "Rubik Mono One", monospace;
-    font-size: 8.5px; color: #000;
-    text-transform: uppercase; letter-spacing: 0.02em;
-    margin: 0 0 5px 1px;
-  }
+    .activities-label { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line-soft); }
+    .activity-list { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .activity-list li { display: flex; gap: 12px; align-items: baseline; font-size: 13px; line-height: 1.2; }
+    .activity-list .num { font-size: 10px; opacity: 0.45; width: 16px; flex-shrink: 0; }
 
-  .graph-box { border: 2px solid #000; padding: 8px 14px 6px; }
-  .graph-legend { display: flex; justify-content: flex-end; align-items: center; gap: 14px; margin-bottom: 2px; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 8px; color: #000; text-transform: uppercase; letter-spacing: 0.02em; }
-  .legend-line { width: 16px; height: 0; border-top: 2.5px solid #000; display: inline-block; }
-  .legend-line.dashed { border-top: 1.8px dashed #000; }
-  .graph-svg { width: 100%; height: 92px; display: block; }
-  .graph-svg text { font-family: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #000; }
-
-  .statusbar {
-    position: absolute; left: 20px; right: 20px; bottom: 8px;
-    display: flex; justify-content: space-between; align-items: center;
-    padding-top: 6px; border-top: 2px solid #000;
-    font-family: "Rubik Mono One", monospace;
-    font-size: 7.5px; color: #000;
-  }
-
-  .empty { position: absolute; inset: 20px; display: grid; place-items: center; font-size: 13px; text-align: center; }
-</style>
+    .footer {
+      position: absolute; left: 34px; right: 34px; bottom: 14px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; opacity: 0.45;
+    }
+    .empty { position: absolute; inset: 30px 34px 40px; display: grid; place-items: center; font-size: 13px; text-align: center; }
+  </style>
 </head>
+
 <body>
-  <div class="frame">
-    <div class="titlebar">
-      <div class="titlebar-box"></div>
-      <div class="titlebar-title-wrap"><span class="titlebar-title">Wetter &amp; Familie</span></div>
-      <div class="titlebar-box"></div>
+  <main class="frame">
+    <div class="canvas" id="canvas">
+      <div class="empty mono">Loading&hellip;</div>
     </div>
-
-    <div id="body" class="content">
-      <div class="empty">Loading&hellip;</div>
-    </div>
-
-    <div class="statusbar">
-      <span>R.U.D.I. WETTERSTATION</span>
+    <footer class="footer mono">
+      <span>Grassau, Germany</span>
       <span id="updatedAt">Updating</span>
-    </div>
-  </div>
+    </footer>
+  </main>
 
   <script>
     "use strict";
 
     const LOCATION = { lat: 47.7756, lon: 12.4550 };
-    const LOCATION_NAME = "Grassau, Deutschland";
     const WEATHER_API = "https://api.open-meteo.com/v1/forecast";
     const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
-    const FORECAST_DAYS = 16; // Open-Meteo-Maximum -- "maximale Anzahl an Tagen die man vorhersagen kann"
 
     const WEATHER_LABELS = {
-      0: "Klar", 1: "Überw. klar", 2: "Teilweise bewölkt", 3: "Bedeckt",
+      0: "Klar", 1: "Überw. klar", 2: "Teilw. bewölkt", 3: "Bedeckt",
       45: "Nebel", 48: "Reifnebel",
       51: "Nieselregen", 53: "Nieselregen", 55: "Nieselregen",
       61: "Regen", 63: "Regen", 65: "Regen",
@@ -139,83 +111,23 @@
       80: "Schauer", 81: "Schauer", 82: "Schauer",
       95: "Gewitter", 96: "Gewitter", 99: "Gewitter",
     };
-    const WEEKDAY_SHORT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
-    const COMPASS = ["N", "NO", "O", "SO", "S", "SW", "W", "NW"];
 
     function weatherLabel(code) { return WEATHER_LABELS[Number(code)] || "Unbekannt"; }
-    function compassDir(deg) { return COMPASS[Math.round(((Number(deg) % 360) + 360) % 360 / 45) % 8]; }
-    function escapeHtml(str) {
-      return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-    }
 
-    const bodyEl = document.getElementById("body");
+    const canvas = document.getElementById("canvas");
     const updatedAt = document.getElementById("updatedAt");
 
-    // ---- Wettericon: reine Vektor-Formen, kein Grau -- Sonne/Wolke/
-    // Regen/Schnee/Blitz werden durch Strichmuster unterschieden statt
-    // durch Farbe. ----
-    function weatherIconMarkup(code) {
-      const sun = `<circle cx="36" cy="36" r="17" fill="#fff"/><g stroke-linecap="round"><line x1="36" y1="6" x2="36" y2="14"/><line x1="8" y1="36" x2="16" y2="36"/><line x1="14" y1="14" x2="20" y2="20"/><line x1="58" y1="14" x2="52" y2="20"/><line x1="36" y1="66" x2="36" y2="58"/><line x1="64" y1="36" x2="56" y2="36"/><line x1="58" y1="58" x2="52" y2="52"/><line x1="14" y1="58" x2="20" y2="52"/></g>`;
-      const cloud = `<path d="M20 68 a18 15 0 0 1 2 -29 a22 18 0 0 1 42 4 a16 14 0 0 1 -2 25 z" fill="#fff"/>`;
-      const rainLines = `<g stroke-linecap="round"><line x1="34" y1="72" x2="30" y2="80"/><line x1="48" y1="72" x2="44" y2="80"/><line x1="62" y1="72" x2="58" y2="80"/></g>`;
-      const snowDashes = `<g stroke-linecap="round" stroke-dasharray="1,4"><line x1="34" y1="72" x2="30" y2="82"/><line x1="48" y1="72" x2="44" y2="82"/><line x1="62" y1="72" x2="58" y2="82"/></g>`;
-      const fogLines = `<g stroke-linecap="round"><line x1="22" y1="74" x2="66" y2="74"/><line x1="26" y1="82" x2="62" y2="82"/></g>`;
-      const bolt = `<path d="M46 70 l-10 14 h8 l-4 12 l14 -16 h-8 z" fill="#000" stroke="none"/>`;
+    function deriveActivities(tempMax, precipSum, weathercode) {
+      const isRainy = precipSum > 1 || [51,53,55,61,63,65,80,81,82,95,96,99].includes(weathercode);
+      const isSnowy = [71,73,75].includes(weathercode) || tempMax < 1;
+      const isHot = tempMax >= 24;
+      const isNice = !isRainy && tempMax >= 12;
 
-      if (code === 0) return sun;
-      if (code === 1) return `${sun}${cloud}`;
-      if (code === 2) return `${sun}${cloud}`;
-      if (code === 3) return cloud;
-      if (code === 45 || code === 48) return `${cloud}${fogLines}`;
-      if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return `${cloud}${rainLines}`;
-      if ([71, 73, 75].includes(code)) return `${cloud}${snowDashes}`;
-      if ([95, 96, 99].includes(code)) return `${cloud}${bolt}`;
-      return cloud;
-    }
-
-    // ---- 16-Tage-Temperaturgraph: B&W-SVG, Hoch durchgezogen mit
-    // vollen Punkten, Tief gestrichelt mit offenen Punkten, Wochenende
-    // fett in den Tageslabels -- identisch zum abgenommenen Mockup. ----
-    function buildGraphSvg(daily) {
-      const days = Math.min(FORECAST_DAYS, daily.time.length);
-      const highs = daily.temperature_2m_max.slice(0, days).map((t) => Math.round(t));
-      const lows = daily.temperature_2m_min.slice(0, days).map((t) => Math.round(t));
-      const dates = daily.time.slice(0, days).map((d) => new Date(`${d}T12:00:00`));
-
-      const allTemps = highs.concat(lows);
-      const minT = Math.min(...allTemps) - 2;
-      const maxT = Math.max(...allTemps) + 2;
-      const span = Math.max(maxT - minT, 1);
-
-      const plotTop = 16, plotBottom = 66, marginX = 10, width = 728;
-      const stepX = days > 1 ? (width - marginX * 2) / (days - 1) : 0;
-      const mapX = (i) => (marginX + i * stepX).toFixed(1);
-      const mapY = (t) => (plotBottom - ((t - minT) / span) * (plotBottom - plotTop)).toFixed(1);
-
-      const highPts = highs.map((t, i) => `${mapX(i)},${mapY(t)}`).join(" ");
-      const lowPts = lows.map((t, i) => `${mapX(i)},${mapY(t)}`).join(" ");
-
-      const highLabels = highs.map((t, i) => `<text x="${mapX(i)}" y="${(Number(mapY(t)) - 5).toFixed(1)}">${t}&deg;</text>`).join("");
-      const highDots = highs.map((t, i) => `<circle cx="${mapX(i)}" cy="${mapY(t)}" r="2.2"/>`).join("");
-      const lowDots = lows.map((t, i) => `<circle cx="${mapX(i)}" cy="${mapY(t)}" r="1.9"/>`).join("");
-
-      const dayLabels = dates.map((d, i) => {
-        const wd = d.getDay();
-        const isWeekend = wd === 0 || wd === 6;
-        const weight = isWeekend ? ' font-weight="700" font-size="7.5"' : "";
-        return `<text x="${mapX(i)}" y="84"${weight}>${WEEKDAY_SHORT[wd]}</text>`;
-      }).join("");
-
-      return `
-        <svg class="graph-svg" viewBox="0 0 728 92" preserveAspectRatio="none">
-          <polyline points="${highPts}" fill="none" stroke="#000" stroke-width="2.2" stroke-linejoin="round"/>
-          <polyline points="${lowPts}" fill="none" stroke="#000" stroke-width="1.6" stroke-dasharray="3,2.2"/>
-          <g font-size="7" font-weight="700" text-anchor="middle">${highLabels}</g>
-          <g fill="#000">${highDots}</g>
-          <g fill="#fff" stroke="#000" stroke-width="1.3">${lowDots}</g>
-          <g font-size="7" text-anchor="middle">${dayLabels}</g>
-        </svg>
-      `;
+      if (isSnowy) return { activities: ["Schlitten fahren", "Schneemann bauen", "Kakao-Pause danach"] };
+      if (isRainy) return { activities: ["Indoor-Spielplatz", "Backen zusammen", "Bastelnachmittag"] };
+      if (isHot) return { activities: ["Freibad / Planschbecken", "Wasserspiele im Garten", "Schatten-Spielplatz vormittags"] };
+      if (isNice) return { activities: ["Spielplatz-Besuch", "Spaziergang / kleine Wanderung", "Fahrrad/Laufrad üben"] };
+      return { activities: ["Kurzer Spaziergang zwischendurch", "Spielplatz, wenn's trocken bleibt", "Bastel-/Spielenachmittag"] };
     }
 
     async function loadWeather() {
@@ -223,17 +135,13 @@
         const params = new URLSearchParams({
           latitude: String(LOCATION.lat),
           longitude: String(LOCATION.lon),
-          hourly: [
-            "temperature_2m", "apparent_temperature", "relative_humidity_2m",
-            "surface_pressure", "visibility", "windspeed_10m", "winddirection_10m",
-          ].join(","),
+          hourly: ["temperature_2m"].join(","),
           daily: [
             "temperature_2m_max", "temperature_2m_min", "uv_index_max",
-            "sunrise", "sunset", "precipitation_sum",
-            "windspeed_10m_max", "windgusts_10m_max", "weathercode",
+            "sunrise", "sunset", "precipitation_sum", "windspeed_10m_max", "weathercode",
           ].join(","),
           timezone: "Europe/Berlin",
-          forecast_days: String(FORECAST_DAYS),
+          forecast_days: "6",
         });
 
         const response = await fetch(`${WEATHER_API}?${params.toString()}`, {
@@ -244,88 +152,94 @@
         const data = await response.json();
         render(data);
 
-        updatedAt.textContent = new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+        updatedAt.textContent = `Updated ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}`;
       } catch (error) {
         console.error(error);
-        bodyEl.innerHTML = '<div class="empty">Wetterdaten nicht verf&uuml;gbar.</div>';
+        canvas.innerHTML = '<div class="empty mono">Wetterdaten nicht verf&uuml;gbar.</div>';
         updatedAt.textContent = "Update failed";
       }
     }
 
     function render(data) {
       const now = new Date();
-      const dayName = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" });
+      const dayName = now.toLocaleDateString("de-DE", { weekday: "long", timeZone: "Europe/Berlin" }).toUpperCase();
       const fullDate = now.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
-      const nowTime = now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
 
       const daily = data.daily;
       const hourly = data.hourly;
 
-      const nowIsoHour = now.toISOString().slice(0, 13);
-      let liveIdx = hourly.time.findIndex((t) => t.startsWith(nowIsoHour));
-      if (liveIdx < 0) liveIdx = 12;
-
-      const tLive = Math.round(hourly.temperature_2m[liveIdx]);
       const tMax = Math.round(daily.temperature_2m_max[0]);
       const tMin = Math.round(daily.temperature_2m_min[0]);
+      const uvMax = daily.uv_index_max[0];
+      const precipSum = daily.precipitation_sum[0];
+      const windMax = Math.round(daily.windspeed_10m_max[0]);
+      const sunrise = new Date(daily.sunrise[0]).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+      const sunset = new Date(daily.sunset[0]).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
       const weathercode = daily.weathercode[0];
       const condition = weatherLabel(weathercode);
 
-      const feelsLike = Math.round(hourly.apparent_temperature[liveIdx]);
-      const humidity = Math.round(hourly.relative_humidity_2m[liveIdx]);
-      const pressure = Math.round(hourly.surface_pressure[liveIdx]);
-      const visibilityKm = (hourly.visibility[liveIdx] / 1000).toFixed(1);
-      const windSpeed = Math.round(hourly.windspeed_10m[liveIdx]);
-      const windDir = compassDir(hourly.winddirection_10m[liveIdx]);
-      const windGust = Math.round(daily.windgusts_10m_max[0]);
-      const uvMax = daily.uv_index_max[0];
-      const precipSum = daily.precipitation_sum[0];
+      const nowIsoHour = now.toISOString().slice(0, 13);
+      let liveIdx = hourly.time.findIndex((t) => t.startsWith(nowIsoHour));
+      if (liveIdx < 0) liveIdx = 12;
+      const tLive = Math.round(hourly.temperature_2m[liveIdx]);
 
-      const sunrise = new Date(daily.sunrise[0]).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
-      const sunset = new Date(daily.sunset[0]).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+      // 5-Tage-Ausblick: Index 1-5 (heute = 0)
+      const outlookDays = [1, 2, 3, 4, 5].map((i) => {
+        const d = new Date(daily.time[i] + "T12:00:00");
+        return {
+          name: d.toLocaleDateString("de-DE", { weekday: "short", timeZone: "Europe/Berlin" }).toUpperCase(),
+          cond: weatherLabel(daily.weathercode[i]),
+          tMax: Math.round(daily.temperature_2m_max[i]),
+        };
+      });
 
-      bodyEl.innerHTML = `
-        <div class="toolbar">
-          <div>
-            <div class="location">${escapeHtml(LOCATION_NAME)}</div>
-            <div class="location-sub">${escapeHtml(dayName)}, ${escapeHtml(fullDate)} &middot; zuletzt aktualisiert ${nowTime}</div>
-          </div>
+      const plan = deriveActivities(tMax, precipSum, weathercode);
+      const needsJacket = tMax < 15 || precipSum > 0.5;
+      const needsSunscreen = uvMax >= 4;
+
+      const outlookRows = outlookDays.map((d) => `
+        <tr>
+          <td>${d.name}</td>
+          <td>${d.cond}</td>
+          <td class="mono">${d.tMax}&deg;</td>
+        </tr>
+      `).join("");
+
+      canvas.innerHTML = `
+        <div class="masthead">
+          <span class="mast-left">R.U.D.I. &middot; Wetter &amp; Familie</span>
+          <span class="mast-right mono">${dayName} &middot; ${fullDate}</span>
         </div>
 
-        <div class="hero-panel">
-          <svg class="weather-icon" viewBox="0 0 100 100" fill="none" stroke="#000" stroke-width="3.5">${weatherIconMarkup(weathercode)}</svg>
-          <div class="hero-temp-wrap">
-            <div class="hero-temp">${tLive}&deg;</div>
-            <div class="hero-side">
-              <div class="hero-cond">${escapeHtml(condition)}</div>
-              <div class="hero-range">Heute ${tMin}&deg; &ndash; ${tMax}&deg;C</div>
+        <div class="split">
+          <div class="split-col narrow">
+            <div class="panel">
+              <div class="hero">
+                <div class="hero-temp">${tLive}&deg;</div>
+                <div class="hero-side">
+                  <div class="hero-cond">${condition}</div>
+                  <div class="hero-range mono">Heute ${tMin}&deg;&ndash;${tMax}&deg;C</div>
+                </div>
+              </div>
+              <p class="stat-line mono">UV ${uvMax.toFixed(1)} &middot; Regen ${precipSum.toFixed(1)}mm<br>Wind ${windMax}km/h &middot; Sonne ${sunrise}&ndash;${sunset}</p>
+              <p class="stat-line mono">${needsJacket ? "Jacke nötig" : "Leicht reicht"}<br>${needsSunscreen ? "Sonnencreme nötig" : "Kein starker Sonnenschutz nötig"}</p>
             </div>
           </div>
-        </div>
 
-        <div class="section-label">Aktuelle Werte</div>
-        <div class="stats-grid">
-          <div class="stat-box"><div class="stat-label">UV-Index</div><div class="stat-value">${uvMax.toFixed(1)}</div></div>
-          <div class="stat-box"><div class="stat-label">Niederschlag</div><div class="stat-value">${precipSum.toFixed(1)}<small> mm</small></div></div>
-          <div class="stat-box"><div class="stat-label">Wind</div><div class="stat-value">${windSpeed}<small> km/h ${escapeHtml(windDir)}</small></div></div>
-          <div class="stat-box"><div class="stat-label">B&ouml;en</div><div class="stat-value">${windGust}<small> km/h</small></div></div>
-          <div class="stat-box"><div class="stat-label">Gef&uuml;hlt</div><div class="stat-value">${feelsLike}&deg;</div></div>
-          <div class="stat-box"><div class="stat-label">Luftfeuchte</div><div class="stat-value">${humidity}<small> %</small></div></div>
-          <div class="stat-box"><div class="stat-label">Luftdruck</div><div class="stat-value">${pressure}<small> hPa</small></div></div>
-          <div class="stat-box"><div class="stat-label">Sichtweite</div><div class="stat-value">${visibilityKm}<small> km</small></div></div>
-        </div>
-        <div class="sun-strip">
-          <span>&#9728; Sonnenaufgang <strong>${sunrise}</strong></span>
-          <span>Sonnenuntergang <strong>${sunset}</strong> &#9728;</span>
-        </div>
+          <div class="split-col wide">
+            <div class="panel">
+              <p class="col-label">5-Tage-Ausblick</p>
+              <table class="data-table">
+                <thead><tr><th>Tag</th><th>Wetter</th><th>Max</th></tr></thead>
+                <tbody>${outlookRows}</tbody>
+              </table>
 
-        <div class="section-label">16-Tage-Temperaturverlauf</div>
-        <div class="graph-box">
-          <div class="graph-legend">
-            <span class="legend-item"><span class="legend-line"></span>Hoch</span>
-            <span class="legend-item"><span class="legend-line dashed"></span>Tief</span>
+              <p class="col-label activities-label">Aktivit&auml;ten heute</p>
+              <ul class="activity-list">
+                ${plan.activities.map((a, i) => `<li><span class="num mono">${String(i + 1).padStart(2, "0")}</span><span>${a}</span></li>`).join("")}
+              </ul>
+            </div>
           </div>
-          ${buildGraphSvg(daily)}
         </div>
       `;
     }
