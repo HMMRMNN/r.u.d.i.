@@ -1,0 +1,35 @@
+name: Flying-Bulls-Backfill (OpenSky)
+
+# Manuell auszulösen (Actions-Tab -> "Flying-Bulls-Backfill (OpenSky)" ->
+# "Run workflow"). Holt vergangene Flying-Bulls-Flüge über OpenSky nach
+# und trägt sie ins Archiv ein -- siehe scripts/flyingbulls-backfill.mjs
+# für den Hintergrund (Cloudflare Workers erreichen OpenSkys Auth-Server
+# nicht, GitHub-Actions-Runner mit normaler IP schon).
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Wie viele Tage zurück nachholen"
+        required: false
+        default: "30"
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Backfill ausführen
+        env:
+          OPENSKY_CLIENT_ID: ${{ secrets.OPENSKY_CLIENT_ID }}
+          OPENSKY_CLIENT_SECRET: ${{ secrets.OPENSKY_CLIENT_SECRET }}
+          FLYINGBULLS_IMPORT_TOKEN: ${{ secrets.FLYINGBULLS_IMPORT_TOKEN }}
+          DAYS: ${{ github.event.inputs.days }}
+        run: node scripts/flyingbulls-backfill.mjs
