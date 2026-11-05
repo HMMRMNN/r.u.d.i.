@@ -20,14 +20,26 @@ id = "5243ab7095fd4e2ead7331ea129f19bd"
 binding = "AVIRADAR_API_BINDING"
 service = "aviradar-api"
 
-# Täglicher Cron (Health-Check + Pizza-Fahrterkennung, siehe
-# scheduled() in src/index.js). Zeit in UTC -- 18:00 UTC ist 20:00
-# Berlin-Zeit im Sommer bzw. 19:00 im Winter. Falls im Dashboard unter
-# Settings -> Triggers -> Cron Triggers ein anderer Wert eingetragen
-# ist, hier entsprechend anpassen, damit wrangler deploy ihn nicht
-# stillschweigend überschreibt.
+# Zwei Cron-Trigger (siehe scheduled() in src/index.js, das anhand von
+# controller.cron unterscheidet, welcher Zeitplan ihn ausgelöst hat).
+# Falls im Dashboard unter Settings -> Triggers -> Cron Triggers ein
+# anderer Wert eingetragen ist, hier entsprechend anpassen, damit
+# wrangler deploy ihn nicht stillschweigend überschreibt.
 [triggers]
-crons = ["0 18 * * *"]
+crons = [
+  "0 18 * * *",  # Täglich: Health-Check + Pizza-Fahrterkennung. Zeit in
+                 # UTC -- 18:00 UTC ist 20:00 Berlin-Zeit im Sommer bzw.
+                 # 19:00 im Winter.
+  "*/2 * * * *", # Alle 2 Minuten: Flying-Bulls-/Interessante-Flugzeuge-
+                 # Erkennung (checkForInterestingFlight) -- WICHTIG (Fix,
+                 # auf Nutzerwunsch): lief bisher nur, wenn cron-job.org
+                 # (externer Dienst, dessen Konfiguration wir nicht
+                 # sehen) /flightalert/check anstieß -- Verzögerungen
+                 # von bis zu 20 Min beim echten Start eines Flying-
+                 # Bulls-Flugzeugs waren die Folge. Eigener Cloudflare-
+                 # Cron macht das unabhängig von dieser externen
+                 # Konfiguration zuverlässig schnell.
+]
 
 # Secrets (GITHUB_TOKEN, HOLFUY_KEY, INTERVALS_API_KEY,
 # INTERVALS_ATHLETE_ID, PARAGLIDABLE_KEY, TELEGRAM_BOT_TOKEN,

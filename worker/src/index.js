@@ -286,13 +286,26 @@ export default {
   },
 
   /**
-   * Cron trigger: einmal täglich.
-   * Im Dashboard konfiguriert (Settings -> Triggers -> Cron Triggers),
-   * z.B. "0 18 * * *".
+   * Cron trigger: zwei Zeitpläne, siehe wrangler.toml für Details.
+   * controller.cron verrät, welcher der beiden Pläne gerade ausgelöst
+   * hat -- jeder macht nur seinen eigenen Teil, damit der 2-Minuten-
+   * Plan nicht unnötig auch Health-Check/Pizza-Erkennung mitschleppt.
    */
   async scheduled(controller, env, ctx) {
-    // Läuft täglich mit: prüft alle angebundenen Dienste und schickt
-    // bei Problemen eine ntfy.sh-Benachrichtigung.
+    if (controller.cron === "*/2 * * * *") {
+      // Flying-Bulls-/Interessante-Flugzeuge-Erkennung -- siehe
+      // Kommentar in wrangler.toml, warum das jetzt zusätzlich zum
+      // externen /flightalert/check-Trigger (cron-job.org) läuft.
+      ctx.waitUntil(
+        checkForInterestingFlight(env).catch((error) => {
+          logEvent("flightalert_cron_failed", { error: errorMessage(error) });
+        })
+      );
+      return;
+    }
+
+    // Täglicher Plan: prüft alle angebundenen Dienste und schickt bei
+    // Problemen eine ntfy.sh-Benachrichtigung.
     ctx.waitUntil(
       runHealthCheck(env)
         .then((result) => sendAlertIfUnhealthy(env, result))
