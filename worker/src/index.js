@@ -250,6 +250,12 @@ export default {
         case "/flyingbulls/backfill":
           return await handleFlyingBullsBackfill(request, env);
 
+        // Additiv: Gegenstück zu /flyingbulls/backfill für den Fall,
+        // dass OpenSky Cloudflares Netzwerk blockt -- siehe Kommentar
+        // bei handleFlyingBullsArchiveImport. Nur per POST + Token.
+        case "/flyingbulls/archive/import":
+          return await handleFlyingBullsArchiveImport(request, env);
+
         // Diagnose: zeigt die echten Feldnamen von intervals.icu.
         case "/training/debug":
           return await handleTrainingDebug(request, env);
@@ -264,7 +270,7 @@ export default {
           return jsonResponse(
             {
               error: "Not found",
-              endpoints: ["/paraglidable", "/holfuy", "/paragliders", "/flights/aircraft", "/flights/route", "/flights/airline-logo", "/flights/identify", "/flights/silhouette", "/avalanche", "/route", "/route/override", "/route/schedule", "/displays", "/displays/remove", "/location", "/channels", "/channels/remove", "/channels/reset", "/training", "/training/goal", "/pizza", "/flightalert", "/flightalert/check", "/flyingbulls/status", "/flyingbulls/archive", "/flyingbulls/backfill", "/training/debug", "/refresh", "/health"],
+              endpoints: ["/paraglidable", "/holfuy", "/paragliders", "/flights/aircraft", "/flights/route", "/flights/airline-logo", "/flights/identify", "/flights/silhouette", "/avalanche", "/route", "/route/override", "/route/schedule", "/displays", "/displays/remove", "/location", "/channels", "/channels/remove", "/channels/reset", "/training", "/training/goal", "/pizza", "/flightalert", "/flightalert/check", "/flyingbulls/status", "/flyingbulls/archive", "/flyingbulls/backfill", "/flyingbulls/archive/import", "/training/debug", "/refresh", "/health"],
             },
             404,
             request
@@ -2602,6 +2608,57 @@ async function fetchOpenSkyFlights(env, icao24, beginSec, endSec) {
   return Array.isArray(data) ? data : [];
 }
 
+/**
+ * Dedupliziert und schreibt eine Liste von Flugkandidaten ins Archiv --
+ * gemeinsam genutzt von backfillFlyingBulls() (direkter OpenSky-Abruf
+ * aus dem Worker heraus, siehe dessen Doku-Kommentar zum 522-Problem)
+ * und handleFlyingBullsArchiveImport() (Daten von einem externen
+ * GitHub-Actions-Lauf, der denselben OpenSky-Abruf stattdessen von
+ * einer normalen IP aus macht, weil Cloudflare Workers selbst den
+ * OpenSky-Auth-Server nicht erreichen).
+ */
+async function mergeFlightsIntoArchive(env, candidates) {
+  const existingArchive = (await env.RUDI_KV.get("flyingbulls:archive", "json")) || [];
+  const existingStatus = (await env.RUDI_KV.get("flyingbulls:status", "json")) || [];
+  const typeByReg = new Map(existingStatus.map((e) => [e.reg, e.type]));
+  // Minuten-Auflösung fürs Dedupe -- verhindert doppelte Einträge, falls
+  // derselbe Flug schon live (checkForFlyingBulls) erfasst wurde oder
+  // ein Backfill/Import mehrfach läuft.
+  const knownKeys = new Set(existingArchive.map((f) => `${f.reg}:${Math.round(f.takeoffAt / 60000)}`));
+
+  const added = [];
+  for (const c of candidates) {
+    const reg = String(c.reg || "").trim().toUpperCase();
+    const takeoffAt = Number(c.takeoffAt);
+    const landedAt = Number(c.landedAt);
+    if (!reg || !FLYING_BULLS_REGISTRATIONS.has(reg) || !Number.isFinite(takeoffAt) || !Number.isFinite(landedAt)) continue;
+
+    const dedupeKey = `${reg}:${Math.round(takeoffAt / 60000)}`;
+    if (knownKeys.has(dedupeKey)) continue;
+    knownKeys.add(dedupeKey);
+
+    added.push({
+      reg,
+      type: typeByReg.get(reg) || String(c.type || "Flugzeug"),
+      callsign: String(c.callsign || "").trim() || reg,
+      origin: c.origin || null,
+      destination: c.destination || null,
+      airborne: false,
+      lat: null, lon: null, altitudeM: null, speedKmh: null, track: null,
+      takeoffAt, lastSeenAt: landedAt, landedAt,
+    });
+  }
+
+  if (added.length) {
+    const merged = [...added, ...existingArchive]
+      .sort((a, b) => b.takeoffAt - a.takeoffAt)
+      .slice(0, FLYING_BULLS_ARCHIVE_LIMIT);
+    await env.RUDI_KV.put("flyingbulls:archive", JSON.stringify(merged));
+  }
+
+  return added.length;
+}
+
 async function backfillFlyingBulls(env, days) {
   requireKv(env);
 
@@ -2609,14 +2666,6 @@ async function backfillFlyingBulls(env, days) {
   const windowSec = 30 * 24 * 3600;
   const totalSec = Math.min(days, 365) * 24 * 3600;
   const beginSec = nowSec - totalSec;
-
-  const existingArchive = (await env.RUDI_KV.get("flyingbulls:archive", "json")) || [];
-  const existingStatus = (await env.RUDI_KV.get("flyingbulls:status", "json")) || [];
-  const typeByReg = new Map(existingStatus.map((e) => [e.reg, e.type]));
-  // Minuten-Auflösung fürs Dedupe -- verhindert doppelte Einträge, falls
-  // derselbe Flug schon live (checkForFlyingBulls) erfasst wurde oder
-  // der Backfill mehrfach läuft.
-  const knownKeys = new Set(existingArchive.map((f) => `${f.reg}:${Math.round(f.takeoffAt / 60000)}`));
   const errors = [];
 
   async function processReg(reg) {
@@ -2634,23 +2683,13 @@ async function backfillFlyingBulls(env, days) {
       try {
         const flights = await fetchOpenSkyFlights(env, icao24, winStart, winEnd);
         for (const f of flights) {
-          const takeoffAt = Number(f.firstSeen) * 1000;
-          const landedAt = Number(f.lastSeen) * 1000;
-          if (!Number.isFinite(takeoffAt) || !Number.isFinite(landedAt)) continue;
-
-          const dedupeKey = `${reg}:${Math.round(takeoffAt / 60000)}`;
-          if (knownKeys.has(dedupeKey)) continue;
-          knownKeys.add(dedupeKey);
-
           found.push({
             reg,
-            type: typeByReg.get(reg) || "Flugzeug",
-            callsign: String(f.callsign || "").trim() || reg,
+            callsign: f.callsign,
             origin: f.estDepartureAirport || null,
             destination: f.estArrivalAirport || null,
-            airborne: false,
-            lat: null, lon: null, altitudeM: null, speedKmh: null, track: null,
-            takeoffAt, lastSeenAt: landedAt, landedAt,
+            takeoffAt: Number(f.firstSeen) * 1000,
+            landedAt: Number(f.lastSeen) * 1000,
           });
         }
       } catch (error) {
@@ -2661,16 +2700,39 @@ async function backfillFlyingBulls(env, days) {
   }
 
   const perRegResults = await Promise.all(Array.from(FLYING_BULLS_REGISTRATIONS).map(processReg));
-  const added = perRegResults.flat();
+  const candidates = perRegResults.flat();
+  const flightsAdded = await mergeFlightsIntoArchive(env, candidates);
 
-  if (added.length) {
-    const merged = [...added, ...existingArchive]
-      .sort((a, b) => b.takeoffAt - a.takeoffAt)
-      .slice(0, FLYING_BULLS_ARCHIVE_LIMIT);
-    await env.RUDI_KV.put("flyingbulls:archive", JSON.stringify(merged));
+  return { registrationsChecked: FLYING_BULLS_REGISTRATIONS.size, flightsAdded, errors };
+}
+
+/**
+ * Nimmt extern (GitHub-Actions-Workflow .github/workflows/flyingbulls-
+ * backfill.yml, siehe dort) bereits abgerufene OpenSky-Flugdaten
+ * entgegen und trägt sie ins Archiv ein -- für den Fall, dass der
+ * direkte Abruf aus dem Worker heraus (backfillFlyingBulls) am
+ * Cloudflare-522 scheitert (OpenSky scheint Cloudflares Netzwerk auf
+ * TCP-Ebene zu blocken, siehe Kommentar bei getOpenSkyToken). Durch
+ * X-Import-Token geschützt, da es ein Schreib-Endpoint ist.
+ */
+async function handleFlyingBullsArchiveImport(request, env) {
+  requireKv(env);
+  if (request.method !== "POST") return jsonResponse({ error: "POST erwartet" }, 405, request);
+  if (!env.FLYINGBULLS_IMPORT_TOKEN || request.headers.get("X-Import-Token") !== env.FLYINGBULLS_IMPORT_TOKEN) {
+    return jsonResponse({ error: "Nicht autorisiert" }, 401, request);
   }
 
-  return { registrationsChecked: FLYING_BULLS_REGISTRATIONS.size, flightsAdded: added.length, errors };
+  let payload;
+  try {
+    payload = await request.json();
+  } catch (error) {
+    return jsonResponse({ error: "Ungültiges JSON" }, 400, request);
+  }
+
+  const candidates = Array.isArray(payload?.flights) ? payload.flights : [];
+  const flightsAdded = await mergeFlightsIntoArchive(env, candidates);
+
+  return jsonResponse({ ok: true, received: candidates.length, flightsAdded }, 200, request);
 }
 
 async function handleFlyingBullsBackfill(request, env) {
