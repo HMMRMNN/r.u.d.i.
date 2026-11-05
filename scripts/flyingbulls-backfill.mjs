@@ -111,7 +111,12 @@ async function main() {
   console.log("OpenSky-Token geholt.");
 
   const nowSec = Math.floor(Date.now() / 1000);
-  const windowSec = 30 * 24 * 3600; // OpenSky-Obergrenze pro Anfrage
+  // WICHTIG (Fix, nach echtem Fehlschlag): OpenSkys Doku suggeriert 30
+  // Tage pro Anfrage, tatsächlich kam "You can only query across 2
+  // partitions (days)" zurück -- die reale Obergrenze liegt bei ~2
+  // Tagen. 1 Tag pro Fenster bleibt sicher innerhalb der Grenze, egal
+  // wie die Tagesgrenzen ("Partitionen") ausgerichtet sind.
+  const windowSec = 1 * 24 * 3600;
   const beginSec = nowSec - DAYS * 24 * 3600;
 
   const errors = [];
