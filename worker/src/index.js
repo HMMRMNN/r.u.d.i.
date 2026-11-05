@@ -2663,7 +2663,12 @@ async function backfillFlyingBulls(env, days) {
   requireKv(env);
 
   const nowSec = Math.floor(Date.now() / 1000);
-  const windowSec = 30 * 24 * 3600;
+  // WICHTIG (Fix, nach echtem Fehlschlag in scripts/flyingbulls-
+  // backfill.mjs): OpenSkys Doku suggeriert 30 Tage pro Anfrage,
+  // tatsächlich kam "You can only query across 2 partitions (days)"
+  // zurück -- die reale Obergrenze liegt bei ~2 Tagen. 1 Tag pro
+  // Fenster bleibt sicher innerhalb der Grenze.
+  const windowSec = 1 * 24 * 3600;
   const totalSec = Math.min(days, 365) * 24 * 3600;
   const beginSec = nowSec - totalSec;
   const errors = [];
