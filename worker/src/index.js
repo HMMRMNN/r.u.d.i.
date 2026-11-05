@@ -242,6 +242,9 @@ export default {
         case "/flyingbulls/status":
           return await handleFlyingBullsStatus(request, env);
 
+        case "/flyingbulls/archive":
+          return await handleFlyingBullsArchive(request, env);
+
         // Diagnose: zeigt die echten Feldnamen von intervals.icu.
         case "/training/debug":
           return await handleTrainingDebug(request, env);
@@ -256,7 +259,7 @@ export default {
           return jsonResponse(
             {
               error: "Not found",
-              endpoints: ["/paraglidable", "/holfuy", "/paragliders", "/flights/aircraft", "/flights/route", "/flights/airline-logo", "/flights/identify", "/flights/silhouette", "/avalanche", "/route", "/route/override", "/route/schedule", "/displays", "/displays/remove", "/location", "/channels", "/channels/remove", "/channels/reset", "/training", "/training/goal", "/pizza", "/flightalert", "/flightalert/check", "/flyingbulls/status", "/training/debug", "/refresh", "/health"],
+              endpoints: ["/paraglidable", "/holfuy", "/paragliders", "/flights/aircraft", "/flights/route", "/flights/airline-logo", "/flights/identify", "/flights/silhouette", "/avalanche", "/route", "/route/override", "/route/schedule", "/displays", "/displays/remove", "/location", "/channels", "/channels/remove", "/channels/reset", "/training", "/training/goal", "/pizza", "/flightalert", "/flightalert/check", "/flyingbulls/status", "/flyingbulls/archive", "/training/debug", "/refresh", "/health"],
             },
             404,
             request
@@ -2131,6 +2134,11 @@ const FLYING_BULLS_REGISTRATIONS = new Set([
   "OE-XSY", "D-HSDM", "D-HTDM", "D-HUDM", "OE-XFB", "N69KL",
 ]);
 
+// Obergrenze für flyingbulls:archive (siehe checkForFlyingBulls) -- bei
+// realistischer Flugfrequenz der Flotte reichen 200 Einträge für
+// mehrere Monate Historie, ohne dass der KV-Wert unnötig wächst.
+const FLYING_BULLS_ARCHIVE_LIMIT = 200;
+
 // WICHTIG (Fix 04.09.2026, nach echtem 429-Vorfall): ntfy.sh drosselt
 // anonyme Anfragen pro IP-Adresse -- Cloudflare Workers teilen sich
 // Ausgangs-IPs mit potenziell tausenden anderen Workern weltweit, was zu
@@ -2263,12 +2271,26 @@ async function checkForFlyingBulls(env, aircraft) {
   // Landeerkennung: war laut gespeichertem Zustand in der Luft, taucht
   // jetzt aber nicht mehr im Luft-Set auf -- letzte bekannte Sichtung
   // gilt als Landezeitpunkt (exakter Moment ist über ADS-B ohnehin nicht
-  // bestimmbar, wir prüfen ja nur alle 5 Minuten).
+  // bestimmbar, wir prüfen ja nur alle 5 Minuten). Der abgeschlossene
+  // Flug wandert zusätzlich ins Archiv (flyingbulls:archive) -- anders
+  // als "flyingbulls:status" (nur der NEUESTE Flug pro Registrierung,
+  // wird beim nächsten Start überschrieben) bleibt das Archiv eine
+  // fortlaufende Liste aller Flüge alller Flugzeuge, für die Archiv-
+  // Ansicht in flyingbulls.html.
+  const landedFlights = [];
   for (const [reg, entry] of byRegStored) {
     if (entry.airborne && !airborneRegs.has(reg)) {
-      byRegStored.set(reg, { ...entry, airborne: false, landedAt: entry.lastSeenAt });
+      const landed = { ...entry, airborne: false, landedAt: entry.lastSeenAt };
+      byRegStored.set(reg, landed);
+      landedFlights.push(landed);
       changed = true;
     }
+  }
+
+  if (landedFlights.length) {
+    const archive = (await env.RUDI_KV.get("flyingbulls:archive", "json")) || [];
+    const updatedArchive = [...landedFlights, ...archive].slice(0, FLYING_BULLS_ARCHIVE_LIMIT);
+    await env.RUDI_KV.put("flyingbulls:archive", JSON.stringify(updatedArchive));
   }
 
   if (changed) {
@@ -2432,6 +2454,18 @@ async function handleFlyingBullsStatus(request, env) {
   requireKv(env);
   const stored = (await env.RUDI_KV.get("flyingbulls:status", "json")) || [];
   return jsonResponse({ aircraft: stored }, 200, request);
+}
+
+/**
+ * Liest das Flug-Archiv (abgeschlossene Flüge, neueste zuerst). Optional
+ * ?limit=N, sonst alle gespeicherten (max. FLYING_BULLS_ARCHIVE_LIMIT).
+ */
+async function handleFlyingBullsArchive(request, env) {
+  requireKv(env);
+  const archive = (await env.RUDI_KV.get("flyingbulls:archive", "json")) || [];
+  const limitParam = Number(new URL(request.url).searchParams.get("limit"));
+  const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : archive.length;
+  return jsonResponse({ flights: archive.slice(0, limit) }, 200, request);
 }
 
 /**

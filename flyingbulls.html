@@ -117,6 +117,22 @@
 
   .empty { text-align: center; padding: 60px 20px; color: var(--ink-faint); font-size: 14px; line-height: 1.6; }
   .empty b { color: var(--ink-dim); }
+  .empty.small { padding: 30px 10px; }
+
+  .section-head { margin: 32px 0 12px; }
+  .section-head h2 { font-size: 15px; font-weight: 500; color: var(--ink-dim); margin: 0; }
+  .section-sub { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); margin: 3px 0 0; }
+
+  .archive-date-header { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-label); margin: 18px 0 8px; }
+  .archive-date-header:first-child { margin-top: 0; }
+
+  .archive-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+  .archive-row:last-child { border-bottom: none; }
+  .archive-left { min-width: 0; }
+  .archive-type-line { font-size: 14px; color: var(--ink-dim); font-weight: 500; }
+  .archive-type-line .reg { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); font-weight: 400; margin-left: 6px; }
+  .archive-route-line { font-size: 12.5px; color: var(--ink-body); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .archive-right { flex-shrink: 0; text-align: right; font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -133,6 +149,12 @@
     <h1>Flying Bulls</h1>
     <p class="subtitle">Live-Status der Flying-Bulls-Flotte &mdash; wo sie gerade fliegen, oder von wo nach wo sie zuletzt geflogen sind.</p>
     <div id="content"><div class="empty">Lädt&hellip;</div></div>
+
+    <div class="section-head">
+      <h2>Archiv</h2>
+      <p class="section-sub">Abgeschlossene Flüge, neueste zuerst.</p>
+    </div>
+    <div id="archiveList"><div class="empty small">Lädt&hellip;</div></div>
   </main>
 
   <script>
@@ -140,11 +162,13 @@
 
     const RUDI_WORKER = "https://rudi.marvinradar.workers.dev";
     const STATUS_URL = `${RUDI_WORKER}/flyingbulls/status`;
+    const ARCHIVE_URL = `${RUDI_WORKER}/flyingbulls/archive?limit=30`;
     const REFRESH_MS = 30000;
 
     const liveDot = document.getElementById("liveDot");
     const statusText = document.getElementById("statusText");
     const content = document.getElementById("content");
+    const archiveList = document.getElementById("archiveList");
 
     function escapeHtml(str) {
       return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -203,6 +227,56 @@
       `;
     }
 
+    function fmtDateLabel(ms) {
+      const d = new Date(ms);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+      if (sameDay(d, today)) return "Heute";
+      if (sameDay(d, yesterday)) return "Gestern";
+      return d.toLocaleDateString("de-DE", { day: "2-digit", month: "long", timeZone: "Europe/Berlin" });
+    }
+
+    function renderArchiveRows(flights) {
+      let html = "";
+      let lastLabel = null;
+      for (const f of flights) {
+        const label = fmtDateLabel(f.takeoffAt);
+        if (label !== lastLabel) {
+          html += `<div class="archive-date-header">${escapeHtml(label)}</div>`;
+          lastLabel = label;
+        }
+        const route = [f.origin, f.destination].filter(Boolean).join(" → ") || "Route unbekannt";
+        const timeRange = f.landedAt ? `${fmtTime(f.takeoffAt)}–${fmtTime(f.landedAt)}` : fmtTime(f.takeoffAt);
+        const duration = f.landedAt ? fmtDuration(f.takeoffAt, f.landedAt) : "";
+        html += `
+          <div class="archive-row">
+            <div class="archive-left">
+              <div class="archive-type-line">${escapeHtml(f.type)}<span class="reg">${escapeHtml(f.reg)}</span></div>
+              <div class="archive-route-line">${escapeHtml(route)}</div>
+            </div>
+            <div class="archive-right">${timeRange}${duration ? `<br>${duration}` : ""}</div>
+          </div>
+        `;
+      }
+      return html;
+    }
+
+    async function loadArchive() {
+      try {
+        const res = await fetch(ARCHIVE_URL, { headers: { Accept: "application/json" }, cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const flights = Array.isArray(data.flights) ? data.flights : [];
+        archiveList.innerHTML = flights.length
+          ? renderArchiveRows(flights)
+          : `<div class="empty small">Noch keine abgeschlossenen Flüge im Archiv.</div>`;
+      } catch (error) {
+        archiveList.innerHTML = `<div class="empty small">Archiv gerade nicht verfügbar.</div>`;
+      }
+    }
+
     async function load() {
       try {
         const res = await fetch(STATUS_URL, { headers: { Accept: "application/json" }, cache: "no-store" });
@@ -231,9 +305,11 @@
       }
     }
 
-    document.getElementById("refreshBtn").addEventListener("click", load);
+    document.getElementById("refreshBtn").addEventListener("click", () => { load(); loadArchive(); });
     load();
+    loadArchive();
     setInterval(load, REFRESH_MS);
+    setInterval(loadArchive, REFRESH_MS);
   </script>
 </body>
 </html>
