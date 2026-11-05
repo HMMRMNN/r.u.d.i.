@@ -237,6 +237,14 @@ export default {
         case "/flightalert":
           return await handleFlightAlert(request, env);
 
+        // Additiv (auf Nutzerwunsch): von checkForFlyingBulls gepflegter
+        // Live-/Letzter-Flug-Zustand für flyingbulls.html -- siehe dort.
+        case "/flyingbulls/status":
+          return await handleFlyingBullsStatus(request, env);
+
+        case "/flyingbulls/archive":
+          return await handleFlyingBullsArchive(request, env);
+
         // Diagnose: zeigt die echten Feldnamen von intervals.icu.
         case "/training/debug":
           return await handleTrainingDebug(request, env);
@@ -251,7 +259,7 @@ export default {
           return jsonResponse(
             {
               error: "Not found",
-              endpoints: ["/paraglidable", "/holfuy", "/paragliders", "/flights/aircraft", "/flights/route", "/flights/airline-logo", "/flights/identify", "/flights/silhouette", "/avalanche", "/route", "/route/override", "/route/schedule", "/displays", "/displays/remove", "/location", "/channels", "/channels/remove", "/channels/reset", "/training", "/training/goal", "/pizza", "/flightalert", "/flightalert/check", "/training/debug", "/refresh", "/health"],
+              endpoints: ["/paraglidable", "/holfuy", "/paragliders", "/flights/aircraft", "/flights/route", "/flights/airline-logo", "/flights/identify", "/flights/silhouette", "/avalanche", "/route", "/route/override", "/route/schedule", "/displays", "/displays/remove", "/location", "/channels", "/channels/remove", "/channels/reset", "/training", "/training/goal", "/pizza", "/flightalert", "/flightalert/check", "/flyingbulls/status", "/flyingbulls/archive", "/training/debug", "/refresh", "/health"],
             },
             404,
             request
@@ -2126,6 +2134,11 @@ const FLYING_BULLS_REGISTRATIONS = new Set([
   "OE-XSY", "D-HSDM", "D-HTDM", "D-HUDM", "OE-XFB", "N69KL",
 ]);
 
+// Obergrenze für flyingbulls:archive (siehe checkForFlyingBulls) -- bei
+// realistischer Flugfrequenz der Flotte reichen 200 Einträge für
+// mehrere Monate Historie, ohne dass der KV-Wert unnötig wächst.
+const FLYING_BULLS_ARCHIVE_LIMIT = 200;
+
 // WICHTIG (Fix 04.09.2026, nach echtem 429-Vorfall): ntfy.sh drosselt
 // anonyme Anfragen pro IP-Adresse -- Cloudflare Workers teilen sich
 // Ausgangs-IPs mit potenziell tausenden anderen Workern weltweit, was zu
@@ -2154,63 +2167,134 @@ async function sendTelegram(env, { title, body }) {
 }
 
 /**
- * Prüft die (schon abgerufene) Flugzeugliste auf Flying-Bulls-Treffer
- * und schickt bei einem NEUEN Fund (nicht in den letzten 3 Stunden schon
- * gemeldet) eine ntfy-Push-Benachrichtigung. Die 3-Stunden-Sperre pro
- * Registrierung verhindert Spam, falls dasselbe Flugzeug über längere
- * Zeit in der Luft bleibt (wir prüfen ja alle 5 Minuten).
+ * Prüft die (schon abgerufene) Flugzeugliste auf Flying-Bulls-Treffer und
+ * pflegt dazu EINEN persistenten Zustand in KV (Key "flyingbulls:status",
+ * siehe handleFlyingBullsStatus/flyingbulls.html): für jede Registrierung
+ * wird Start/Ziel, Live-Position und Luft/Boden-Status festgehalten, auch
+ * über die eigentliche Erkennung hinaus -- damit die Tracking-Seite noch
+ * zeigen kann, wohin ein Flugzeug geflogen ist, selbst wenn man die
+ * Telegram-Nachricht zu spät sieht und es schon wieder gelandet ist.
+ *
+ * Die Telegram-Nachricht geht GENAU EINMAL pro Start raus (beim Übergang
+ * "nicht in der Luft" -> "in der Luft"), ohne separate Cooldown-Sperre --
+ * der Zustand selbst verhindert Mehrfachmeldungen während desselben Flugs.
  */
 async function checkForFlyingBulls(env, aircraft) {
-  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return;
+  requireKv(env);
 
-  const airborneMatches = aircraft.filter((ac) => {
+  const now = Date.now();
+  const byReg = new Map();
+  for (const ac of aircraft) {
     const reg = String(ac.r || "").trim().toUpperCase();
+    if (reg && FLYING_BULLS_REGISTRATIONS.has(reg)) byReg.set(reg, ac);
+  }
+
+  const airborneRegs = new Set();
+  for (const [reg, ac] of byReg) {
     const altitude = ac.alt_baro === "ground" ? 0 : Number(ac.alt_baro ?? ac.alt_geom);
-    return reg && FLYING_BULLS_REGISTRATIONS.has(reg) && Number.isFinite(altitude) && altitude > 0;
-  });
+    if (Number.isFinite(altitude) && altitude > 0) airborneRegs.add(reg);
+  }
 
-  for (const ac of airborneMatches) {
-    const reg = String(ac.r).trim().toUpperCase();
-    const kvKey = `flyingbulls:notified:${reg}`;
-    const lastNotified = await env.RUDI_KV.get(kvKey);
-    const cooldownMs = 3 * 60 * 60 * 1000;
-    if (lastNotified && Date.now() - Number(lastNotified) < cooldownMs) continue;
+  const stored = (await env.RUDI_KV.get("flyingbulls:status", "json")) || [];
+  const byRegStored = new Map(stored.map((entry) => [entry.reg, entry]));
+  let changed = false;
 
+  for (const reg of airborneRegs) {
+    const ac = byReg.get(reg);
+    const altRaw = ac.alt_baro === "ground" ? 0 : Number(ac.alt_baro ?? ac.alt_geom);
+    const altitudeM = Number.isFinite(altRaw) ? Math.round(altRaw * 0.3048) : null;
+    const speedKmh = Number.isFinite(Number(ac.gs)) ? Math.round(Number(ac.gs) * 1.852) : null;
+    const track = Number.isFinite(Number(ac.track)) ? Math.round(Number(ac.track)) : null;
+    const lat = Number.isFinite(Number(ac.lat)) ? Number(ac.lat) : null;
+    const lon = Number.isFinite(Number(ac.lon)) ? Number(ac.lon) : null;
     const type = String(ac.t || "").trim() || "Flugzeug";
     const callsign = String(ac.flight || "").trim() || reg;
 
-    // WICHTIG (Fix, auf Nutzerwunsch): Startort mit in die
-    // Benachrichtigung aufnehmen -- nutzt dieselbe Routen-Quelle
-    // (adsbdb, über aviradar-api gecacht) wie schon der Zielort bei
-    // A.L.V.I.N., nur eben das "origin"-Feld statt "destination".
-    // Bei Fehlschlag (kein Rufzeichen bekannt, keine Route gefunden
-    // o.ä.) bleibt das Feld einfach leer -- kein harter Fehler.
-    let origin = null;
-    if (env.AVIRADAR_API_BINDING && callsign) {
-      try {
-        const routeResponse = await env.AVIRADAR_API_BINDING.fetch(
-          `${AVIRADAR_API}/route?callsign=${encodeURIComponent(callsign)}`
-        );
-        const routeData = await routeResponse.json();
-        const route = routeData?.route;
-        origin = route?.origin?.municipality || route?.origin?.name || null;
-      } catch (error) {
-        logEvent("flyingbulls_origin_lookup_failed", { callsign, error: errorMessage(error) });
-      }
-    }
+    const existing = byRegStored.get(reg);
+    const isNewFlight = !existing || existing.airborne === false;
 
-    try {
-      await sendTelegram(env, {
-        title: "Flying Bulls in der Luft ✈️",
-        body: origin
-          ? `${type} (${reg}, ${callsign}) ist gerade in der Luft. Gestartet in ${origin}.`
-          : `${type} (${reg}, ${callsign}) ist gerade in der Luft.`,
+    if (isNewFlight) {
+      // WICHTIG (auf Nutzerwunsch): Start- UND Zielort mit in die
+      // Benachrichtigung aufnehmen -- nutzt dieselbe Routen-Quelle
+      // (adsbdb, über aviradar-api gecacht) wie schon A.L.V.I.N./
+      // iphone-screens.js für den Zielort. Bei Fehlschlag (kein
+      // Rufzeichen bekannt, keine Route gefunden o.ä.) bleiben die
+      // Felder einfach leer -- kein harter Fehler.
+      let origin = null;
+      let destination = null;
+      if (env.AVIRADAR_API_BINDING && callsign) {
+        try {
+          const routeResponse = await env.AVIRADAR_API_BINDING.fetch(
+            `${AVIRADAR_API}/route?callsign=${encodeURIComponent(callsign)}`
+          );
+          const routeData = await routeResponse.json();
+          const route = routeData?.route;
+          origin = route?.origin?.municipality || route?.origin?.name || null;
+          destination =
+            route?.destination?.municipality || route?.arrival?.municipality ||
+            route?.destination?.name || route?.arrival?.name || null;
+        } catch (error) {
+          logEvent("flyingbulls_route_lookup_failed", { callsign, error: errorMessage(error) });
+        }
+      }
+
+      byRegStored.set(reg, {
+        reg, type, callsign, origin, destination,
+        airborne: true, lat, lon, altitudeM, speedKmh, track,
+        takeoffAt: now, lastSeenAt: now, landedAt: null,
       });
-      await env.RUDI_KV.put(kvKey, String(Date.now()), { expirationTtl: 6 * 3600 });
-      logEvent("flyingbulls_notified", { registration: reg, type });
-    } catch (error) {
-      logEvent("flyingbulls_notify_failed", { error: errorMessage(error) });
+      changed = true;
+
+      try {
+        await sendTelegram(env, {
+          title: "Flying Bulls in der Luft ✈️",
+          body: [
+            `${type} (${reg}, ${callsign}) ist gerade in der Luft.`,
+            origin ? `Gestartet in ${origin}.` : null,
+            destination ? `Ziel: ${destination}.` : null,
+            "Live verfolgen: https://hmmrmnn.github.io/r.u.d.i./flyingbulls.html",
+          ].filter(Boolean).join(" "),
+        });
+        logEvent("flyingbulls_notified", { registration: reg, type, origin, destination });
+      } catch (error) {
+        logEvent("flyingbulls_notify_failed", { error: errorMessage(error) });
+      }
+    } else {
+      byRegStored.set(reg, {
+        ...existing, type, callsign, airborne: true,
+        lat, lon, altitudeM, speedKmh, track, lastSeenAt: now,
+      });
+      changed = true;
     }
+  }
+
+  // Landeerkennung: war laut gespeichertem Zustand in der Luft, taucht
+  // jetzt aber nicht mehr im Luft-Set auf -- letzte bekannte Sichtung
+  // gilt als Landezeitpunkt (exakter Moment ist über ADS-B ohnehin nicht
+  // bestimmbar, wir prüfen ja nur alle 5 Minuten). Der abgeschlossene
+  // Flug wandert zusätzlich ins Archiv (flyingbulls:archive) -- anders
+  // als "flyingbulls:status" (nur der NEUESTE Flug pro Registrierung,
+  // wird beim nächsten Start überschrieben) bleibt das Archiv eine
+  // fortlaufende Liste aller Flüge alller Flugzeuge, für die Archiv-
+  // Ansicht in flyingbulls.html.
+  const landedFlights = [];
+  for (const [reg, entry] of byRegStored) {
+    if (entry.airborne && !airborneRegs.has(reg)) {
+      const landed = { ...entry, airborne: false, landedAt: entry.lastSeenAt };
+      byRegStored.set(reg, landed);
+      landedFlights.push(landed);
+      changed = true;
+    }
+  }
+
+  if (landedFlights.length) {
+    const archive = (await env.RUDI_KV.get("flyingbulls:archive", "json")) || [];
+    const updatedArchive = [...landedFlights, ...archive].slice(0, FLYING_BULLS_ARCHIVE_LIMIT);
+    await env.RUDI_KV.put("flyingbulls:archive", JSON.stringify(updatedArchive));
+  }
+
+  if (changed) {
+    await env.RUDI_KV.put("flyingbulls:status", JSON.stringify(Array.from(byRegStored.values())));
   }
 }
 
@@ -2359,6 +2443,29 @@ async function handleFlightAlert(request, env) {
     200,
     request
   );
+}
+
+/**
+ * Liest nur den von checkForFlyingBulls gepflegten Zustand aus KV --
+ * macht selbst keinen aviradar-api-Aufruf, bleibt also auch dann
+ * schnell/günstig, wenn flyingbulls.html alle paar Sekunden pollt.
+ */
+async function handleFlyingBullsStatus(request, env) {
+  requireKv(env);
+  const stored = (await env.RUDI_KV.get("flyingbulls:status", "json")) || [];
+  return jsonResponse({ aircraft: stored }, 200, request);
+}
+
+/**
+ * Liest das Flug-Archiv (abgeschlossene Flüge, neueste zuerst). Optional
+ * ?limit=N, sonst alle gespeicherten (max. FLYING_BULLS_ARCHIVE_LIMIT).
+ */
+async function handleFlyingBullsArchive(request, env) {
+  requireKv(env);
+  const archive = (await env.RUDI_KV.get("flyingbulls:archive", "json")) || [];
+  const limitParam = Number(new URL(request.url).searchParams.get("limit"));
+  const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : archive.length;
+  return jsonResponse({ flights: archive.slice(0, limit) }, 200, request);
 }
 
 /**
