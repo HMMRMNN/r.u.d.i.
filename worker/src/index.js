@@ -245,6 +245,11 @@ export default {
         case "/flyingbulls/archive":
           return await handleFlyingBullsArchive(request, env);
 
+        // Additiv (auf Nutzerwunsch): einmaliger/manueller Nachtrag alter
+        // Flüge über OpenSky Network -- siehe Kommentar bei backfillFlyingBulls.
+        case "/flyingbulls/backfill":
+          return await handleFlyingBullsBackfill(request, env);
+
         // Diagnose: zeigt die echten Feldnamen von intervals.icu.
         case "/training/debug":
           return await handleTrainingDebug(request, env);
@@ -259,7 +264,7 @@ export default {
           return jsonResponse(
             {
               error: "Not found",
-              endpoints: ["/paraglidable", "/holfuy", "/paragliders", "/flights/aircraft", "/flights/route", "/flights/airline-logo", "/flights/identify", "/flights/silhouette", "/avalanche", "/route", "/route/override", "/route/schedule", "/displays", "/displays/remove", "/location", "/channels", "/channels/remove", "/channels/reset", "/training", "/training/goal", "/pizza", "/flightalert", "/flightalert/check", "/flyingbulls/status", "/flyingbulls/archive", "/training/debug", "/refresh", "/health"],
+              endpoints: ["/paraglidable", "/holfuy", "/paragliders", "/flights/aircraft", "/flights/route", "/flights/airline-logo", "/flights/identify", "/flights/silhouette", "/avalanche", "/route", "/route/override", "/route/schedule", "/displays", "/displays/remove", "/location", "/channels", "/channels/remove", "/channels/reset", "/training", "/training/goal", "/pizza", "/flightalert", "/flightalert/check", "/flyingbulls/status", "/flyingbulls/archive", "/flyingbulls/backfill", "/training/debug", "/refresh", "/health"],
             },
             404,
             request
@@ -2466,6 +2471,196 @@ async function handleFlyingBullsArchive(request, env) {
   const limitParam = Number(new URL(request.url).searchParams.get("limit"));
   const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : archive.length;
   return jsonResponse({ flights: archive.slice(0, limit) }, 200, request);
+}
+
+/* =========================================================
+   FLYING-BULLS-BACKFILL ÜBER OPENSKY NETWORK (auf Nutzerwunsch)
+
+   flyingbulls:archive (siehe oben) zeichnet nur Flüge AB JETZT auf --
+   die Live-Quelle (aviradar-api) kennt keine Vergangenheit. Für echte
+   Flughistorie (Tage/Wochen zurück) gibt es OpenSky Network: deren
+   kostenlose REST-API liefert historische Flugsegmente pro ICAO24-
+   Hexcode. Zwei Schritte nötig, weil OpenSky nur Hexcodes kennt, wir
+   aber Registrierungen (z.B. "OE-LDM") haben:
+
+     1. Registrierung -> Hexcode über adsbdb (dieselbe Quelle wie die
+        Routen-Lookups anderswo im Worker), dauerhaft in KV gecacht.
+     2. Hexcode -> historische Flüge über OpenSky (OAuth2 Client-
+        Credentials), in 30-Tage-Fenstern (API-Obergrenze pro Anfrage).
+
+   Einmalig/manuell auszulösen über GET /flyingbulls/backfill?days=N,
+   läuft NICHT automatisch im Cron mit (anders als checkForFlyingBulls)
+   -- das ist Nachholen alter Daten, kein laufendes Monitoring.
+
+   Benötigt: Secrets OPENSKY_CLIENT_ID/OPENSKY_CLIENT_SECRET (kostenloser
+   Account unter opensky-network.org, dort unter Account -> "Api Client"
+   ein Client-Credentials-Paar erzeugen).
+
+   WICHTIG: Beim Bauen in dieser Sandbox war kein Zugriff auf externe
+   Hosts möglich, dieser Teil ist also NICHT gegen die echte OpenSky-
+   API getestet -- Feldnamen/Limits folgen der öffentlichen OpenSky-
+   Doku, ein erster echter Lauf kann noch Anpassungen brauchen.
+   ========================================================= */
+
+const ADSBDB_API = "https://api.adsbdb.com/v0";
+const OPENSKY_TOKEN_URL = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token";
+const OPENSKY_API = "https://opensky-network.org/api";
+
+/**
+ * Registrierung -> ICAO24-Hexcode über adsbdb, dauerhaft in KV gecacht
+ * (ändert sich für dasselbe Flugzeug praktisch nie).
+ */
+async function resolveIcao24(env, reg) {
+  const kvKey = `flyingbulls:hex:${reg}`;
+  const cached = await env.RUDI_KV.get(kvKey);
+  if (cached) return cached;
+
+  const response = await fetch(`${ADSBDB_API}/aircraft/${encodeURIComponent(reg)}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) throw new Error(`adsbdb HTTP ${response.status}`);
+  const data = await response.json();
+  const hex = data?.response?.aircraft?.mode_s || data?.response?.mode_s || null;
+  if (!hex) throw new Error("adsbdb lieferte keinen mode_s/Hexcode");
+
+  const normalized = String(hex).trim().toLowerCase();
+  await env.RUDI_KV.put(kvKey, normalized);
+  return normalized;
+}
+
+// Modul-weiter In-Memory-Cache für die Laufzeit dieser Worker-Instanz --
+// erspart bei vielen Registrierungen in Folge unnötige Token-Anfragen.
+// openSkyTokenPromise verhindert zusätzlich, dass mehrere gleichzeitig
+// laufende Backfill-Anfragen (siehe Promise.all weiter unten) parallel
+// je einen eigenen Token holen.
+let openSkyTokenCache = null;
+let openSkyTokenPromise = null;
+
+async function getOpenSkyToken(env) {
+  if (!env.OPENSKY_CLIENT_ID || !env.OPENSKY_CLIENT_SECRET) {
+    throw new Error("OPENSKY_CLIENT_ID oder OPENSKY_CLIENT_SECRET ist nicht gesetzt (Cloudflare → rudi → Settings → Variables and secrets)");
+  }
+  if (openSkyTokenCache && openSkyTokenCache.expiresAt > Date.now() + 10000) {
+    return openSkyTokenCache.token;
+  }
+  if (!openSkyTokenPromise) {
+    openSkyTokenPromise = (async () => {
+      const response = await fetch(OPENSKY_TOKEN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: env.OPENSKY_CLIENT_ID,
+          client_secret: env.OPENSKY_CLIENT_SECRET,
+        }),
+      });
+      if (!response.ok) throw new Error(`OpenSky-Token-Anfrage fehlgeschlagen: HTTP ${response.status}`);
+      const data = await response.json();
+      if (!data.access_token) throw new Error("OpenSky-Antwort enthält keinen access_token");
+      openSkyTokenCache = { token: data.access_token, expiresAt: Date.now() + (Number(data.expires_in) || 1500) * 1000 };
+      return openSkyTokenCache.token;
+    })();
+    openSkyTokenPromise.finally(() => { openSkyTokenPromise = null; });
+  }
+  return openSkyTokenPromise;
+}
+
+/**
+ * Historische Flugsegmente für einen Hexcode im Zeitraum [beginSec,
+ * endSec] (Unix-Sekunden, max. 30 Tage Spanne -- OpenSky-Obergrenze
+ * pro Anfrage).
+ */
+async function fetchOpenSkyFlights(env, icao24, beginSec, endSec) {
+  const token = await getOpenSkyToken(env);
+  const url = `${OPENSKY_API}/flights/aircraft?icao24=${encodeURIComponent(icao24)}&begin=${beginSec}&end=${endSec}`;
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (response.status === 404) return []; // OpenSky: keine Flüge im Zeitraum gefunden
+  if (!response.ok) throw new Error(`OpenSky HTTP ${response.status}`);
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+async function backfillFlyingBulls(env, days) {
+  requireKv(env);
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const windowSec = 30 * 24 * 3600;
+  const totalSec = Math.min(days, 365) * 24 * 3600;
+  const beginSec = nowSec - totalSec;
+
+  const existingArchive = (await env.RUDI_KV.get("flyingbulls:archive", "json")) || [];
+  const existingStatus = (await env.RUDI_KV.get("flyingbulls:status", "json")) || [];
+  const typeByReg = new Map(existingStatus.map((e) => [e.reg, e.type]));
+  // Minuten-Auflösung fürs Dedupe -- verhindert doppelte Einträge, falls
+  // derselbe Flug schon live (checkForFlyingBulls) erfasst wurde oder
+  // der Backfill mehrfach läuft.
+  const knownKeys = new Set(existingArchive.map((f) => `${f.reg}:${Math.round(f.takeoffAt / 60000)}`));
+  const errors = [];
+
+  async function processReg(reg) {
+    const found = [];
+    let icao24;
+    try {
+      icao24 = await resolveIcao24(env, reg);
+    } catch (error) {
+      errors.push({ reg, step: "hex-lookup", error: errorMessage(error) });
+      return found;
+    }
+
+    for (let winStart = beginSec; winStart < nowSec; winStart += windowSec) {
+      const winEnd = Math.min(winStart + windowSec, nowSec);
+      try {
+        const flights = await fetchOpenSkyFlights(env, icao24, winStart, winEnd);
+        for (const f of flights) {
+          const takeoffAt = Number(f.firstSeen) * 1000;
+          const landedAt = Number(f.lastSeen) * 1000;
+          if (!Number.isFinite(takeoffAt) || !Number.isFinite(landedAt)) continue;
+
+          const dedupeKey = `${reg}:${Math.round(takeoffAt / 60000)}`;
+          if (knownKeys.has(dedupeKey)) continue;
+          knownKeys.add(dedupeKey);
+
+          found.push({
+            reg,
+            type: typeByReg.get(reg) || "Flugzeug",
+            callsign: String(f.callsign || "").trim() || reg,
+            origin: f.estDepartureAirport || null,
+            destination: f.estArrivalAirport || null,
+            airborne: false,
+            lat: null, lon: null, altitudeM: null, speedKmh: null, track: null,
+            takeoffAt, lastSeenAt: landedAt, landedAt,
+          });
+        }
+      } catch (error) {
+        errors.push({ reg, step: "opensky-fetch", window: [winStart, winEnd], error: errorMessage(error) });
+      }
+    }
+    return found;
+  }
+
+  const perRegResults = await Promise.all(Array.from(FLYING_BULLS_REGISTRATIONS).map(processReg));
+  const added = perRegResults.flat();
+
+  if (added.length) {
+    const merged = [...added, ...existingArchive]
+      .sort((a, b) => b.takeoffAt - a.takeoffAt)
+      .slice(0, FLYING_BULLS_ARCHIVE_LIMIT);
+    await env.RUDI_KV.put("flyingbulls:archive", JSON.stringify(merged));
+  }
+
+  return { registrationsChecked: FLYING_BULLS_REGISTRATIONS.size, flightsAdded: added.length, errors };
+}
+
+async function handleFlyingBullsBackfill(request, env) {
+  const daysParam = Number(new URL(request.url).searchParams.get("days"));
+  const days = Number.isFinite(daysParam) && daysParam > 0 ? Math.floor(daysParam) : 7;
+
+  try {
+    const result = await backfillFlyingBulls(env, days);
+    return jsonResponse({ ok: true, days, ...result }, 200, request);
+  } catch (error) {
+    return jsonResponse({ ok: false, error: errorMessage(error) }, 502, request);
+  }
 }
 
 /**
