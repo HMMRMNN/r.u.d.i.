@@ -16,6 +16,11 @@
   rel="stylesheet"
 />
 
+<!-- Gleiche lokale Leaflet-Einbindung wie desktop.html (kein CDN-Key
+     nötig, siehe dortiger Kommentar) -- für die Live-Karte unten. -->
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+<script src="vendor/leaflet/leaflet.js"></script>
+
 <style>
   /* ---------------------------------------------------------------
      Gleiches Design-System wie iphone.html (Zinc-Dunkelpalette,
@@ -133,6 +138,18 @@
   .archive-type-line .reg { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); font-weight: 400; margin-left: 6px; }
   .archive-route-line { font-size: 12.5px; color: var(--ink-body); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .archive-right { flex-shrink: 0; text-align: right; font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); line-height: 1.5; }
+
+  .map-box { position: relative; border: 1px solid var(--line); height: 260px; margin-bottom: 14px; overflow: hidden; }
+  #liveMap { width: 100%; height: 100%; background: #0a0a0b; }
+  .map-empty-overlay {
+    position: absolute; inset: 0; z-index: 400; display: flex; align-items: center; justify-content: center;
+    background: rgba(10,10,11,0.72); color: var(--ink-faint); font-size: 12.5px; text-align: center; padding: 20px;
+    pointer-events: none;
+  }
+  .leaflet-container { background: #0a0a0b; font-family: var(--mono); }
+  .leaflet-control-attribution { background: rgba(10,10,11,0.75) !important; color: var(--ink-faint) !important; font-size: 9px !important; }
+  .leaflet-control-attribution a { color: var(--ink-faint) !important; }
+  .leaflet-control-zoom a { background: var(--panel) !important; border-color: var(--line) !important; color: var(--ink-dim) !important; border-radius: 0 !important; }
 </style>
 </head>
 <body>
@@ -148,6 +165,12 @@
   <main>
     <h1>Flying Bulls</h1>
     <p class="subtitle">Live-Status der Flying-Bulls-Flotte &mdash; wo sie gerade fliegen, oder von wo nach wo sie zuletzt geflogen sind.</p>
+
+    <div class="map-box">
+      <div id="liveMap"></div>
+      <div class="map-empty-overlay" id="mapEmptyOverlay">Aktuell keine Flying Bulls in der Luft.</div>
+    </div>
+
     <div id="content"><div class="empty">Lädt&hellip;</div></div>
 
     <div class="section-head">
@@ -169,6 +192,72 @@
     const statusText = document.getElementById("statusText");
     const content = document.getElementById("content");
     const archiveList = document.getElementById("archiveList");
+    const mapEmptyOverlay = document.getElementById("mapEmptyOverlay");
+
+    // Basis Salzburg/Hangar-7 (Heimatbasis der Flying Bulls) -- Default-
+    // Mittelpunkt, solange nichts in der Luft ist.
+    const HOME_BASE = { lat: 47.7933, lon: 13.0043 };
+
+    let liveMap = null;
+    let liveMapMarkers = null;
+    const markerByReg = new Map();
+
+    function initLiveMap() {
+      if (liveMap) return;
+      if (typeof L === "undefined") return;
+      liveMap = L.map("liveMap", { attributionControl: true, zoomControl: true }).setView([HOME_BASE.lat, HOME_BASE.lon], 7);
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 16, attribution: "Tiles &copy; Esri",
+      }).addTo(liveMap);
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 16,
+      }).addTo(liveMap);
+      liveMapMarkers = L.layerGroup().addTo(liveMap);
+    }
+
+    function planeDivIcon(rotationDeg) {
+      const size = 24;
+      const c = size / 2;
+      return L.divIcon({
+        className: "plane-marker",
+        html: `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><g transform="translate(${c} ${c}) rotate(${rotationDeg})"><path d="M0,-9 L6,7 L0,3 L-6,7 Z" fill="#ef4444" stroke="#000000" stroke-width="1"/></g></svg>`,
+        iconSize: [size, size], iconAnchor: [c, c],
+      });
+    }
+
+    function updateLiveMap(aircraft) {
+      initLiveMap();
+      if (!liveMap) return;
+
+      const airborne = aircraft.filter((a) => a.airborne && a.lat !== null && a.lat !== undefined && a.lon !== null && a.lon !== undefined);
+
+      liveMapMarkers.clearLayers();
+      markerByReg.clear();
+
+      mapEmptyOverlay.style.display = airborne.length ? "none" : "flex";
+
+      if (!airborne.length) {
+        liveMap.setView([HOME_BASE.lat, HOME_BASE.lon], 7);
+        requestAnimationFrame(() => liveMap.invalidateSize());
+        return;
+      }
+
+      const bounds = [];
+      airborne.forEach((item) => {
+        const marker = L.marker([item.lat, item.lon], { icon: planeDivIcon(item.track ?? 0) });
+        marker.bindTooltip(`${item.type} · ${item.reg}`, { direction: "top", offset: [0, -10] });
+        marker.addTo(liveMapMarkers);
+        markerByReg.set(item.reg, marker);
+        bounds.push([item.lat, item.lon]);
+      });
+
+      if (bounds.length === 1) {
+        liveMap.setView(bounds[0], 9);
+      } else {
+        liveMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 9 });
+      }
+      requestAnimationFrame(() => liveMap.invalidateSize());
+    }
 
     function escapeHtml(str) {
       return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -296,6 +385,8 @@
         statusText.textContent = anyAirborne
           ? "Live"
           : `Geprüft ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}`;
+
+        updateLiveMap(aircraft);
 
         content.innerHTML = aircraft.length
           ? aircraft.map(renderCard).join("")
