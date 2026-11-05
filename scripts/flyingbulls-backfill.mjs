@@ -76,17 +76,36 @@ async function getOpenSkyToken(clientId, clientSecret) {
   return data.access_token;
 }
 
-async function fetchOpenSkyFlights(token, icao24, beginSec, endSec) {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// WICHTIG (Fix, nach echtem Fehlschlag): der erste Lauf mit 4-facher
+// Nebenläufigkeit über alle Registrierungen hinweg hat OpenSky sofort
+// mit "429 Too many requests" gedrosselt -- bei ~1000 Einzelanfragen
+// (34 Registrierungen x 1-Tage-Fenster über DAYS Tage) blieb praktisch
+// nichts übrig. fetchOpenSkyFlights wiederholt einen 429 jetzt mit
+// Backoff (Retry-After-Header, falls vorhanden, sonst steigende
+// Wartezeit), UND der Haupt-Loop unten ruft das streng sequenziell
+// mit einer festen Pause dazwischen auf statt parallel.
+async function fetchOpenSkyFlights(token, icao24, beginSec, endSec, attempt = 1) {
   const url = `${OPENSKY_API}/flights/aircraft?icao24=${encodeURIComponent(icao24)}&begin=${beginSec}&end=${endSec}`;
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json", "User-Agent": USER_AGENT } });
   if (response.status === 404) return [];
+  if (response.status === 429) {
+    if (attempt > 5) throw new Error(`OpenSky HTTP 429 -- nach ${attempt - 1} Wiederholungen aufgegeben`);
+    const retryAfterSec = Number(response.headers.get("Retry-After"));
+    const waitMs = Number.isFinite(retryAfterSec) && retryAfterSec > 0 ? retryAfterSec * 1000 : attempt * 4000;
+    await sleep(waitMs);
+    return fetchOpenSkyFlights(token, icao24, beginSec, endSec, attempt + 1);
+  }
   if (!response.ok) throw new Error(`OpenSky HTTP ${response.status} -- ${(await response.text()).slice(0, 200)}`);
   const data = await response.json();
   return Array.isArray(data) ? data : [];
 }
 
-// Einfache Nebenläufigkeits-Begrenzung -- guter API-Bürger statt alle
-// 34 Registrierungen gleichzeitig loszuschicken.
+// Für die Hex-Lookups (adsbdb) reicht Nebenläufigkeit -- die haben beim
+// ersten Lauf nicht gedrosselt, nur OpenSkys /flights/aircraft tat das.
 async function mapWithConcurrency(items, limit, fn) {
   const results = new Array(items.length);
   let next = 0;
@@ -100,6 +119,14 @@ async function mapWithConcurrency(items, limit, fn) {
   return results;
 }
 
+// Pause zwischen zwei OpenSky-/flights/aircraft-Anfragen. 1000ms ist
+// bewusst konservativ gewählt (OpenSky dokumentiert keine genaue
+// Obergrenze für diesen Endpoint) -- bei ~1000 Anfragen für 30 Tage
+// macht das den Lauf ca. 15-20 Minuten lang, was für einen manuell
+// ausgelösten, seltenen Backfill unproblematisch ist. Über
+// OPENSKY_REQUEST_DELAY_MS überschreibbar, falls doch angepasst werden muss.
+const REQUEST_DELAY_MS = Number(process.env.OPENSKY_REQUEST_DELAY_MS) > 0 ? Number(process.env.OPENSKY_REQUEST_DELAY_MS) : 1000;
+
 async function main() {
   const clientId = requireEnv("OPENSKY_CLIENT_ID");
   const clientSecret = requireEnv("OPENSKY_CLIENT_SECRET");
@@ -110,6 +137,20 @@ async function main() {
   const token = await getOpenSkyToken(clientId, clientSecret);
   console.log("OpenSky-Token geholt.");
 
+  const errors = [];
+
+  // Hex-Lookups (adsbdb) dürfen parallel bleiben -- haben beim ersten
+  // Lauf nicht gedrosselt.
+  const icao24ByReg = new Map();
+  await mapWithConcurrency(FLYING_BULLS_REGISTRATIONS, 8, async (reg) => {
+    try {
+      icao24ByReg.set(reg, await resolveIcao24(reg));
+    } catch (error) {
+      errors.push({ reg, step: "hex-lookup", error: error.message });
+      console.log(`  ${reg}: Hex-Lookup fehlgeschlagen -- ${error.message}`);
+    }
+  });
+
   const nowSec = Math.floor(Date.now() / 1000);
   // WICHTIG (Fix, nach echtem Fehlschlag): OpenSkys Doku suggeriert 30
   // Tage pro Anfrage, tatsächlich kam "You can only query across 2
@@ -119,44 +160,47 @@ async function main() {
   const windowSec = 1 * 24 * 3600;
   const beginSec = nowSec - DAYS * 24 * 3600;
 
-  const errors = [];
-  const perRegResults = await mapWithConcurrency(FLYING_BULLS_REGISTRATIONS, 4, async (reg) => {
-    const found = [];
-    let icao24;
-    try {
-      icao24 = await resolveIcao24(reg);
-    } catch (error) {
-      errors.push({ reg, step: "hex-lookup", error: error.message });
-      console.log(`  ${reg}: Hex-Lookup fehlgeschlagen -- ${error.message}`);
-      return found;
-    }
-
+  const tasks = [];
+  for (const reg of FLYING_BULLS_REGISTRATIONS) {
+    const icao24 = icao24ByReg.get(reg);
+    if (!icao24) continue;
     for (let winStart = beginSec; winStart < nowSec; winStart += windowSec) {
-      const winEnd = Math.min(winStart + windowSec, nowSec);
-      try {
-        const flights = await fetchOpenSkyFlights(token, icao24, winStart, winEnd);
-        for (const f of flights) {
-          const takeoffAt = Number(f.firstSeen) * 1000;
-          const landedAt = Number(f.lastSeen) * 1000;
-          if (!Number.isFinite(takeoffAt) || !Number.isFinite(landedAt)) continue;
-          found.push({
-            reg,
-            callsign: f.callsign,
-            origin: f.estDepartureAirport || null,
-            destination: f.estArrivalAirport || null,
-            takeoffAt, landedAt,
-          });
-        }
-      } catch (error) {
-        errors.push({ reg, step: "opensky-fetch", window: [winStart, winEnd], error: error.message });
-        console.log(`  ${reg}: OpenSky-Abruf fehlgeschlagen -- ${error.message}`);
-      }
+      tasks.push({ reg, icao24, winStart, winEnd: Math.min(winStart + windowSec, nowSec) });
     }
-    if (found.length) console.log(`  ${reg}: ${found.length} Flug(e) gefunden.`);
-    return found;
-  });
+  }
+  console.log(`${tasks.length} OpenSky-Anfragen geplant, sequenziell mit ${REQUEST_DELAY_MS}ms Pause dazwischen.`);
 
-  const candidates = perRegResults.flat();
+  const candidates = [];
+  const foundByReg = new Map();
+  for (let i = 0; i < tasks.length; i++) {
+    const task = tasks[i];
+    try {
+      const flights = await fetchOpenSkyFlights(token, task.icao24, task.winStart, task.winEnd);
+      for (const f of flights) {
+        const takeoffAt = Number(f.firstSeen) * 1000;
+        const landedAt = Number(f.lastSeen) * 1000;
+        if (!Number.isFinite(takeoffAt) || !Number.isFinite(landedAt)) continue;
+        candidates.push({
+          reg: task.reg,
+          callsign: f.callsign,
+          origin: f.estDepartureAirport || null,
+          destination: f.estArrivalAirport || null,
+          takeoffAt, landedAt,
+        });
+        foundByReg.set(task.reg, (foundByReg.get(task.reg) || 0) + 1);
+      }
+    } catch (error) {
+      errors.push({ reg: task.reg, step: "opensky-fetch", window: [task.winStart, task.winEnd], error: error.message });
+    }
+
+    if ((i + 1) % 50 === 0 || i === tasks.length - 1) {
+      console.log(`  Fortschritt: ${i + 1}/${tasks.length} Anfragen, ${candidates.length} Flüge bisher, ${errors.length} Fehler.`);
+    }
+    if (i < tasks.length - 1) await sleep(REQUEST_DELAY_MS);
+  }
+
+  for (const [reg, count] of foundByReg) console.log(`  ${reg}: ${count} Flug(e) gefunden.`);
+
   console.log(`\n${candidates.length} Flüge insgesamt gefunden (${errors.length} Fehler), sende an ${RUDI_WORKER}/flyingbulls/archive/import ...`);
 
   const importResponse = await fetch(`${RUDI_WORKER}/flyingbulls/archive/import`, {
@@ -173,8 +217,10 @@ async function main() {
   }
 
   if (errors.length) {
-    console.log(`\nFehler pro Registrierung (zur Diagnose):`);
-    console.log(JSON.stringify(errors, null, 2));
+    // Gekürzt statt vollständig -- bei vielen Fehlschlägen (z.B. erneutes
+    // Rate-Limiting) sprengt die volle Liste sonst das Actions-Log.
+    console.log(`\n${errors.length} Fehler (erste 20 zur Diagnose):`);
+    console.log(JSON.stringify(errors.slice(0, 20), null, 2));
   }
 }
 

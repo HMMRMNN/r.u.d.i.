@@ -2589,7 +2589,20 @@ async function getOpenSkyToken(env) {
  * endSec] (Unix-Sekunden, max. 30 Tage Spanne -- OpenSky-Obergrenze
  * pro Anfrage).
  */
-async function fetchOpenSkyFlights(env, icao24, beginSec, endSec) {
+// WICHTIG (Fix, nach echtem Fehlschlag): backfillFlyingBulls() ruft
+// das bisher für ALLE Registrierungen parallel auf (Promise.all) --
+// das hat OpenSky beim ersten echten Lauf sofort mit 429 ("Too many
+// requests") gedrosselt. Ein einzelner 429 wird hier mit Backoff
+// wiederholt, das mindert das Problem, löst es aber nicht vollständig:
+// Cloudflare-Worker-Requests haben ein Laufzeitlimit, das für einen
+// vollständigen Mehrwochen-Backfill (hunderte Einzelanfragen,
+// idealerweise mit Pause dazwischen) zu knapp ist. Für einen echten
+// Backfill über mehrere Tage/Wochen ist deshalb weiterhin der GitHub-
+// Actions-Workflow (scripts/flyingbulls-backfill.mjs, läuft
+// sequenziell mit fester Pause) der richtige Weg -- dieser Pfad hier
+// bleibt als Fallback für kleine days-Werte oder falls Cloudflare
+// OpenSky doch mal erreicht.
+async function fetchOpenSkyFlights(env, icao24, beginSec, endSec, attempt = 1) {
   const token = await getOpenSkyToken(env);
   const url = `${OPENSKY_API}/flights/aircraft?icao24=${encodeURIComponent(icao24)}&begin=${beginSec}&end=${endSec}`;
   const response = await fetch(url, {
@@ -2600,6 +2613,13 @@ async function fetchOpenSkyFlights(env, icao24, beginSec, endSec) {
     },
   });
   if (response.status === 404) return []; // OpenSky: keine Flüge im Zeitraum gefunden
+  if (response.status === 429) {
+    if (attempt > 3) throw new Error(`OpenSky HTTP 429 -- nach ${attempt - 1} Wiederholungen aufgegeben`);
+    const retryAfterSec = Number(response.headers.get("Retry-After"));
+    const waitMs = Number.isFinite(retryAfterSec) && retryAfterSec > 0 ? retryAfterSec * 1000 : attempt * 2000;
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    return fetchOpenSkyFlights(env, icao24, beginSec, endSec, attempt + 1);
+  }
   if (!response.ok) {
     const bodyText = await response.text().catch(() => "");
     throw new Error(`OpenSky HTTP ${response.status}${bodyText ? ` -- ${bodyText.slice(0, 200)}` : ""}`);
