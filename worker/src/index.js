@@ -2547,14 +2547,27 @@ async function getOpenSkyToken(env) {
     openSkyTokenPromise = (async () => {
       const response = await fetch(OPENSKY_TOKEN_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+          // WICHTIG (Fix, nach echtem 522-Vorfall): ohne eigenen
+          // User-Agent kam vom Cloudflare-Workers-Netzwerk aus nur ein
+          // Cloudflare-522 ("Connection timed out") zurück, während
+          // derselbe Request vom normalen Browser aus eine echte
+          // Antwort bekam -- OpenSky scheint pauschale/anonyme
+          // Datacenter-Anfragen ohne UA-Kennung anders zu behandeln.
+          "User-Agent": "RUDI-Weatherstation/1.0 (+https://hmmrmnn.github.io/r.u.d.i./)",
+        },
         body: new URLSearchParams({
           grant_type: "client_credentials",
           client_id: env.OPENSKY_CLIENT_ID,
           client_secret: env.OPENSKY_CLIENT_SECRET,
         }),
       });
-      if (!response.ok) throw new Error(`OpenSky-Token-Anfrage fehlgeschlagen: HTTP ${response.status}`);
+      if (!response.ok) {
+        const bodyText = await response.text().catch(() => "");
+        throw new Error(`OpenSky-Token-Anfrage fehlgeschlagen: HTTP ${response.status}${bodyText ? ` -- ${bodyText.slice(0, 200)}` : ""}`);
+      }
       const data = await response.json();
       if (!data.access_token) throw new Error("OpenSky-Antwort enthält keinen access_token");
       openSkyTokenCache = { token: data.access_token, expiresAt: Date.now() + (Number(data.expires_in) || 1500) * 1000 };
@@ -2573,9 +2586,18 @@ async function getOpenSkyToken(env) {
 async function fetchOpenSkyFlights(env, icao24, beginSec, endSec) {
   const token = await getOpenSkyToken(env);
   const url = `${OPENSKY_API}/flights/aircraft?icao24=${encodeURIComponent(icao24)}&begin=${beginSec}&end=${endSec}`;
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "User-Agent": "RUDI-Weatherstation/1.0 (+https://hmmrmnn.github.io/r.u.d.i./)",
+    },
+  });
   if (response.status === 404) return []; // OpenSky: keine Flüge im Zeitraum gefunden
-  if (!response.ok) throw new Error(`OpenSky HTTP ${response.status}`);
+  if (!response.ok) {
+    const bodyText = await response.text().catch(() => "");
+    throw new Error(`OpenSky HTTP ${response.status}${bodyText ? ` -- ${bodyText.slice(0, 200)}` : ""}`);
+  }
   const data = await response.json();
   return Array.isArray(data) ? data : [];
 }
