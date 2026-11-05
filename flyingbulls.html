@@ -120,9 +120,9 @@
 
   .meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); margin-top: 12px; line-height: 1.6; }
 
-  .empty { text-align: center; padding: 60px 20px; color: var(--ink-faint); font-size: 14px; line-height: 1.6; }
+  .empty { border: 1px solid var(--line); background: var(--panel); padding: 16px; color: var(--ink-faint); font-size: 13px; line-height: 1.6; }
   .empty b { color: var(--ink-dim); }
-  .empty.small { padding: 30px 10px; }
+  .empty.small { font-size: 12.5px; padding: 14px 16px; }
 
   .section-head { margin: 32px 0 12px; }
   .section-head h2 { font-size: 15px; font-weight: 500; color: var(--ink-dim); margin: 0; }
@@ -390,7 +390,7 @@
 
         content.innerHTML = aircraft.length
           ? aircraft.map(renderCard).join("")
-          : `<div class="empty">Noch kein Flying-Bulls-Flugzeug erfasst.<br>Sobald eines startet, erscheint es hier &mdash;<br>und du bekommst eine <b>Telegram</b>-Nachricht.</div>`;
+          : `<div class="empty">Aktuell kein Flying-Bulls-Flugzeug in der Luft. Du bekommst eine <b>Telegram</b>-Nachricht, sobald eines startet.</div>`;
       } catch (error) {
         content.innerHTML = `<div class="empty">Daten gerade nicht verfügbar.<br>${escapeHtml(error.message)}</div>`;
       }
