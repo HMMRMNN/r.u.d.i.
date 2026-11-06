@@ -2169,6 +2169,12 @@ const FLYING_BULLS_ARCHIVE_LIMIT = 200;
 // echte Landungen nennenswert zu verzögern.
 const FLYING_BULLS_LANDED_GRACE_MS = 15 * 60 * 1000;
 
+// Maximale Anzahl Positions-Samples pro Flug in "path" (siehe
+// checkForFlyingBulls) -- bei einem Sample pro Check-Zyklus (alle 2 Min)
+// deckt das >13 Stunden Flugzeit ab, mehr als jeder realistische Flying-
+// Bulls-Flug. Begrenzt die KV-Wertgröße nach oben.
+const FLYING_BULLS_PATH_MAX_POINTS = 400;
+
 // WICHTIG (Fix 04.09.2026, nach echtem 429-Vorfall): ntfy.sh drosselt
 // anonyme Anfragen pro IP-Adresse -- Cloudflare Workers teilen sich
 // Ausgangs-IPs mit potenziell tausenden anderen Workern weltweit, was zu
@@ -2279,9 +2285,14 @@ async function checkForFlyingBulls(env, aircraft) {
         logEvent("flyingbulls_photo_lookup_failed_toplevel", { reg, error: errorMessage(error) });
       }
 
+      // Additiv (auf Nutzerwunsch, "Flugstrecke"): erstes Positions-
+      // Sample für die geflogene Strecke -- siehe path-Fortschreibung im
+      // "else"-Zweig unten und FLYING_BULLS_PATH_MAX_POINTS.
+      const path = lat !== null && lon !== null ? [{ lat, lon, t: now }] : [];
+
       byRegStored.set(reg, {
         reg, type, callsign, origin, destination, photoUrl,
-        airborne: true, lat, lon, altitudeM, speedKmh, track,
+        airborne: true, lat, lon, altitudeM, speedKmh, track, path,
         takeoffAt: now, lastSeenAt: now, landedAt: null, missingSinceMs: null,
       });
       changed = true;
@@ -2301,10 +2312,20 @@ async function checkForFlyingBulls(env, aircraft) {
         logEvent("flyingbulls_notify_failed", { error: errorMessage(error) });
       }
     } else {
+      // Additiv (auf Nutzerwunsch, "Flugstrecke"): laufende Positions-
+      // Historie des Fluges fortschreiben, damit flyingbulls.html die
+      // tatsächlich geflogene Strecke als Linie zeichnen kann (statt nur
+      // Start-/Zielort als Text, der bei Flügen ohne Flugplan ohnehin oft
+      // "Unbekannt" ist). Gekappt auf FLYING_BULLS_PATH_MAX_POINTS.
+      const prevPath = Array.isArray(existing.path) ? existing.path : [];
+      const path = lat !== null && lon !== null
+        ? [...prevPath, { lat, lon, t: now }].slice(-FLYING_BULLS_PATH_MAX_POINTS)
+        : prevPath;
+
       byRegStored.set(reg, {
         ...existing, type, callsign, airborne: true,
         lat, lon, altitudeM, speedKmh, track, lastSeenAt: now,
-        missingSinceMs: null,
+        missingSinceMs: null, path,
       });
       changed = true;
     }
@@ -2530,6 +2551,54 @@ async function enrichMissingPhotos(env, items) {
 }
 
 /**
+ * Selbstheilung für Archiv-Einträge, die VOR dem Gnadenfrist-Fix (siehe
+ * FLYING_BULLS_LANDED_GRACE_MS) geschrieben wurden: ein echter Flug
+ * wurde durch kurze ADS-B-Signalaussetzer in mehrere Kurz-"Flüge"
+ * zerstückelt (gleicher Vorfall wie der, der zum Gnadenfrist-Fix
+ * führte -- die schon archivierten Fragmente blieben davon aber
+ * unberührt, weil sie ja nicht neu geschrieben werden). Wendet denselben
+ * Maßstab rückwirkend an: Flüge DERSELBEN Registrierung, deren Lücke
+ * zwischen Landung und nächstem Start unter der Gnadenfrist liegt,
+ * werden zu einem Flug zusammengeführt (frühester Start, spätester
+ * Landezeitpunkt, Positions-Historien verkettet).
+ */
+function mergeFragmentedArchiveEntries(archive) {
+  const byReg = new Map();
+  for (const entry of archive) {
+    if (!byReg.has(entry.reg)) byReg.set(entry.reg, []);
+    byReg.get(entry.reg).push(entry);
+  }
+
+  const merged = [];
+  let changed = false;
+  for (const entries of byReg.values()) {
+    entries.sort((a, b) => a.takeoffAt - b.takeoffAt);
+    let current = null;
+    for (const entry of entries) {
+      if (current && Number.isFinite(current.landedAt) && entry.takeoffAt - current.landedAt < FLYING_BULLS_LANDED_GRACE_MS) {
+        current = {
+          ...current,
+          landedAt: entry.landedAt,
+          lastSeenAt: entry.landedAt,
+          origin: current.origin || entry.origin,
+          destination: current.destination || entry.destination,
+          photoUrl: current.photoUrl || entry.photoUrl,
+          path: [...(current.path || []), ...(entry.path || [])].slice(-FLYING_BULLS_PATH_MAX_POINTS),
+        };
+        changed = true;
+      } else {
+        if (current) merged.push(current);
+        current = entry;
+      }
+    }
+    if (current) merged.push(current);
+  }
+
+  merged.sort((a, b) => b.takeoffAt - a.takeoffAt);
+  return { items: merged, changed };
+}
+
+/**
  * Liest nur den von checkForFlyingBulls gepflegten Zustand aus KV --
  * macht selbst keinen aviradar-api-Aufruf, bleibt also auch dann
  * schnell/günstig, wenn flyingbulls.html alle paar Sekunden pollt.
@@ -2549,8 +2618,9 @@ async function handleFlyingBullsStatus(request, env) {
 async function handleFlyingBullsArchive(request, env) {
   requireKv(env);
   const archive = (await env.RUDI_KV.get("flyingbulls:archive", "json")) || [];
-  const { items, changed } = await enrichMissingPhotos(env, archive);
-  if (changed) await env.RUDI_KV.put("flyingbulls:archive", JSON.stringify(items));
+  const { items: mergedArchive, changed: mergeChanged } = mergeFragmentedArchiveEntries(archive);
+  const { items, changed: photoChanged } = await enrichMissingPhotos(env, mergedArchive);
+  if (mergeChanged || photoChanged) await env.RUDI_KV.put("flyingbulls:archive", JSON.stringify(items));
   const limitParam = Number(new URL(request.url).searchParams.get("limit"));
   const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : items.length;
   return jsonResponse({ flights: items.slice(0, limit) }, 200, request);
