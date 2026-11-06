@@ -2163,6 +2163,12 @@ const FLYING_BULLS_REGISTRATIONS = new Set([
 // mehrere Monate Historie, ohne dass der KV-Wert unnötig wächst.
 const FLYING_BULLS_ARCHIVE_LIMIT = 200;
 
+// Wie lange ein Flying-Bulls-Flugzeug ununterbrochen aus der Luft-Liste
+// verschwunden sein muss, bevor es als gelandet gilt (siehe
+// checkForFlyingBulls) -- absorbiert kurze ADS-B-Signalaussetzer, ohne
+// echte Landungen nennenswert zu verzögern.
+const FLYING_BULLS_LANDED_GRACE_MS = 15 * 60 * 1000;
+
 // WICHTIG (Fix 04.09.2026, nach echtem 429-Vorfall): ntfy.sh drosselt
 // anonyme Anfragen pro IP-Adresse -- Cloudflare Workers teilen sich
 // Ausgangs-IPs mit potenziell tausenden anderen Workern weltweit, was zu
@@ -2265,7 +2271,7 @@ async function checkForFlyingBulls(env, aircraft) {
       byRegStored.set(reg, {
         reg, type, callsign, origin, destination,
         airborne: true, lat, lon, altitudeM, speedKmh, track,
-        takeoffAt: now, lastSeenAt: now, landedAt: null,
+        takeoffAt: now, lastSeenAt: now, landedAt: null, missingSinceMs: null,
       });
       changed = true;
 
@@ -2287,24 +2293,38 @@ async function checkForFlyingBulls(env, aircraft) {
       byRegStored.set(reg, {
         ...existing, type, callsign, airborne: true,
         lat, lon, altitudeM, speedKmh, track, lastSeenAt: now,
+        missingSinceMs: null,
       });
       changed = true;
     }
   }
 
   // Landeerkennung: war laut gespeichertem Zustand in der Luft, taucht
-  // jetzt aber nicht mehr im Luft-Set auf -- letzte bekannte Sichtung
-  // gilt als Landezeitpunkt (exakter Moment ist über ADS-B ohnehin nicht
-  // bestimmbar, wir prüfen ja nur alle 5 Minuten). Der abgeschlossene
-  // Flug wandert zusätzlich ins Archiv (flyingbulls:archive) -- anders
-  // als "flyingbulls:status" (nur der NEUESTE Flug pro Registrierung,
-  // wird beim nächsten Start überschrieben) bleibt das Archiv eine
-  // fortlaufende Liste aller Flüge alller Flugzeuge, für die Archiv-
-  // Ansicht in flyingbulls.html.
+  // jetzt aber nicht mehr im Luft-Set auf. WICHTIG (Fix, nach echtem
+  // Vorfall: OE-FSE wurde an einem Tag 9x als "gestartet"/"gelandet"
+  // erfasst, teils mit 0 Min Flugzeit, während FlightRadar24 für
+  // denselben Tag nur 2-3 echte, lange Flüge zeigte) -- kurze ADS-B-
+  // Signalaussetzer (schwaches Signal, Gelände, Antennen-Funklöcher)
+  // ließen ein Flugzeug für einen einzelnen Check-Zyklus aus dem
+  // Luft-Set verschwinden, was sofort als Landung galt; tauchte es im
+  // nächsten Zyklus wieder auf, zählte das als neuer Start -- ein
+  // einziger echter Flug wurde so in viele Kurzflüge zerstückelt.
+  // Jetzt: ein Flugzeug gilt erst als gelandet, wenn es ununterbrochen
+  // FLYING_BULLS_LANDED_GRACE_MS lang fehlt (mehrere Check-Zyklen),
+  // nicht schon beim ersten Fehlschlag -- absorbiert kurze Aussetzer,
+  // ohne echte Landungen nennenswert zu verzögern.
   const landedFlights = [];
   for (const [reg, entry] of byRegStored) {
-    if (entry.airborne && !airborneRegs.has(reg)) {
-      const landed = { ...entry, airborne: false, landedAt: entry.lastSeenAt };
+    if (!entry.airborne || airborneRegs.has(reg)) continue;
+
+    if (!entry.missingSinceMs) {
+      byRegStored.set(reg, { ...entry, missingSinceMs: now });
+      changed = true;
+      continue;
+    }
+
+    if (now - entry.missingSinceMs >= FLYING_BULLS_LANDED_GRACE_MS) {
+      const landed = { ...entry, airborne: false, landedAt: entry.lastSeenAt, missingSinceMs: null };
       byRegStored.set(reg, landed);
       landedFlights.push(landed);
       changed = true;
