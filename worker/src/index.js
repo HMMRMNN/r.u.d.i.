@@ -245,6 +245,12 @@ export default {
         case "/flyingbulls/archive":
           return await handleFlyingBullsArchive(request, env);
 
+        // Additiv (auf Nutzerwunsch): aus dem Archiv abgeleitete
+        // Kennzahlen (Flugstunden, Distanz, meistgeflogenes Flugzeug, ...)
+        // -- siehe computeFlyingBullsStats.
+        case "/flyingbulls/stats":
+          return await handleFlyingBullsStats(request, env);
+
         // Additiv (auf Nutzerwunsch): einmaliger/manueller Nachtrag alter
         // Flüge über OpenSky Network -- siehe Kommentar bei backfillFlyingBulls.
         case "/flyingbulls/backfill":
@@ -2612,18 +2618,104 @@ async function handleFlyingBullsStatus(request, env) {
 }
 
 /**
+ * Liest flyingbulls:archive und wendet mergeFragmentedArchiveEntries an
+ * (Selbstheilung, schreibt bei Änderung zurück nach KV) -- gemeinsam
+ * genutzt von handleFlyingBullsArchive UND handleFlyingBullsStats, damit
+ * Kennzahlen auch dann korrekt sind, wenn /flyingbulls/archive selbst
+ * länger nicht aufgerufen wurde.
+ */
+async function getCleanFlyingBullsArchive(env) {
+  const archive = (await env.RUDI_KV.get("flyingbulls:archive", "json")) || [];
+  const { items, changed } = mergeFragmentedArchiveEntries(archive);
+  if (changed) await env.RUDI_KV.put("flyingbulls:archive", JSON.stringify(items));
+  return items;
+}
+
+/**
  * Liest das Flug-Archiv (abgeschlossene Flüge, neueste zuerst). Optional
  * ?limit=N, sonst alle gespeicherten (max. FLYING_BULLS_ARCHIVE_LIMIT).
  */
 async function handleFlyingBullsArchive(request, env) {
   requireKv(env);
-  const archive = (await env.RUDI_KV.get("flyingbulls:archive", "json")) || [];
-  const { items: mergedArchive, changed: mergeChanged } = mergeFragmentedArchiveEntries(archive);
+  const mergedArchive = await getCleanFlyingBullsArchive(env);
   const { items, changed: photoChanged } = await enrichMissingPhotos(env, mergedArchive);
-  if (mergeChanged || photoChanged) await env.RUDI_KV.put("flyingbulls:archive", JSON.stringify(items));
+  if (photoChanged) await env.RUDI_KV.put("flyingbulls:archive", JSON.stringify(items));
   const limitParam = Number(new URL(request.url).searchParams.get("limit"));
   const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : items.length;
   return jsonResponse({ flights: items.slice(0, limit) }, 200, request);
+}
+
+// Aus "path" abgeleitete Gesamt-Flugdistanz -- nutzt das schon
+// vorhandene haversineKm (siehe oben, ursprünglich für die Berg-
+// Distanzen) statt einer zweiten eigenen Implementierung.
+function pathDistanceKm(path) {
+  if (!Array.isArray(path) || path.length < 2) return 0;
+  let total = 0;
+  for (let i = 1; i < path.length; i++) {
+    total += haversineKm(path[i - 1].lat, path[i - 1].lon, path[i].lat, path[i].lon);
+  }
+  return total;
+}
+
+/**
+ * Additiv (auf Nutzerwunsch, "Welche Fakten kann man noch aus den Daten
+ * ableiten?"): aus dem (schon fragment-bereinigten) Archiv abgeleitete
+ * Kennzahlen -- Gesamtflugstunden, Distanz (aus den path-Punkten per
+ * Haversine), meistgeflogene Flugzeuge, längster Flug, letzte 30 Tage.
+ * Rein lesend/berechnend, schreibt selbst nichts nach KV.
+ */
+function computeFlyingBullsStats(archive) {
+  const now = Date.now();
+  const THIRTY_DAYS_MS = 30 * 24 * 3600 * 1000;
+
+  let totalFlightMinutes = 0;
+  let totalDistanceKm = 0;
+  let last30Flights = 0;
+  let last30Minutes = 0;
+  let longestFlight = null;
+  const byReg = new Map();
+
+  for (const f of archive) {
+    if (!Number.isFinite(f.takeoffAt) || !Number.isFinite(f.landedAt)) continue;
+    const minutes = Math.max(0, (f.landedAt - f.takeoffAt) / 60000);
+    totalFlightMinutes += minutes;
+    totalDistanceKm += pathDistanceKm(f.path);
+
+    if (now - f.takeoffAt <= THIRTY_DAYS_MS) {
+      last30Flights += 1;
+      last30Minutes += minutes;
+    }
+
+    if (!longestFlight || minutes > longestFlight.minutes) {
+      longestFlight = { reg: f.reg, type: f.type, minutes: Math.round(minutes), takeoffAt: f.takeoffAt, landedAt: f.landedAt };
+    }
+
+    const entry = byReg.get(f.reg) || { reg: f.reg, type: f.type, flights: 0, minutes: 0 };
+    entry.flights += 1;
+    entry.minutes += minutes;
+    entry.type = f.type || entry.type;
+    byReg.set(f.reg, entry);
+  }
+
+  const topAircraft = Array.from(byReg.values())
+    .sort((a, b) => b.minutes - a.minutes)
+    .slice(0, 5)
+    .map((e) => ({ reg: e.reg, type: e.type, flights: e.flights, minutes: Math.round(e.minutes) }));
+
+  return {
+    totalFlights: archive.length,
+    totalFlightMinutes: Math.round(totalFlightMinutes),
+    totalDistanceKm: Math.round(totalDistanceKm),
+    last30Days: { flights: last30Flights, minutes: Math.round(last30Minutes) },
+    topAircraft,
+    longestFlight,
+  };
+}
+
+async function handleFlyingBullsStats(request, env) {
+  requireKv(env);
+  const archive = await getCleanFlyingBullsArchive(env);
+  return jsonResponse(computeFlyingBullsStats(archive), 200, request);
 }
 
 /* =========================================================
