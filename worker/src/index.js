@@ -2163,6 +2163,12 @@ const FLYING_BULLS_REGISTRATIONS = new Set([
 // mehrere Monate Historie, ohne dass der KV-Wert unnötig wächst.
 const FLYING_BULLS_ARCHIVE_LIMIT = 200;
 
+// Wie lange ein Flying-Bulls-Flugzeug ununterbrochen aus der Luft-Liste
+// verschwunden sein muss, bevor es als gelandet gilt (siehe
+// checkForFlyingBulls) -- absorbiert kurze ADS-B-Signalaussetzer, ohne
+// echte Landungen nennenswert zu verzögern.
+const FLYING_BULLS_LANDED_GRACE_MS = 15 * 60 * 1000;
+
 // WICHTIG (Fix 04.09.2026, nach echtem 429-Vorfall): ntfy.sh drosselt
 // anonyme Anfragen pro IP-Adresse -- Cloudflare Workers teilen sich
 // Ausgangs-IPs mit potenziell tausenden anderen Workern weltweit, was zu
@@ -2262,10 +2268,21 @@ async function checkForFlyingBulls(env, aircraft) {
         }
       }
 
+      // Additiv (auf Nutzerwunsch): Foto der Maschine über adsbdb,
+      // siehe resolveAircraftPhoto(). Eigener try/catch, damit ein
+      // Fehlschlag hier (kein Foto bekannt, adsbdb nicht erreichbar)
+      // die Start-Erkennung selbst nicht gefährdet.
+      let photoUrl = null;
+      try {
+        photoUrl = await resolveAircraftPhoto(env, reg);
+      } catch (error) {
+        logEvent("flyingbulls_photo_lookup_failed_toplevel", { reg, error: errorMessage(error) });
+      }
+
       byRegStored.set(reg, {
-        reg, type, callsign, origin, destination,
+        reg, type, callsign, origin, destination, photoUrl,
         airborne: true, lat, lon, altitudeM, speedKmh, track,
-        takeoffAt: now, lastSeenAt: now, landedAt: null,
+        takeoffAt: now, lastSeenAt: now, landedAt: null, missingSinceMs: null,
       });
       changed = true;
 
@@ -2287,24 +2304,38 @@ async function checkForFlyingBulls(env, aircraft) {
       byRegStored.set(reg, {
         ...existing, type, callsign, airborne: true,
         lat, lon, altitudeM, speedKmh, track, lastSeenAt: now,
+        missingSinceMs: null,
       });
       changed = true;
     }
   }
 
   // Landeerkennung: war laut gespeichertem Zustand in der Luft, taucht
-  // jetzt aber nicht mehr im Luft-Set auf -- letzte bekannte Sichtung
-  // gilt als Landezeitpunkt (exakter Moment ist über ADS-B ohnehin nicht
-  // bestimmbar, wir prüfen ja nur alle 5 Minuten). Der abgeschlossene
-  // Flug wandert zusätzlich ins Archiv (flyingbulls:archive) -- anders
-  // als "flyingbulls:status" (nur der NEUESTE Flug pro Registrierung,
-  // wird beim nächsten Start überschrieben) bleibt das Archiv eine
-  // fortlaufende Liste aller Flüge alller Flugzeuge, für die Archiv-
-  // Ansicht in flyingbulls.html.
+  // jetzt aber nicht mehr im Luft-Set auf. WICHTIG (Fix, nach echtem
+  // Vorfall: OE-FSE wurde an einem Tag 9x als "gestartet"/"gelandet"
+  // erfasst, teils mit 0 Min Flugzeit, während FlightRadar24 für
+  // denselben Tag nur 2-3 echte, lange Flüge zeigte) -- kurze ADS-B-
+  // Signalaussetzer (schwaches Signal, Gelände, Antennen-Funklöcher)
+  // ließen ein Flugzeug für einen einzelnen Check-Zyklus aus dem
+  // Luft-Set verschwinden, was sofort als Landung galt; tauchte es im
+  // nächsten Zyklus wieder auf, zählte das als neuer Start -- ein
+  // einziger echter Flug wurde so in viele Kurzflüge zerstückelt.
+  // Jetzt: ein Flugzeug gilt erst als gelandet, wenn es ununterbrochen
+  // FLYING_BULLS_LANDED_GRACE_MS lang fehlt (mehrere Check-Zyklen),
+  // nicht schon beim ersten Fehlschlag -- absorbiert kurze Aussetzer,
+  // ohne echte Landungen nennenswert zu verzögern.
   const landedFlights = [];
   for (const [reg, entry] of byRegStored) {
-    if (entry.airborne && !airborneRegs.has(reg)) {
-      const landed = { ...entry, airborne: false, landedAt: entry.lastSeenAt };
+    if (!entry.airborne || airborneRegs.has(reg)) continue;
+
+    if (!entry.missingSinceMs) {
+      byRegStored.set(reg, { ...entry, missingSinceMs: now });
+      changed = true;
+      continue;
+    }
+
+    if (now - entry.missingSinceMs >= FLYING_BULLS_LANDED_GRACE_MS) {
+      const landed = { ...entry, airborne: false, landedAt: entry.lastSeenAt, missingSinceMs: null };
       byRegStored.set(reg, landed);
       landedFlights.push(landed);
       changed = true;
@@ -2547,6 +2578,37 @@ async function resolveIcao24(env, reg) {
   return normalized;
 }
 
+/**
+ * Registrierung -> Foto-URL über adsbdb (auf Nutzerwunsch, fürs Bild/
+ * die Illustration auf flyingbulls.html). Dauerhaft in KV gecacht --
+ * auch ein negatives Ergebnis (kein Foto gefunden), damit nicht bei
+ * jedem Start erneut angefragt wird. Eigenständig von resolveIcao24,
+ * weil checkForFlyingBulls() (Live-Erkennung) bisher keinen adsbdb-
+ * Aufruf macht und keinen Hexcode braucht, nur das Foto.
+ */
+async function resolveAircraftPhoto(env, reg) {
+  const kvKey = `flyingbulls:photo:${reg}`;
+  const cached = await env.RUDI_KV.get(kvKey, "json");
+  if (cached) return cached.url;
+
+  let url = null;
+  try {
+    const response = await fetch(`${ADSBDB_API}/aircraft/${encodeURIComponent(reg)}`, {
+      headers: { Accept: "application/json", "User-Agent": "RUDI-Weatherstation/1.0 (+https://hmmrmnn.github.io/r.u.d.i./)" },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      const aircraft = data?.response?.aircraft || null;
+      url = aircraft?.url_photo_thumbnail || aircraft?.url_photo || null;
+    }
+  } catch (error) {
+    logEvent("flyingbulls_photo_lookup_failed", { reg, error: errorMessage(error) });
+  }
+
+  await env.RUDI_KV.put(kvKey, JSON.stringify({ url }));
+  return url;
+}
+
 // Modul-weiter In-Memory-Cache für die Laufzeit dieser Worker-Instanz --
 // erspart bei vielen Registrierungen in Folge unnötige Token-Anfragen.
 // openSkyTokenPromise verhindert zusätzlich, dass mehrere gleichzeitig
@@ -2654,6 +2716,10 @@ async function mergeFlightsIntoArchive(env, candidates) {
   const existingArchive = (await env.RUDI_KV.get("flyingbulls:archive", "json")) || [];
   const existingStatus = (await env.RUDI_KV.get("flyingbulls:status", "json")) || [];
   const typeByReg = new Map(existingStatus.map((e) => [e.reg, e.type]));
+  // Foto fällt auf den aus flyingbulls:status bekannten Wert zurück,
+  // falls der Kandidat selbst keins mitbringt (z.B. älterer Import-
+  // Aufruf ohne photoUrl-Feld).
+  const photoByReg = new Map(existingStatus.filter((e) => e.photoUrl).map((e) => [e.reg, e.photoUrl]));
   // Minuten-Auflösung fürs Dedupe -- verhindert doppelte Einträge, falls
   // derselbe Flug schon live (checkForFlyingBulls) erfasst wurde oder
   // ein Backfill/Import mehrfach läuft.
@@ -2676,6 +2742,7 @@ async function mergeFlightsIntoArchive(env, candidates) {
       callsign: String(c.callsign || "").trim() || reg,
       origin: c.origin || null,
       destination: c.destination || null,
+      photoUrl: c.photoUrl || photoByReg.get(reg) || null,
       airborne: false,
       lat: null, lon: null, altitudeM: null, speedKmh: null, track: null,
       takeoffAt, lastSeenAt: landedAt, landedAt,
@@ -2716,6 +2783,16 @@ async function backfillFlyingBulls(env, days) {
       return found;
     }
 
+    // Foto einmal pro Registrierung holen (statt pro Fenster) -- Fehler
+    // hier sind nie fatal, der Backfill-Flug selbst bleibt gültig auch
+    // ohne Bild.
+    let photoUrl = null;
+    try {
+      photoUrl = await resolveAircraftPhoto(env, reg);
+    } catch (error) {
+      errors.push({ reg, step: "photo-lookup", error: errorMessage(error) });
+    }
+
     for (let winStart = beginSec; winStart < nowSec; winStart += windowSec) {
       const winEnd = Math.min(winStart + windowSec, nowSec);
       try {
@@ -2726,6 +2803,7 @@ async function backfillFlyingBulls(env, days) {
             callsign: f.callsign,
             origin: f.estDepartureAirport || null,
             destination: f.estArrivalAirport || null,
+            photoUrl,
             takeoffAt: Number(f.firstSeen) * 1000,
             landedAt: Number(f.lastSeen) * 1000,
           });

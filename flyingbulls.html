@@ -95,6 +95,8 @@
   .card.is-airborne { border-color: var(--red); }
 
   .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .card-top-main { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+  .card-photo { width: 56px; height: 56px; object-fit: cover; border: 1px solid var(--line); background: var(--bg); flex-shrink: 0; display: block; }
   .card-title { font-size: 17px; font-weight: 500; color: var(--ink); }
   .card-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); margin-top: 3px; }
 
@@ -133,7 +135,9 @@
 
   .archive-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
   .archive-row:last-child { border-bottom: none; }
-  .archive-left { min-width: 0; }
+  .archive-left { min-width: 0; display: flex; align-items: flex-start; gap: 10px; }
+  .archive-photo { width: 34px; height: 34px; object-fit: cover; border: 1px solid var(--line); background: var(--bg); flex-shrink: 0; display: block; }
+  .archive-left-text { min-width: 0; }
   .archive-type-line { font-size: 14px; color: var(--ink-dim); font-weight: 500; }
   .archive-type-line .reg { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); font-weight: 400; margin-left: 6px; }
   .archive-route-line { font-size: 12.5px; color: var(--ink-body); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -300,12 +304,19 @@
         ? `Gestartet ${fmtTime(item.takeoffAt)} (${fmtRelative(item.takeoffAt)}) &middot; zuletzt gesehen ${fmtRelative(item.lastSeenAt)}`
         : `Gestartet ${fmtTime(item.takeoffAt)} &middot; Gelandet ${fmtTime(item.landedAt)} (${fmtRelative(item.landedAt)}) &middot; Flugzeit ${fmtDuration(item.takeoffAt, item.landedAt)}`;
 
+      const photo = item.photoUrl
+        ? `<img class="card-photo" src="${escapeHtml(item.photoUrl)}" alt="${escapeHtml(item.type)}" loading="lazy" onerror="this.remove()">`
+        : "";
+
       return `
         <div class="card ${item.airborne ? "is-airborne" : ""}">
           <div class="card-top">
-            <div>
-              <div class="card-title">${escapeHtml(item.type)}</div>
-              <div class="card-sub">${escapeHtml(item.reg)} &middot; ${escapeHtml(item.callsign)}</div>
+            <div class="card-top-main">
+              ${photo}
+              <div>
+                <div class="card-title">${escapeHtml(item.type)}</div>
+                <div class="card-sub">${escapeHtml(item.reg)} &middot; ${escapeHtml(item.callsign)}</div>
+              </div>
             </div>
             <span class="pill ${item.airborne ? "is-airborne" : "is-landed"}">${item.airborne ? '<span class="live-dot" style="animation:none;box-shadow:none"></span> In der Luft' : "Gelandet"}</span>
           </div>
@@ -339,11 +350,17 @@
         const route = [f.origin, f.destination].filter(Boolean).join(" → ") || "Route unbekannt";
         const timeRange = f.landedAt ? `${fmtTime(f.takeoffAt)}–${fmtTime(f.landedAt)}` : fmtTime(f.takeoffAt);
         const duration = f.landedAt ? fmtDuration(f.takeoffAt, f.landedAt) : "";
+        const photo = f.photoUrl
+          ? `<img class="archive-photo" src="${escapeHtml(f.photoUrl)}" alt="${escapeHtml(f.type)}" loading="lazy" onerror="this.remove()">`
+          : "";
         html += `
           <div class="archive-row">
             <div class="archive-left">
-              <div class="archive-type-line">${escapeHtml(f.type)}<span class="reg">${escapeHtml(f.reg)}</span></div>
-              <div class="archive-route-line">${escapeHtml(route)}</div>
+              ${photo}
+              <div class="archive-left-text">
+                <div class="archive-type-line">${escapeHtml(f.type)}<span class="reg">${escapeHtml(f.reg)}</span></div>
+                <div class="archive-route-line">${escapeHtml(route)}</div>
+              </div>
             </div>
             <div class="archive-right">${timeRange}${duration ? `<br>${duration}` : ""}</div>
           </div>

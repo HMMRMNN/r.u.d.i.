@@ -63,6 +63,23 @@ async function resolveIcao24(reg) {
   return String(hex).trim().toLowerCase();
 }
 
+// Gleicher adsbdb-Aufruf wie resolveIcao24, nur fürs Foto -- getrennt
+// gehalten, weil ein fehlendes Foto nie den Hex-Lookup (und damit den
+// ganzen Backfill für diese Registrierung) scheitern lassen soll.
+async function resolveAircraftPhoto(reg) {
+  try {
+    const response = await fetch(`${ADSBDB_API}/aircraft/${encodeURIComponent(reg)}`, {
+      headers: { Accept: "application/json", "User-Agent": USER_AGENT },
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    const aircraft = data?.response?.aircraft || null;
+    return aircraft?.url_photo_thumbnail || aircraft?.url_photo || null;
+  } catch {
+    return null;
+  }
+}
+
 async function getOpenSkyToken(clientId, clientSecret) {
   const response = await fetch(OPENSKY_TOKEN_URL, {
     method: "POST",
@@ -142,6 +159,7 @@ async function main() {
   // Hex-Lookups (adsbdb) dürfen parallel bleiben -- haben beim ersten
   // Lauf nicht gedrosselt.
   const icao24ByReg = new Map();
+  const photoByReg = new Map();
   await mapWithConcurrency(FLYING_BULLS_REGISTRATIONS, 8, async (reg) => {
     try {
       icao24ByReg.set(reg, await resolveIcao24(reg));
@@ -149,6 +167,7 @@ async function main() {
       errors.push({ reg, step: "hex-lookup", error: error.message });
       console.log(`  ${reg}: Hex-Lookup fehlgeschlagen -- ${error.message}`);
     }
+    photoByReg.set(reg, await resolveAircraftPhoto(reg));
   });
 
   const nowSec = Math.floor(Date.now() / 1000);
@@ -185,6 +204,7 @@ async function main() {
           callsign: f.callsign,
           origin: f.estDepartureAirport || null,
           destination: f.estArrivalAirport || null,
+          photoUrl: photoByReg.get(task.reg) || null,
           takeoffAt, landedAt,
         });
         foundByReg.set(task.reg, (foundByReg.get(task.reg) || 0) + 1);
