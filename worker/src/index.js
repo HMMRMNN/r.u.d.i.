@@ -2501,6 +2501,35 @@ async function handleFlightAlert(request, env) {
 }
 
 /**
+ * Nachträgliches Foto-Backfill für Einträge, die VOR Einführung des
+ * Fotos (photoUrl-Feld) in KV geschrieben wurden -- ohne das würde
+ * jeder zu diesem Zeitpunkt schon gespeicherte Status/Archiv-Eintrag
+ * für immer ohne Bild bleiben, weil er ja nie neu geschrieben wird.
+ * Nur Einträge OHNE das Feld (alt) werden angefasst, nicht solche mit
+ * photoUrl: null (schon mal versucht, kein Foto gefunden) -- sonst
+ * würde jeder Aufruf erneut adsbdb treffen. resolveAircraftPhoto()
+ * cached selbst in KV, macht also ab dem zweiten Aufruf pro
+ * Registrierung ohnehin keinen echten Netzwerk-Request mehr.
+ */
+async function enrichMissingPhotos(env, items) {
+  let changed = false;
+  const enriched = await Promise.all(
+    items.map(async (item) => {
+      if (!item.reg || item.photoUrl !== undefined) return item;
+      try {
+        const photoUrl = await resolveAircraftPhoto(env, item.reg);
+        changed = true;
+        return { ...item, photoUrl };
+      } catch (error) {
+        logEvent("flyingbulls_photo_backfill_failed", { reg: item.reg, error: errorMessage(error) });
+        return item;
+      }
+    })
+  );
+  return { items: enriched, changed };
+}
+
+/**
  * Liest nur den von checkForFlyingBulls gepflegten Zustand aus KV --
  * macht selbst keinen aviradar-api-Aufruf, bleibt also auch dann
  * schnell/günstig, wenn flyingbulls.html alle paar Sekunden pollt.
@@ -2508,7 +2537,9 @@ async function handleFlightAlert(request, env) {
 async function handleFlyingBullsStatus(request, env) {
   requireKv(env);
   const stored = (await env.RUDI_KV.get("flyingbulls:status", "json")) || [];
-  return jsonResponse({ aircraft: stored }, 200, request);
+  const { items, changed } = await enrichMissingPhotos(env, stored);
+  if (changed) await env.RUDI_KV.put("flyingbulls:status", JSON.stringify(items));
+  return jsonResponse({ aircraft: items }, 200, request);
 }
 
 /**
@@ -2518,9 +2549,11 @@ async function handleFlyingBullsStatus(request, env) {
 async function handleFlyingBullsArchive(request, env) {
   requireKv(env);
   const archive = (await env.RUDI_KV.get("flyingbulls:archive", "json")) || [];
+  const { items, changed } = await enrichMissingPhotos(env, archive);
+  if (changed) await env.RUDI_KV.put("flyingbulls:archive", JSON.stringify(items));
   const limitParam = Number(new URL(request.url).searchParams.get("limit"));
-  const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : archive.length;
-  return jsonResponse({ flights: archive.slice(0, limit) }, 200, request);
+  const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : items.length;
+  return jsonResponse({ flights: items.slice(0, limit) }, 200, request);
 }
 
 /* =========================================================
