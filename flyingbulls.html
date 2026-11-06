@@ -118,6 +118,7 @@
   .stat { flex: 1 1 80px; }
   .stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-label); margin-bottom: 4px; }
   .stat-value { font-size: 20px; font-weight: 300; color: var(--ink); letter-spacing: -0.01em; }
+  .stat-value.compact { font-size: 16px; }
   .stat-unit { font-size: 12px; color: var(--ink-faint); margin-left: 2px; }
 
   .meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); margin-top: 12px; line-height: 1.6; }
@@ -185,6 +186,12 @@
     <div id="content"><div class="empty">Lädt&hellip;</div></div>
 
     <div class="section-head">
+      <h2>Statistik</h2>
+      <p class="section-sub">Abgeleitet aus dem Archiv.</p>
+    </div>
+    <div id="statsBox"><div class="empty small">Lädt&hellip;</div></div>
+
+    <div class="section-head">
       <h2>Archiv</h2>
       <p class="section-sub">Abgeschlossene Flüge, neueste zuerst.</p>
     </div>
@@ -197,12 +204,14 @@
     const RUDI_WORKER = "https://rudi.marvinradar.workers.dev";
     const STATUS_URL = `${RUDI_WORKER}/flyingbulls/status`;
     const ARCHIVE_URL = `${RUDI_WORKER}/flyingbulls/archive?limit=30`;
+    const STATS_URL = `${RUDI_WORKER}/flyingbulls/stats`;
     const REFRESH_MS = 30000;
 
     const liveDot = document.getElementById("liveDot");
     const statusText = document.getElementById("statusText");
     const content = document.getElementById("content");
     const archiveList = document.getElementById("archiveList");
+    const statsBox = document.getElementById("statsBox");
     const mapEmptyOverlay = document.getElementById("mapEmptyOverlay");
 
     // Basis Salzburg/Hangar-7 (Heimatbasis der Flying Bulls) -- Default-
@@ -323,6 +332,31 @@
       const h = Math.floor(diffMin / 60), m = diffMin % 60;
       return h > 0 ? `${h} Std ${m} Min` : `${m} Min`;
     }
+    function fmtHours(totalMinutes) {
+      const h = Math.floor(totalMinutes / 60), m = Math.round(totalMinutes % 60);
+      return h > 0 ? `${h} Std ${m} Min` : `${m} Min`;
+    }
+
+    function renderStats(stats) {
+      if (!stats || !stats.totalFlights) {
+        return `<div class="empty small">Noch keine Daten für eine Statistik -- sammelt sich mit jedem abgeschlossenen Flug.</div>`;
+      }
+      const top = stats.topAircraft[0];
+      return `
+        <div class="card">
+          <div class="stat-row">
+            <div class="stat"><div class="stat-label">Flüge gesamt</div><div class="stat-value">${fmtNum(stats.totalFlights)}</div></div>
+            <div class="stat"><div class="stat-label">Flugzeit gesamt</div><div class="stat-value compact">${fmtHours(stats.totalFlightMinutes)}</div></div>
+            <div class="stat"><div class="stat-label">Distanz gesamt</div><div class="stat-value">${fmtNum(stats.totalDistanceKm)}<span class="stat-unit">km</span></div></div>
+          </div>
+          <div class="stat-row">
+            <div class="stat"><div class="stat-label">Letzte 30 Tage</div><div class="stat-value">${stats.last30Days.flights}<span class="stat-unit">Flüge</span></div></div>
+            ${top ? `<div class="stat"><div class="stat-label">Meistgeflogen</div><div class="stat-value compact">${escapeHtml(top.type)}<span class="stat-unit">${escapeHtml(top.reg)}</span></div></div>` : ""}
+            ${stats.longestFlight ? `<div class="stat"><div class="stat-label">Längster Flug</div><div class="stat-value compact">${fmtHours(stats.longestFlight.minutes)}</div></div>` : ""}
+          </div>
+        </div>
+      `;
+    }
 
     function renderCard(item) {
       const route = `
@@ -427,6 +461,17 @@
       }
     }
 
+    async function loadStats() {
+      try {
+        const res = await fetch(STATS_URL, { headers: { Accept: "application/json" }, cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const stats = await res.json();
+        statsBox.innerHTML = renderStats(stats);
+      } catch (error) {
+        statsBox.innerHTML = `<div class="empty small">Statistik gerade nicht verfügbar.</div>`;
+      }
+    }
+
     async function load() {
       try {
         const res = await fetch(STATUS_URL, { headers: { Accept: "application/json" }, cache: "no-store" });
@@ -458,11 +503,13 @@
       }
     }
 
-    document.getElementById("refreshBtn").addEventListener("click", () => { load(); loadArchive(); });
+    document.getElementById("refreshBtn").addEventListener("click", () => { load(); loadArchive(); loadStats(); });
     load();
     loadArchive();
+    loadStats();
     setInterval(load, REFRESH_MS);
     setInterval(loadArchive, REFRESH_MS);
+    setInterval(loadStats, REFRESH_MS);
   </script>
 </body>
 </html>
