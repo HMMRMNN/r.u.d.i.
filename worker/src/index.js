@@ -2166,58 +2166,64 @@ const FLYING_BULLS_REGISTRATIONS = new Set([
 
 // Kuratierte Foto-Zuordnung (auf Nutzerwunsch: "da es sich um einen sehr
 // kleinen Kreis an Flugzeugen handelt, könntest du die Fotos jetzt schon
-// hinterlegen"). Hat Vorrang vor der adsbdb-Live-Abfrage in
+// hinterlegen", später auf Wunsch von Wikimedia auf die offizielle
+// Flying-Bulls-Seite umgestellt: "Nimm jedes Flugzeugbild von der Bulls
+// Seite"). Hat Vorrang vor der adsbdb-Live-Abfrage in
 // resolveAircraftPhoto() -- adsbdb hat für mehrere dieser historischen
 // Flugzeuge schlicht kein Foto hinterlegt (z.B. OE-FSE, per direkter
 // adsbdb-Abfrage am 07.11.2026 bestätigt: url_photo/url_photo_thumbnail
-// beide null), während Wikimedia Commons für die meisten eine Aufnahme
-// der exakten Maschine hat. Alle URLs sind direkte upload.wikimedia.org-
-// Dateipfade (von Wikimedia offiziell zum Hotlinken vorgesehen),
-// recherchiert über die Flotten-Tabellen von en.wikipedia.org/wiki/
-// The_Flying_Bulls bzw. de.wikipedia.org/wiki/Flying_Bulls und die
-// Commons-Kategorie "The Flying Bulls" samt ihrer Pro-Registrierung-
-// Unterkategorien, Existenz jeweils über die MediaWiki-imageinfo-API
-// bestätigt. Für 5 Registrierungen (OE-CKW, OE-ARN, OE-FDM, D-ICDM,
-// D-HUDM) gibt es auf Commons kein Foto der exakten Maschine -- dort
-// zeigt die URL stattdessen ein baugleiches Schwester-/Typflugzeug
-// (bei OE-ARN/OE-FDM/D-ICDM jeweils ein Flottenkollege, bei OE-CKW ein
-// anderes Exemplar des Typs). Bei kaputtem Link entfernt sich das Bild
-// in flyingbulls.html selbst (onerror="this.remove()"), kein Ausfall.
+// beide null).
+//
+// 29 von 34 zeigen das offizielle Foto von flyingbulls.at/de/flotte/...
+// (api.flyingbulls.at bzw. die kleinere www.flyingbulls.at/
+// static_processed/...-Variante für die winzigen Karten-Thumbnails hier
+// -- 15-110 KB statt 0,7-3,8 MB im Original, beide Hosts bestätigt ohne
+// Hotlink-Schutz: Access-Control-Allow-Origin: * unabhängig vom
+// Referer-Header). Für 5 Registrierungen (die drei Alpha Jets OE-FAS/
+// OE-FRB/OE-FDM, D-ICDM, und N69KL) gibt es auf flyingbulls.at gar keine
+// Seite (geprüft über beide Sitemaps + Flotten-Navigation) -- dort
+// bleibt der Wikimedia-Commons-Fallback aus der vorherigen Recherche.
+// Mehrere Registrierungen sind historische Kennungen DERSELBEN Maschine
+// (z.B. N996DM/OE-LDM, F-AZSB/OE-EFB) oder teilen sich eine Flotten-
+// Seite (z.B. die zwei Extra 300LX, die zwei Bo-105-CB-Varianten) --
+// bekommen entsprechend dasselbe Foto. Bei kaputtem Link entfernt sich
+// das Bild in flyingbulls.html selbst (onerror="this.remove()"), kein
+// Ausfall.
 const FLYING_BULLS_PHOTOS = {
-  "OE-CKW": "https://upload.wikimedia.org/wikipedia/commons/0/05/Aviat_A-1C-180_Husky_%28N275WY%29_%2835374856383%29.jpg", // Aviat Husky, generisches Typfoto
-  "OE-ADM": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Beechcraft_T-34A-BH_%28c-n_G-757%2C_s-n_55-200%2C_OE-ADM%29_2018-07-08_Andre_Gerwing_Collection_ID_003040.jpg", // Beechcraft T-34A Mentor
-  "OE-AMM": "https://upload.wikimedia.org/wikipedia/commons/1/1b/OE-AMM.jpg", // Boeing-Stearman Model 75
-  "F-AYSB": "https://upload.wikimedia.org/wikipedia/commons/a/ab/F-AYSB_F-86.jpg", // Canadair Sabre Mk.6
-  "N991DM": "https://upload.wikimedia.org/wikipedia/commons/4/46/Cessna_337D_Super_Skymaster_N991DM_OTT_2013_05.jpg", // Cessna 337D Super Skymaster
-  "OE-EDM": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Cessna_208_Caravan_I%2C_Red_Bull_%28The_Flying_Bulls%29_AN1510644.jpg", // Cessna 208 Caravan I (Amphibium)
-  "OE-EAS": "https://upload.wikimedia.org/wikipedia/commons/8/81/F4U-Corsair_OE-EAS_OTT_2013_15.jpg", // Chance Vought F4U-4 Corsair
-  "OE-LDM": "https://upload.wikimedia.org/wikipedia/commons/7/77/EGSC_-_Douglas_DC-6B_-_OE-LDM_%2842557787955%29.jpg", // Douglas DC-6B
-  "N996DM": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Douglas_DC-6B_%28c-n_45563%2C_N996DM%29_2008-05-30_Andre_Gerwing_Collection_ID_007327.jpg", // Douglas DC-6B (ex-US-Kennung derselben Maschine wie OE-LDM)
-  "OE-ARN": "https://upload.wikimedia.org/wikipedia/commons/f/fc/OE-ARO_Red_Bull_%281%29_Extra_EA_300_c-n_LC027_%2829664564073%29.jpg", // Extra EA-300LX, Foto des Schwesterflugzeugs OE-ARO
-  "OE-ARO": "https://upload.wikimedia.org/wikipedia/commons/f/fc/OE-ARO_Red_Bull_%281%29_Extra_EA_300_c-n_LC027_%2829664564073%29.jpg", // Extra EA-300LX
-  "N50429": "https://upload.wikimedia.org/wikipedia/commons/9/99/Fairchild_M-62A_%28c-n_T43-5205%2C_s-n_42-34539%2C_N50429%29_2018-07-08_Andre_Gerwing_Collection_ID_007943.jpg", // Fairchild PT-19B/M-62A Cornell
-  "N68RW": "https://upload.wikimedia.org/wikipedia/commons/7/79/F8F-2_Bearcat_%2821240969572%29.jpg", // Grumman F8F-2 Bearcat
-  "N25Y": "https://upload.wikimedia.org/wikipedia/commons/2/29/Lockheed_P-38L_Lightning_%E2%80%98N25Y%E2%80%99_%2836318527356%29.jpg", // Lockheed P-38L Lightning
-  "N6123C": "https://upload.wikimedia.org/wikipedia/commons/d/d9/N6123C_Boeing_B-25J_Mitchell_Red_Bull_P1010656_%2850852750461%29.jpg", // North American B-25J Mitchell
-  "OE-EFB": "https://upload.wikimedia.org/wikipedia/commons/6/6e/North_American_Aviation_P-51D_%28c-n_122-40967%2C_s-n_44-11622%2C_OE-EFB%29_2025-09-12_Andre_Gerwing_Collection_ID_025998.jpg", // P-51D Mustang "Nooky Booky IV"
-  "F-AZSB": "https://upload.wikimedia.org/wikipedia/commons/9/99/North_American_P-51D_Mustang_F-AZSB_%2814860778075%29.jpg", // P-51D Mustang "Nooky Booky IV" (ex-franz. Kennung derselben Maschine wie OE-EFB)
-  "OE-EMM": "https://upload.wikimedia.org/wikipedia/commons/4/4f/3O9A1058-2-2.jpg", // North American T-28B Trojan
-  "OE-ERB": "https://upload.wikimedia.org/wikipedia/commons/9/9d/North_American_Aviation_Harvard_IIB_%28c-n_14-324%2C_OE-ERB%29_2025-09-12_Andre_Gerwing_Collection_ID_025462.jpg", // North American Harvard IIB (T-6 Texan)
-  "OE-FSE": "https://upload.wikimedia.org/wikipedia/commons/a/a5/OE-FSE_Flying_Bulls.jpg", // Partenavia/Vulcanair P.68TC Observer (Foto-/Begleitflugzeug)
-  "OE-EMD": "https://upload.wikimedia.org/wikipedia/commons/8/88/EGWC_-_Pilatus_PC-6_Turbo_Porter_-_OE-EMD_%2829849852698%29.jpg", // Pilatus PC-6/B2-H4 Turbo Porter
-  "OE-FAS": "https://upload.wikimedia.org/wikipedia/commons/8/80/Dornier_Alpha_Jet_%28cn_90%2C_OE-FAS%29_2018-07-08_Andre_Gerwing_Collection_ID_006895.jpg", // Dassault/Dornier Alpha Jet A
-  "OE-FRB": "https://upload.wikimedia.org/wikipedia/commons/0/08/Dornier_Alpha_Jet_%28cn_130%2C_OE-FRB%29_2018-04-28_Andre_Gerwing_Collection_ID_006906.jpg", // Dassault/Dornier Alpha Jet A
-  "OE-FDM": "https://upload.wikimedia.org/wikipedia/commons/8/80/Dornier_Alpha_Jet_%28cn_90%2C_OE-FAS%29_2018-07-08_Andre_Gerwing_Collection_ID_006895.jpg", // Alpha Jet A, Foto des Flottenkollegen OE-FAS
-  "D-ICDM": "https://upload.wikimedia.org/wikipedia/commons/0/08/Dornier_Alpha_Jet_%28cn_130%2C_OE-FRB%29_2018-04-28_Andre_Gerwing_Collection_ID_006906.jpg", // Alpha Jet A, Foto des Flottenkollegen OE-FRB
-  "OE-XTV": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Aerospatiale_AS350B3%2B_%28c-n_4745%2C_OE-XTV%29_2018-07-08_Andre_Gerwing_Collection_ID_000301.jpg", // Airbus Helicopters AS350 B3+ Écureuil
-  "N11FX": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Bell_TAH-1F_%28c-n_20483%2C_N11FX%29_2010-06-11_Andre_Gerwing_Collection_ID_003200.jpg", // Bell 209/TAH-1F Cobra
-  "OE-XDM": "https://upload.wikimedia.org/wikipedia/commons/4/41/Bell_47G-3B-1_%28c-n_3575%2C_OE-XDM%29_2018-07-08_Andre_Gerwing_Collection_ID_003255.jpg", // Bell 47G-3B-1
-  "OE-XSY": "https://upload.wikimedia.org/wikipedia/commons/a/a0/EGVA_-_Bristol_171_Sycamore_-_OE-XSY_XG545_%2843379560672%29.jpg", // Bristol 171 Sycamore Mk.52
-  "D-HSDM": "https://upload.wikimedia.org/wikipedia/commons/c/c3/MBB_Bo105CB_D-HSDM_%288366231556%29.jpg", // MBB Bo 105 CB
-  "D-HTDM": "https://upload.wikimedia.org/wikipedia/commons/d/d2/MBB_Bo_105CBS-4_%28c-n_S-140%2C_D-HTDM%29_2008-05-30_Andre_Gerwing_Collection_ID_004743.jpg", // MBB Bo 105 CBS-4
-  "D-HUDM": "https://upload.wikimedia.org/wikipedia/commons/d/d2/MBB_Bo_105CBS-4_%28c-n_S-140%2C_D-HTDM%29_2008-05-30_Andre_Gerwing_Collection_ID_004743.jpg", // Bo 105S "Media", Foto des Flottenkollegen D-HTDM
-  "OE-XFB": "https://upload.wikimedia.org/wikipedia/commons/7/75/Eurocopter_EC_135T2_%28cn_470%2C_OE-XFB%29_2018-07-08_Andre_Gerwing_Collection_ID_010904.jpg", // Eurocopter EC135 T2
-  "N69KL": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Sukhoi_Su-29_%28cn_90-04%2C_N69KL%29_2018-07-08_Andre_Gerwing_Collection_ID_016578.jpg", // Sukhoi Su-29
+  "OE-CKW": "https://www.flyingbulls.at/static_processed/6c1e07c53f18c396fe18868d672916cd/00_header_aviat_husky_the_flying_bulls.jpg", // Aviat Husky
+  "OE-ADM": "https://www.flyingbulls.at/static_processed/8bf7f313ffde0e597e233ba246fc9d2a/00_header_beech_t-34_mentor_the_flying_bulls.jpg", // Beechcraft T-34A Mentor
+  "OE-AMM": "https://www.flyingbulls.at/static_processed/44ab6dc19eb704dc278c0b3698c0bf81/00_header_pt-17_stearman_the_flying_bulls.jpg", // Boeing-Stearman Model 75
+  "F-AYSB": "https://www.flyingbulls.at/static_processed/64121612eedf2bc01157231718945867/flyingbulls_26__c_mirja_geh_1191.jpg", // Canadair Sabre Mk.6
+  "N991DM": "https://www.flyingbulls.at/static_processed/6e4c05b8a7c613304afefa3443802f30/00_header_cessna_337_skymaster_push_pull_the_flying_bulls_photo_by_maciej_szamalek_new_1.jpg", // Cessna 337D Super Skymaster
+  "OE-EDM": "https://www.flyingbulls.at/static_processed/6fe2159bb5bee1e5af38439d491a8858/00_header_cessna_208_amphibian_caravan_the_flying_bulls_photo_by_mirja_geh.jpg", // Cessna 208 Caravan I (Amphibium)
+  "OE-EAS": "https://www.flyingbulls.at/static_processed/48e0f42c68af3db85f8482280e55e0ae/00_header_chance_vought_f4u-4_corsair_the_flying_bulls.jpg", // Chance Vought F4U-4 Corsair
+  "OE-LDM": "https://www.flyingbulls.at/static_processed/8996acdae76bcdc698a4a8e4fb8cc415/00_header_douglas_dc-6b_the_flying_bulls.jpg", // Douglas DC-6B
+  "N996DM": "https://www.flyingbulls.at/static_processed/8996acdae76bcdc698a4a8e4fb8cc415/00_header_douglas_dc-6b_the_flying_bulls.jpg", // Douglas DC-6B (ex-US-Kennung derselben Maschine wie OE-LDM)
+  "OE-ARN": "https://www.flyingbulls.at/static_processed/acdcd8a1f3b7eab2b47f0e5d2a93e91d/00_header_extra_330lx_the_flying_bulls.jpg", // Extra EA-300LX
+  "OE-ARO": "https://www.flyingbulls.at/static_processed/acdcd8a1f3b7eab2b47f0e5d2a93e91d/00_header_extra_330lx_the_flying_bulls.jpg", // Extra EA-300LX
+  "N50429": "https://www.flyingbulls.at/static_processed/64e34a40298b5ef380b842e8f1f66110/00_header_fairchild_pt-19_m_the_flying_bulls.jpg", // Fairchild PT-19B/M-62A Cornell
+  "N68RW": "https://www.flyingbulls.at/static_processed/ea4a837641da777615d9c74de4aa8968/grumman-f8f-2-bearca.jpg", // Grumman F8F-2 Bearcat
+  "N25Y": "https://www.flyingbulls.at/static_processed/feebe5dcf419c583a8723ae3a2c05dfb/00_header_lockheed_p-38_lightning_the_flying_bulls.jpg", // Lockheed P-38L Lightning
+  "N6123C": "https://www.flyingbulls.at/static_processed/65add661c4374d1acec38a8d673a5282/00_header_north_american_b-25j_the_flying_bulls.jpg", // North American B-25J Mitchell
+  "OE-EFB": "https://www.flyingbulls.at/static_processed/2c014237bbeabcfb99492f7edc886d8f/00_header_north_american_p-51d_mustang_the_flying_bulls.jpg", // P-51D Mustang "Nooky Booky IV"
+  "F-AZSB": "https://www.flyingbulls.at/static_processed/2c014237bbeabcfb99492f7edc886d8f/00_header_north_american_p-51d_mustang_the_flying_bulls.jpg", // P-51D Mustang "Nooky Booky IV" (ex-franz. Kennung derselben Maschine wie OE-EFB)
+  "OE-EMM": "https://www.flyingbulls.at/static_processed/cdb718fdf574a9e490cf1d7bcb8cfda5/00_header_north_american_t-28b_the_flying_bulls_photo_by_mirja_geh_2024.jpg", // North American T-28B Trojan
+  "OE-ERB": "https://www.flyingbulls.at/static_processed/ab71c9214eba65d1dd5824c0e320c7e1/00_header_north_american_t-6_the_flying_bulls_photo_by_zajcmaster.jpg", // North American Harvard IIB (T-6 Texan)
+  "OE-FSE": "https://www.flyingbulls.at/static_processed/9d66e174f6020336f628ab1921f66c74/00_header_p-68tc_observer_the_flying_bulls.jpg", // Partenavia/Vulcanair P.68TC Observer (Foto-/Begleitflugzeug)
+  "OE-EMD": "https://www.flyingbulls.at/static_processed/5849a4cc4408b067f249edc565a24aa3/00_header_pilatus_porter_pc-6_the_flying_bulls.jpg", // Pilatus PC-6/B2-H4 Turbo Porter
+  "OE-FAS": "https://upload.wikimedia.org/wikipedia/commons/8/80/Dornier_Alpha_Jet_%28cn_90%2C_OE-FAS%29_2018-07-08_Andre_Gerwing_Collection_ID_006895.jpg", // Alpha Jet A -- keine Seite auf flyingbulls.at, Wikimedia-Fallback
+  "OE-FRB": "https://upload.wikimedia.org/wikipedia/commons/0/08/Dornier_Alpha_Jet_%28cn_130%2C_OE-FRB%29_2018-04-28_Andre_Gerwing_Collection_ID_006906.jpg", // Alpha Jet A -- keine Seite auf flyingbulls.at, Wikimedia-Fallback
+  "OE-FDM": "https://upload.wikimedia.org/wikipedia/commons/8/80/Dornier_Alpha_Jet_%28cn_90%2C_OE-FAS%29_2018-07-08_Andre_Gerwing_Collection_ID_006895.jpg", // Alpha Jet A -- keine Seite auf flyingbulls.at, Wikimedia-Fallback (Foto des Flottenkollegen OE-FAS)
+  "D-ICDM": "https://upload.wikimedia.org/wikipedia/commons/0/08/Dornier_Alpha_Jet_%28cn_130%2C_OE-FRB%29_2018-04-28_Andre_Gerwing_Collection_ID_006906.jpg", // Alpha Jet A -- keine Seite auf flyingbulls.at, Wikimedia-Fallback (Foto des Flottenkollegen OE-FRB)
+  "OE-XTV": "https://www.flyingbulls.at/static_processed/0156353bacce31891ca4ce0c3b61a430/00_header_as_350_b3_ecureuil_the_flying_bulls.jpg", // Airbus Helicopters AS350 B3+ Écureuil
+  "N11FX": "https://www.flyingbulls.at/static_processed/149804d1542893c8dc07a34ff9a417a8/00_header_bell_cobra_209ah-1f_the_flying_bulls.jpg", // Bell 209/TAH-1F Cobra
+  "OE-XDM": "https://www.flyingbulls.at/static_processed/bce2ef010783ed915acbb098bb209898/00_header_bell_47_g-3b-1_soloy_the_flying_bulls.jpg", // Bell 47G-3B-1
+  "OE-XSY": "https://www.flyingbulls.at/static_processed/b4001ddcb9685a9b6d7c5f6d3243b223/00_header_bristol_171_sycamore_the_flying_bulls.jpg", // Bristol 171 Sycamore Mk.52
+  "D-HSDM": "https://www.flyingbulls.at/static_processed/580d8cc15541979c0ee886201917d418/00_header_bo_105_c_the_flying_bulls.jpg", // MBB Bo 105 CB
+  "D-HTDM": "https://www.flyingbulls.at/static_processed/580d8cc15541979c0ee886201917d418/00_header_bo_105_c_the_flying_bulls.jpg", // MBB Bo 105 CBS-4 (teilt sich die Flotten-Seite mit D-HSDM)
+  "D-HUDM": "https://www.flyingbulls.at/static_processed/8980a7f762b652e09cf85c3b9667c77d/00_header_bo_105_s_the_flying_bulls_photo_by_zajcmaster.jpg", // Bo 105S "Media"
+  "OE-XFB": "https://www.flyingbulls.at/static_processed/42024b5c2899a5da47ee63f7c89d7687/00_header_eurocopter_ec135_the_flying_bulls.jpg", // Eurocopter EC135 T2
+  "N69KL": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Sukhoi_Su-29_%28cn_90-04%2C_N69KL%29_2018-07-08_Andre_Gerwing_Collection_ID_016578.jpg", // Sukhoi Su-29 -- keine Seite auf flyingbulls.at, Wikimedia-Fallback
 };
 
 // Obergrenze für flyingbulls:archive (siehe checkForFlyingBulls) -- bei
