@@ -2590,24 +2590,40 @@ async function handleFlightAlert(request, env) {
 }
 
 /**
- * Nachträgliches Foto-Backfill für Einträge ohne (brauchbares) Foto --
- * sowohl ganz ohne photoUrl-Feld (alt, vor Einführung des Fotos
- * geschrieben) als auch mit photoUrl: null (adsbdb hatte beim letzten
- * Versuch keins). WICHTIG (Fix, nach echtem Vorfall: mehrere Flying-
- * Bulls-Flugzeuge blieben dauerhaft ohne Bild, weil adsbdb für sie
- * schlicht kein Foto führt -- bei OE-FSE per direkter Abfrage bestätigt:
- * url_photo/url_photo_thumbnail beide null) -- seit FLYING_BULLS_PHOTOS
- * (kuratierte Liste für die ganze, feste Flotte) kann ein zuvor als
- * "kein Foto" vermerkter Eintrag jetzt doch aufgelöst werden, deshalb
- * hier auch für photoUrl: null erneut versuchen. Bleibt günstig: die
- * kuratierte Liste ist ein reiner Objekt-Lookup ohne Netzwerk-Request,
- * und deckt praktisch die gesamte Flotte ab.
+ * Nachträgliches Foto-Backfill für Status-/Archiv-Einträge. Zwei Fälle:
+ *
+ * 1. Registrierung ist in FLYING_BULLS_PHOTOS kuratiert: der dort
+ *    hinterlegte Wert gewinnt IMMER, auch wenn der Eintrag schon ein
+ *    (anderes) photoUrl gespeichert hat. WICHTIG (Fix, nach echtem
+ *    Vorfall: nach der Umstellung von FLYING_BULLS_PHOTOS auf die
+ *    offizielle flyingbulls.at-Seite zeigte OE-FSE weiterhin das alte,
+ *    schon vorher in KV gespeicherte Wikimedia-Foto -- die Heilung lief
+ *    bis dahin nur bei LEERER photoUrl, ein bereits gefüllter, jetzt
+ *    veralteter Wert wurde nie erneut geprüft) -- so schlägt eine
+ *    Änderung an der kuratierten Liste beim nächsten Status-/Archiv-
+ *    Abruf automatisch auf alle schon gespeicherten Einträge durch,
+ *    ohne dass dafür extra Migrationscode nötig wäre.
+ * 2. Registrierung ist NICHT kuratiert: wie bisher nur auffüllen, wenn
+ *    noch kein Foto bekannt ist (ganz ohne Feld, oder photoUrl: null --
+ *    adsbdb hatte beim letzten Versuch keins).
+ *
+ * Bleibt günstig: der kuratierte Pfad ist ein reiner Objekt-Lookup ohne
+ * Netzwerk-/KV-Zugriff.
  */
 async function enrichMissingPhotos(env, items) {
   let changed = false;
   const enriched = await Promise.all(
     items.map(async (item) => {
-      if (!item.reg || item.photoUrl) return item;
+      if (!item.reg) return item;
+
+      const curated = FLYING_BULLS_PHOTOS[item.reg];
+      if (curated) {
+        if (item.photoUrl === curated) return item;
+        changed = true;
+        return { ...item, photoUrl: curated };
+      }
+
+      if (item.photoUrl) return item;
       try {
         const photoUrl = await resolveAircraftPhoto(env, item.reg);
         if (!photoUrl) return item;
