@@ -2164,6 +2164,62 @@ const FLYING_BULLS_REGISTRATIONS = new Set([
   "OE-XSY", "D-HSDM", "D-HTDM", "D-HUDM", "OE-XFB", "N69KL",
 ]);
 
+// Kuratierte Foto-Zuordnung (auf Nutzerwunsch: "da es sich um einen sehr
+// kleinen Kreis an Flugzeugen handelt, könntest du die Fotos jetzt schon
+// hinterlegen"). Hat Vorrang vor der adsbdb-Live-Abfrage in
+// resolveAircraftPhoto() -- adsbdb hat für mehrere dieser historischen
+// Flugzeuge schlicht kein Foto hinterlegt (z.B. OE-FSE, per direkter
+// adsbdb-Abfrage am 07.11.2026 bestätigt: url_photo/url_photo_thumbnail
+// beide null), während Wikimedia Commons für die meisten eine Aufnahme
+// der exakten Maschine hat. Alle URLs sind direkte upload.wikimedia.org-
+// Dateipfade (von Wikimedia offiziell zum Hotlinken vorgesehen),
+// recherchiert über die Flotten-Tabellen von en.wikipedia.org/wiki/
+// The_Flying_Bulls bzw. de.wikipedia.org/wiki/Flying_Bulls und die
+// Commons-Kategorie "The Flying Bulls" samt ihrer Pro-Registrierung-
+// Unterkategorien, Existenz jeweils über die MediaWiki-imageinfo-API
+// bestätigt. Für 5 Registrierungen (OE-CKW, OE-ARN, OE-FDM, D-ICDM,
+// D-HUDM) gibt es auf Commons kein Foto der exakten Maschine -- dort
+// zeigt die URL stattdessen ein baugleiches Schwester-/Typflugzeug
+// (bei OE-ARN/OE-FDM/D-ICDM jeweils ein Flottenkollege, bei OE-CKW ein
+// anderes Exemplar des Typs). Bei kaputtem Link entfernt sich das Bild
+// in flyingbulls.html selbst (onerror="this.remove()"), kein Ausfall.
+const FLYING_BULLS_PHOTOS = {
+  "OE-CKW": "https://upload.wikimedia.org/wikipedia/commons/0/05/Aviat_A-1C-180_Husky_%28N275WY%29_%2835374856383%29.jpg", // Aviat Husky, generisches Typfoto
+  "OE-ADM": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Beechcraft_T-34A-BH_%28c-n_G-757%2C_s-n_55-200%2C_OE-ADM%29_2018-07-08_Andre_Gerwing_Collection_ID_003040.jpg", // Beechcraft T-34A Mentor
+  "OE-AMM": "https://upload.wikimedia.org/wikipedia/commons/1/1b/OE-AMM.jpg", // Boeing-Stearman Model 75
+  "F-AYSB": "https://upload.wikimedia.org/wikipedia/commons/a/ab/F-AYSB_F-86.jpg", // Canadair Sabre Mk.6
+  "N991DM": "https://upload.wikimedia.org/wikipedia/commons/4/46/Cessna_337D_Super_Skymaster_N991DM_OTT_2013_05.jpg", // Cessna 337D Super Skymaster
+  "OE-EDM": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Cessna_208_Caravan_I%2C_Red_Bull_%28The_Flying_Bulls%29_AN1510644.jpg", // Cessna 208 Caravan I (Amphibium)
+  "OE-EAS": "https://upload.wikimedia.org/wikipedia/commons/8/81/F4U-Corsair_OE-EAS_OTT_2013_15.jpg", // Chance Vought F4U-4 Corsair
+  "OE-LDM": "https://upload.wikimedia.org/wikipedia/commons/7/77/EGSC_-_Douglas_DC-6B_-_OE-LDM_%2842557787955%29.jpg", // Douglas DC-6B
+  "N996DM": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Douglas_DC-6B_%28c-n_45563%2C_N996DM%29_2008-05-30_Andre_Gerwing_Collection_ID_007327.jpg", // Douglas DC-6B (ex-US-Kennung derselben Maschine wie OE-LDM)
+  "OE-ARN": "https://upload.wikimedia.org/wikipedia/commons/f/fc/OE-ARO_Red_Bull_%281%29_Extra_EA_300_c-n_LC027_%2829664564073%29.jpg", // Extra EA-300LX, Foto des Schwesterflugzeugs OE-ARO
+  "OE-ARO": "https://upload.wikimedia.org/wikipedia/commons/f/fc/OE-ARO_Red_Bull_%281%29_Extra_EA_300_c-n_LC027_%2829664564073%29.jpg", // Extra EA-300LX
+  "N50429": "https://upload.wikimedia.org/wikipedia/commons/9/99/Fairchild_M-62A_%28c-n_T43-5205%2C_s-n_42-34539%2C_N50429%29_2018-07-08_Andre_Gerwing_Collection_ID_007943.jpg", // Fairchild PT-19B/M-62A Cornell
+  "N68RW": "https://upload.wikimedia.org/wikipedia/commons/7/79/F8F-2_Bearcat_%2821240969572%29.jpg", // Grumman F8F-2 Bearcat
+  "N25Y": "https://upload.wikimedia.org/wikipedia/commons/2/29/Lockheed_P-38L_Lightning_%E2%80%98N25Y%E2%80%99_%2836318527356%29.jpg", // Lockheed P-38L Lightning
+  "N6123C": "https://upload.wikimedia.org/wikipedia/commons/d/d9/N6123C_Boeing_B-25J_Mitchell_Red_Bull_P1010656_%2850852750461%29.jpg", // North American B-25J Mitchell
+  "OE-EFB": "https://upload.wikimedia.org/wikipedia/commons/6/6e/North_American_Aviation_P-51D_%28c-n_122-40967%2C_s-n_44-11622%2C_OE-EFB%29_2025-09-12_Andre_Gerwing_Collection_ID_025998.jpg", // P-51D Mustang "Nooky Booky IV"
+  "F-AZSB": "https://upload.wikimedia.org/wikipedia/commons/9/99/North_American_P-51D_Mustang_F-AZSB_%2814860778075%29.jpg", // P-51D Mustang "Nooky Booky IV" (ex-franz. Kennung derselben Maschine wie OE-EFB)
+  "OE-EMM": "https://upload.wikimedia.org/wikipedia/commons/4/4f/3O9A1058-2-2.jpg", // North American T-28B Trojan
+  "OE-ERB": "https://upload.wikimedia.org/wikipedia/commons/9/9d/North_American_Aviation_Harvard_IIB_%28c-n_14-324%2C_OE-ERB%29_2025-09-12_Andre_Gerwing_Collection_ID_025462.jpg", // North American Harvard IIB (T-6 Texan)
+  "OE-FSE": "https://upload.wikimedia.org/wikipedia/commons/a/a5/OE-FSE_Flying_Bulls.jpg", // Partenavia/Vulcanair P.68TC Observer (Foto-/Begleitflugzeug)
+  "OE-EMD": "https://upload.wikimedia.org/wikipedia/commons/8/88/EGWC_-_Pilatus_PC-6_Turbo_Porter_-_OE-EMD_%2829849852698%29.jpg", // Pilatus PC-6/B2-H4 Turbo Porter
+  "OE-FAS": "https://upload.wikimedia.org/wikipedia/commons/8/80/Dornier_Alpha_Jet_%28cn_90%2C_OE-FAS%29_2018-07-08_Andre_Gerwing_Collection_ID_006895.jpg", // Dassault/Dornier Alpha Jet A
+  "OE-FRB": "https://upload.wikimedia.org/wikipedia/commons/0/08/Dornier_Alpha_Jet_%28cn_130%2C_OE-FRB%29_2018-04-28_Andre_Gerwing_Collection_ID_006906.jpg", // Dassault/Dornier Alpha Jet A
+  "OE-FDM": "https://upload.wikimedia.org/wikipedia/commons/8/80/Dornier_Alpha_Jet_%28cn_90%2C_OE-FAS%29_2018-07-08_Andre_Gerwing_Collection_ID_006895.jpg", // Alpha Jet A, Foto des Flottenkollegen OE-FAS
+  "D-ICDM": "https://upload.wikimedia.org/wikipedia/commons/0/08/Dornier_Alpha_Jet_%28cn_130%2C_OE-FRB%29_2018-04-28_Andre_Gerwing_Collection_ID_006906.jpg", // Alpha Jet A, Foto des Flottenkollegen OE-FRB
+  "OE-XTV": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Aerospatiale_AS350B3%2B_%28c-n_4745%2C_OE-XTV%29_2018-07-08_Andre_Gerwing_Collection_ID_000301.jpg", // Airbus Helicopters AS350 B3+ Écureuil
+  "N11FX": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Bell_TAH-1F_%28c-n_20483%2C_N11FX%29_2010-06-11_Andre_Gerwing_Collection_ID_003200.jpg", // Bell 209/TAH-1F Cobra
+  "OE-XDM": "https://upload.wikimedia.org/wikipedia/commons/4/41/Bell_47G-3B-1_%28c-n_3575%2C_OE-XDM%29_2018-07-08_Andre_Gerwing_Collection_ID_003255.jpg", // Bell 47G-3B-1
+  "OE-XSY": "https://upload.wikimedia.org/wikipedia/commons/a/a0/EGVA_-_Bristol_171_Sycamore_-_OE-XSY_XG545_%2843379560672%29.jpg", // Bristol 171 Sycamore Mk.52
+  "D-HSDM": "https://upload.wikimedia.org/wikipedia/commons/c/c3/MBB_Bo105CB_D-HSDM_%288366231556%29.jpg", // MBB Bo 105 CB
+  "D-HTDM": "https://upload.wikimedia.org/wikipedia/commons/d/d2/MBB_Bo_105CBS-4_%28c-n_S-140%2C_D-HTDM%29_2008-05-30_Andre_Gerwing_Collection_ID_004743.jpg", // MBB Bo 105 CBS-4
+  "D-HUDM": "https://upload.wikimedia.org/wikipedia/commons/d/d2/MBB_Bo_105CBS-4_%28c-n_S-140%2C_D-HTDM%29_2008-05-30_Andre_Gerwing_Collection_ID_004743.jpg", // Bo 105S "Media", Foto des Flottenkollegen D-HTDM
+  "OE-XFB": "https://upload.wikimedia.org/wikipedia/commons/7/75/Eurocopter_EC_135T2_%28cn_470%2C_OE-XFB%29_2018-07-08_Andre_Gerwing_Collection_ID_010904.jpg", // Eurocopter EC135 T2
+  "N69KL": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Sukhoi_Su-29_%28cn_90-04%2C_N69KL%29_2018-07-08_Andre_Gerwing_Collection_ID_016578.jpg", // Sukhoi Su-29
+};
+
 // Obergrenze für flyingbulls:archive (siehe checkForFlyingBulls) -- bei
 // realistischer Flugfrequenz der Flotte reichen 200 Einträge für
 // mehrere Monate Historie, ohne dass der KV-Wert unnötig wächst.
@@ -2528,23 +2584,27 @@ async function handleFlightAlert(request, env) {
 }
 
 /**
- * Nachträgliches Foto-Backfill für Einträge, die VOR Einführung des
- * Fotos (photoUrl-Feld) in KV geschrieben wurden -- ohne das würde
- * jeder zu diesem Zeitpunkt schon gespeicherte Status/Archiv-Eintrag
- * für immer ohne Bild bleiben, weil er ja nie neu geschrieben wird.
- * Nur Einträge OHNE das Feld (alt) werden angefasst, nicht solche mit
- * photoUrl: null (schon mal versucht, kein Foto gefunden) -- sonst
- * würde jeder Aufruf erneut adsbdb treffen. resolveAircraftPhoto()
- * cached selbst in KV, macht also ab dem zweiten Aufruf pro
- * Registrierung ohnehin keinen echten Netzwerk-Request mehr.
+ * Nachträgliches Foto-Backfill für Einträge ohne (brauchbares) Foto --
+ * sowohl ganz ohne photoUrl-Feld (alt, vor Einführung des Fotos
+ * geschrieben) als auch mit photoUrl: null (adsbdb hatte beim letzten
+ * Versuch keins). WICHTIG (Fix, nach echtem Vorfall: mehrere Flying-
+ * Bulls-Flugzeuge blieben dauerhaft ohne Bild, weil adsbdb für sie
+ * schlicht kein Foto führt -- bei OE-FSE per direkter Abfrage bestätigt:
+ * url_photo/url_photo_thumbnail beide null) -- seit FLYING_BULLS_PHOTOS
+ * (kuratierte Liste für die ganze, feste Flotte) kann ein zuvor als
+ * "kein Foto" vermerkter Eintrag jetzt doch aufgelöst werden, deshalb
+ * hier auch für photoUrl: null erneut versuchen. Bleibt günstig: die
+ * kuratierte Liste ist ein reiner Objekt-Lookup ohne Netzwerk-Request,
+ * und deckt praktisch die gesamte Flotte ab.
  */
 async function enrichMissingPhotos(env, items) {
   let changed = false;
   const enriched = await Promise.all(
     items.map(async (item) => {
-      if (!item.reg || item.photoUrl !== undefined) return item;
+      if (!item.reg || item.photoUrl) return item;
       try {
         const photoUrl = await resolveAircraftPhoto(env, item.reg);
+        if (!photoUrl) return item;
         changed = true;
         return { ...item, photoUrl };
       } catch (error) {
@@ -2782,6 +2842,11 @@ async function resolveIcao24(env, reg) {
  * Aufruf macht und keinen Hexcode braucht, nur das Foto.
  */
 async function resolveAircraftPhoto(env, reg) {
+  // Kuratierte Liste hat Vorrang (siehe FLYING_BULLS_PHOTOS) -- kein
+  // KV-Zugriff nötig, einfacher Objekt-Lookup, deckt die gesamte feste
+  // Flotte ab.
+  if (FLYING_BULLS_PHOTOS[reg]) return FLYING_BULLS_PHOTOS[reg];
+
   const kvKey = `flyingbulls:photo:${reg}`;
   const cached = await env.RUDI_KV.get(kvKey, "json");
   if (cached) return cached.url;
